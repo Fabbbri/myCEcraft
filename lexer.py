@@ -30,6 +30,9 @@ TYPES = {
 }
 
 
+RESERVED_WORDS = tuple(sorted((*KEYWORDS.keys(), *TYPES.keys()), key=len, reverse=True))
+
+
 class LexerError(Exception):
     """
     Excepción utilizada para reportar errores léxicos.
@@ -62,6 +65,76 @@ class Lexer:
     convertirlo en una secuencia de tokens.
     """
 
+    # Lista ordenada de patrones léxicos compilados una sola vez.
+    # El orden es importante: primero deben ir los patrones más específicos
+    # o más largos, para evitar que un token válido se parta incorrectamente.
+    TOKEN_SPECS = [
+        # Espacios en blanco. Se reconocen para poder ignorarlos después.
+        ("WHITESPACE", re.compile(r"[ \t\r\n]+")),
+
+        # Comentario de una sola línea: inicia con // y termina al final de la línea.
+        ("LINE_COMMENT", re.compile(r"//[^\n]*")),
+
+        # Comentario multilínea: inicia con /* y termina con */.
+        ("BLOCK_COMMENT", re.compile(r"/\*[\s\S]*?\*/")),
+
+        # Pragma definido por el lenguaje.
+        ("PRAGMA_INLINE", re.compile(r"@inline\b")),
+
+        # Operadores especiales del lenguaje.
+        # Deben ir antes que <, > y + para que no se separen incorrectamente.
+        ("SPECIAL_LPLUS4", re.compile(r"<\+4")),
+        ("SPECIAL_RPLUS5", re.compile(r">\+5")),
+
+        # Operadores de dos caracteres.
+        # Deben evaluarse antes que sus versiones de un solo carácter.
+        ("SHIFT_LEFT", re.compile(r"<<")),
+        ("SHIFT_RIGHT", re.compile(r">>")),
+        ("EQ", re.compile(r"==")),
+        ("NEQ", re.compile(r"!=")),
+        ("LE", re.compile(r"<=")),
+        ("GE", re.compile(r">=")),
+
+        # Literales.
+        # El hexadecimal debe ir antes que el entero decimal.
+        ("HEX_LITERAL", re.compile(r"0[xX][0-9A-Fa-f]+")),
+        ("STRING_LITERAL", re.compile(r'"([^"\\]|\\.)*"')),
+        ("INT_LITERAL", re.compile(r"[0-9]+")),
+
+        # Identificadores: luego se revisará si el lexema corresponde
+        # a una palabra reservada o a un tipo.
+        ("IDENT", re.compile(r"[A-Za-z_][A-Za-z0-9_]*")),
+
+        # Operadores aritméticos de un carácter.
+        ("PLUS", re.compile(r"\+")),
+        ("MINUS", re.compile(r"-")),
+        ("STAR", re.compile(r"\*")),
+        ("SLASH", re.compile(r"/")),
+
+        # Operadores relacionales y de asignación de un carácter.
+        ("LT", re.compile(r"<")),
+        ("GT", re.compile(r">")),
+        ("ASSIGN", re.compile(r"=")),
+
+        # Operadores bit a bit.
+        ("BIT_XOR", re.compile(r"\^")),
+        ("BIT_AND", re.compile(r"&")),
+        ("BIT_OR", re.compile(r"\|")),
+        ("BIT_NOT", re.compile(r"~")),
+
+        # Delimitadores y separadores.
+        ("SEMICOLON", re.compile(r";")),
+        ("LBRACE", re.compile(r"\{")),
+        ("RBRACE", re.compile(r"\}")),
+        ("LPAREN", re.compile(r"\(")),
+        ("RPAREN", re.compile(r"\)")),
+        ("LBRACKET", re.compile(r"\[")),
+        ("RBRACKET", re.compile(r"\]")),
+        ("COMMA", re.compile(r",")),
+        ("COLON", re.compile(r":")),
+        ("DOT", re.compile(r"\.")),
+    ]
+
     def __init__(self, source: str, filename: str = "<input>"):
         """
         Inicializa el lexer con el texto fuente de entrada.
@@ -79,76 +152,6 @@ class Lexer:
         # Línea y columna actuales, útiles para reportar errores.
         self.line = 1
         self.column = 1
-
-        # Lista ordenada de patrones léxicos.
-        # El orden es importante: primero deben ir los patrones más específicos
-        # o más largos, para evitar que un token válido se parta incorrectamente.
-        self.token_specs = [
-            # Espacios en blanco. Se reconocen para poder ignorarlos después.
-            ("WHITESPACE", re.compile(r"[ \t\r\n]+")),
-
-            # Comentario de una sola línea: inicia con // y termina al final de la línea.
-            ("LINE_COMMENT", re.compile(r"//[^\n]*")),
-
-            # Comentario multilínea: inicia con /* y termina con */.
-            ("BLOCK_COMMENT", re.compile(r"/\*[\s\S]*?\*/")),
-
-            # Pragma definido por el lenguaje.
-            ("PRAGMA_INLINE", re.compile(r"@inline\b")),
-
-            # Operadores especiales del lenguaje.
-            # Deben ir antes que <, > y + para que no se separen incorrectamente.
-            ("SPECIAL_LPLUS4", re.compile(r"<\+4")),
-            ("SPECIAL_RPLUS5", re.compile(r">\+5")),
-
-            # Operadores de dos caracteres.
-            # Deben evaluarse antes que sus versiones de un solo carácter.
-            ("SHIFT_LEFT", re.compile(r"<<")),
-            ("SHIFT_RIGHT", re.compile(r">>")),
-            ("EQ", re.compile(r"==")),
-            ("NEQ", re.compile(r"!=")),
-            ("LE", re.compile(r"<=")),
-            ("GE", re.compile(r">=")),
-
-            # Literales.
-            # El hexadecimal debe ir antes que el entero decimal.
-            ("HEX_LITERAL", re.compile(r"0[xX][0-9A-Fa-f]+")),
-            ("STRING_LITERAL", re.compile(r'"([^"\\]|\\.)*"')),
-            ("INT_LITERAL", re.compile(r"[0-9]+")),
-
-            # Identificadores: luego se revisará si el lexema corresponde
-            # a una palabra reservada o a un tipo.
-            ("IDENT", re.compile(r"[A-Za-z_][A-Za-z0-9_]*")),
-
-            # Operadores aritméticos de un carácter.
-            ("PLUS", re.compile(r"\+")),
-            ("MINUS", re.compile(r"-")),
-            ("STAR", re.compile(r"\*")),
-            ("SLASH", re.compile(r"/")),
-
-            # Operadores relacionales y de asignación de un carácter.
-            ("LT", re.compile(r"<")),
-            ("GT", re.compile(r">")),
-            ("ASSIGN", re.compile(r"=")),
-
-            # Operadores bit a bit.
-            ("BIT_XOR", re.compile(r"\^")),
-            ("BIT_AND", re.compile(r"&")),
-            ("BIT_OR", re.compile(r"\|")),
-            ("BIT_NOT", re.compile(r"~")),
-
-            # Delimitadores y separadores.
-            ("SEMICOLON", re.compile(r";")),
-            ("LBRACE", re.compile(r"\{")),
-            ("RBRACE", re.compile(r"\}")),
-            ("LPAREN", re.compile(r"\(")),
-            ("RPAREN", re.compile(r"\)")),
-            ("LBRACKET", re.compile(r"\[")),
-            ("RBRACKET", re.compile(r"\]")),
-            ("COMMA", re.compile(r",")),
-            ("COLON", re.compile(r":")),
-            ("DOT", re.compile(r"\.")),
-        ]
 
     def _is_at_end(self) -> bool:
         """
@@ -179,14 +182,16 @@ class Lexer:
         Args:
             text: fragmento de texto que acaba de ser reconocido.
         """
-        for ch in text:
-            self.pos += 1
+        self.pos += len(text)
 
-            if ch == "\n":
-                self.line += 1
-                self.column = 1
-            else:
-                self.column += 1
+        line_breaks = text.count("\n")
+        if line_breaks == 0:
+            self.column += len(text)
+            return
+
+        self.line += line_breaks
+        last_newline = text.rfind("\n")
+        self.column = len(text) - last_newline
 
     def tokenize(self) -> list[Token]:
         """
@@ -231,12 +236,9 @@ class Lexer:
         Raises:
             LexerError: si ningún patrón coincide con el texto actual.
         """
-        # Texto aún no procesado desde la posición actual.
-        remaining = self.source[self.pos:]
-
         # Probar cada patrón en orden.
-        for name, pattern in self.token_specs:
-            match = pattern.match(remaining)
+        for name, pattern in self.TOKEN_SPECS:
+            match = pattern.match(self.source, self.pos)
 
             # Si el patrón no coincide al inicio, se prueba el siguiente.
             if not match:
@@ -264,6 +266,25 @@ class Lexer:
             # Si se reconoció un identificador, hay que verificar si en realidad
             # corresponde a una palabra reservada o a un tipo del lenguaje.
             if name == "IDENT":
+                # Detecta typos como "craft3" o "invokeke":
+                # palabra reservada/tipo seguida de sufijo alfanumerico sin separador.
+                for reserved in RESERVED_WORDS:
+                    if not lexeme.startswith(reserved) or lexeme == reserved:
+                        continue
+
+                    suffix = lexeme[len(reserved):]
+                    if suffix and suffix[0] != "_":
+                        raise LexerError(
+                            message=(
+                                f"identificador invalido '{lexeme}': "
+                                f"la palabra reservada/tipo '{reserved}' no puede llevar sufijo "
+                                "alfanumerico sin separador"
+                            ),
+                            line=start_line,
+                            column=start_column,
+                            filename=self.filename,
+                        )
+
                 token_type = KEYWORDS.get(lexeme) or TYPES.get(lexeme) or TokenType.IDENT
                 return Token(token_type, lexeme, start_line, start_column)
 
