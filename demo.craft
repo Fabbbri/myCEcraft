@@ -1,0 +1,7 @@
+@inline
+craftt:int suma(a:int, b:int) {
+    return a + b;
+}
+
+invoke "math" as m;
+x:int = summon:m.suma(3, 5);

@@ -276,9 +276,8 @@ class Lexer:
                     if suffix and suffix[0] != "_":
                         raise LexerError(
                             message=(
-                                f"identificador invalido '{lexeme}': "
-                                f"la palabra reservada/tipo '{reserved}' no puede llevar sufijo "
-                                "alfanumerico sin separador"
+                                f"identificador invalido '{lexeme}', "
+                                f"quisiste decir '{reserved}'?"
                             ),
                             line=start_line,
                             column=start_column,
