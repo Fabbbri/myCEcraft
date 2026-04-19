@@ -2,16 +2,98 @@
 
 Este programa muestra la arquitectura Craft21 para el proyecto Compilador-Procesador MyCECraft. El procesador está realizado en SystemVerilog utilizando IcarusVerilog y GTKWave o Surfer (en ambiente IOS (Apple Silicon)).
 
-## Archivos
+## Estructura de la carpeta de arquitectura
 
-Por editar...\
+```
+arqui/
+├── rtl/
+├── tb/
+├── sim/
+├── programs/
+├── scripts/
+├── docs/
+├── Makefile
+├── run.sh
+└── .gitignore
+```
 
-- `chacha20_c.c`: Programa principal en C. 
-- `startup.s`: Código de inicio que configura la pila y llama a main(). Los programas C necesitan inicialización antes de ejecutar main()
-- `chacha20_asm.s`: Función en ensamblador que realiza el cifrado Chacha20 siguiendo las convenciones de llamada RISC-V
-- `linker.ld`: Script de enlazado que define la memoria y punto de entrada
-- `build.sh`: Script de compilación
-- `run-qemu.sh`: Script para ejecutar QEMU
+### `rtl/` - Hardware (Register Transfer Level)
+
+Contiene todos los módulos del procesador (hardware sintetizable (SystemVerilog))
+
+```
+rtl/
+├── alu.sv
+├── register_file.sv
+├── control_unit.sv
+├── datapath.sv
+├── cpu_top.sv
+├── instr_rom.sv
+├── data_mem.sv
+```
+
+### `tb/` - Testbenches
+
+En esta carpeta se encuentran los módulos de prueba para verificar el funcionamiento de cada módulo de Hardware
+
+```
+tb/
+├── tb_alu.sv
+├── tb_register_file.sv
+├── tb_cpu.sv
+```
+
+Incluye aspectos como:
+- Bloques initial
+- $dumpfile y $dumpvars
+- Estímulos (inputs)
+- Verificación de resultados
+- Prints
+
+Deben contener lo siguiente:
+
+```SystemVerilog
+string tb_name = "tb_alu";
+
+initial begin
+    $dumpfile($sformatf("sim/waves/%s.vcd", tb_name));
+    $dumpvars(0, tb_alu);
+end
+```
+
+### `sim/` - Archivos de simulación
+
+Contiene todos los archivos generados durante la simulación:
+
+```
+sim/
+├── build/     # archivos compilados (.vvp)
+├── waves/     # dumps de señales (.vcd)
+├── gtkwave/   # configuraciones (.gtkw)
+```
+
+### `programs/` - Programas de prueba 
+
+Contiene todos los programas que serán ejecutados por la CPU:
+
+```
+programs/
+├── sum.s
+├── fibonacci.s
+├── test1.hex
+├── test2.mem
+```
+
+### `scripts/` - Automatización
+
+Cualquier script en python que ayude a facilitar el flujo de trabajo:
+
+```
+scripts/
+├── assemble.py
+├── generate_mem.py
+├── run_tests.py
+```
 
 ## Funcionalidad
 
@@ -124,7 +206,7 @@ git push origin --delete <nombre_rama>
 git branch -d <nombre_rama>
 ```
 
-## Comandos útiles de Makefile
+## Comandos útiles para probar la arquitectura
 ```bash
 # Estando en la raíz
 chmod +x run-arqui.sh # la primera vez 

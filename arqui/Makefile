@@ -1,65 +1,72 @@
 # =========================
 # Configuración
 # =========================
-TOP = tb_top              # nombre del testbench principal
+TOP ?= tb_top   # puedes sobreescribirlo: make run TOP=tb_alu
+
 SRC_DIR = rtl
 TB_DIR = tb
-BUILD_DIR = build
-WAVE_DIR = waves
+SIM_DIR = sim
+BUILD_DIR = $(SIM_DIR)/build
+WAVE_DIR = $(SIM_DIR)/waves
 
-# Archivos fuente
 SRC = $(wildcard $(SRC_DIR)/*.sv)
-TB  = $(wildcard $(TB_DIR)/*.sv)
 
-# Salidas
-OUT = $(BUILD_DIR)/sim.vvp
-VCD = $(WAVE_DIR)/dump.vcd
+# Si TOP está definido → usar solo ese TB
+# Si no → usar todos
+ifeq ($(TOP),all)
+    TB = $(wildcard $(TB_DIR)/*.sv)
+else
+    TB = $(TB_DIR)/$(TOP).sv
+endif
 
-# Comandos
+OUT = $(BUILD_DIR)/$(TOP).vvp
+VCD = $(WAVE_DIR)/$(TOP).vcd
+
 IVERILOG = iverilog
 VVP = vvp
-GTKWAVE = gtkwave
 
-# Flags (SystemVerilog)
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    WAVE_VIEWER = surfer
+else
+    WAVE_VIEWER = gtkwave
+endif
+
 IVERILOG_FLAGS = -g2012
 
 # =========================
 # Targets
 # =========================
 
-# Default
 all: run
 
-# Crear carpetas necesarias
 dirs:
 	mkdir -p $(BUILD_DIR) $(WAVE_DIR)
 
-# Compilar
 compile: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)
 
-# Ejecutar simulación
 run: compile
 	$(VVP) $(OUT)
 
-# Abrir GTKWave
 wave:
-	$(GTKWAVE) $(VCD)
+	@if [ ! -f $(VCD) ]; then \
+		echo "❌ No existe $(VCD). Ejecuta primero make run TOP=$(TOP)"; \
+		exit 1; \
+	fi
+	$(WAVE_VIEWER) $(VCD)
 
-# Limpiar
+# Ejecutar TODOS los testbenches
+run-all:
+	@for tb in $(wildcard $(TB_DIR)/*.sv); do \
+		name=$$(basename $$tb .sv); \
+		echo "▶️ Ejecutando $$name..."; \
+		$(MAKE) run TOP=$$name; \
+	done
+
 clean:
-	rm -rf $(BUILD_DIR) $(WAVE_DIR)
+	rm -rf $(SIM_DIR)
 
-# Limpiar solo waves
-clean-waves:
-	rm -rf $(WAVE_DIR)
-
-# Rebuild completo
-re: clean all
-
-# =========================
-# Debug útil
-# =========================
 print:
-	@echo "SRC: $(SRC)"
+	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
