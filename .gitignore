@@ -1,3 +1,45 @@
+# =========================
+# Icarus Verilog / Simulación
+# =========================
+*.vvp
+*.vcd
+*.fst
+*.lxt
+*.lxt2
+
+# Ejecutables
+a.out
+*.out
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Dumps grandes (actívalos si quieres ignorarlos)
+# *.vcd
+# *.fst
+
+# =========================
+# GTKWave / Surfer
+# =========================
+*.gtkw
+*.sav
+*.surfer
+
+# =========================
+# Carpetas de build
+# =========================
+build/
+dist/
+out/
+bin/
+obj/
+waves/
+
+# =========================
+# Python
+# =========================
+
 # IDE folders
 .idea/
 
@@ -7,3 +49,96 @@ __pycache__/
 
 /shelf/
 /workspace.xml
+
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+.env/
+.venv/
+
+# Distribución / packaging
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+
+# Testing / coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================
+# VSCode y editores
+# =========================
+.vscode/
+.idea/
+*.code-workspace
+
+# Vim / otros
+*.swp
+*.swo
+*~
+
+# =========================
+# MacOS
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos de sistema
+Icon?
+._*
+
+# =========================
+# Linux
+# =========================
+*~
+
+.nfs*
+
+# =========================
+# Windows (por si acaso)
+# =========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Git / Misc
+# =========================
+*.bak
+*.backup
+*.old
+
+# Archivos de configuración sensibles
+.env.local
+.env.*.local
+
+# =========================
+# Makefiles / CMake (opcional)
+# =========================
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# =========================
+# Archivos grandes opcionales
+# =========================
+*.bin
+*.hex
+*.mem
+
+# =========================
+# Logs de herramientas
+# =========================
+*.jou
+*.str
+*.wdb
