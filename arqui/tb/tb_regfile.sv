@@ -31,7 +31,7 @@ module regfile_tb;
     endtask
 
     initial begin
-        $dumpfile("regfile_tb.vcd");
+        $dumpfile("sim/waves/regfile_tb.vcd");
         $dumpvars(0, regfile_tb);
 
         // Inicialización
