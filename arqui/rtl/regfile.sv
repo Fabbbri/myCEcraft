@@ -13,13 +13,13 @@ module regfile (
 
     logic [31:0] regs [15:0]; // 16 registros de 32 bits
 
-    // NO RESUELVE RAW
-    assign rd1 = regs[rs1];
-    assign rd2 = regs[rs2];
+    // Lectura con bypass NO RESUELVE RAW
+    // (condicion) ? 1 : 0
+    // Si se cumple que WE=1 AND rd es igual a rs1 (RAW en el mismo ciclo),
+    // entonces se toma wd
 
-    // Lectura con bypass
-    // assign rd1 = (we && rd == rs1) ? wd : regs[rs1];
-    // assign rd2 = (we && rd == rs2) ? wd : regs[rs2];
+    assign rd1 = (we && rd == rs1) ? wd : regs[rs1];
+    assign rd2 = (we && rd == rs2) ? wd : regs[rs2];
 
     // ----------------------------------------------------------
     // Logica Secuencial para escritura
