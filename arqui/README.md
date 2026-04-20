@@ -209,7 +209,7 @@ git branch -d <nombre_rama>
 ## Comandos útiles para probar la arquitectura
 ```bash
 # Estando en la raíz
-chmod +x run-arqui.sh # la primera vez 
+chmod +x run.sh # la primera vez 
 
-./run-arqui.sh
+./run.sh
 ```
