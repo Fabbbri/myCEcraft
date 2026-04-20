@@ -7,6 +7,7 @@ module instr_rom #(
 
     // Memoria de instrucciones
     logic [31:0] memory [0:DEPTH-1];
+    // palabras de 32 bits (4 bytes). Memoria con Celdas DEPTH -1
 
     // Inicialización
     initial begin
@@ -24,5 +25,6 @@ module instr_rom #(
 
     // Acceso a memoria (alineado a palabra)
     assign instr = (addr[31:2] < DEPTH) ? memory[addr[31:2]] : 32'h00000013;
+    // index = addr / 4, es lo mismo que shift 2
 
 endmodule
