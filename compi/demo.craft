@@ -1,5 +1,5 @@
 @inline
-craft:int suma(a:int, b:int) {
+craftft:int suma(a:int, b:int) {
     return a + b;
 }
 
