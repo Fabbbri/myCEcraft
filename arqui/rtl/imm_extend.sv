@@ -20,29 +20,25 @@ imm = intern
 14 = 10
 */
 
-always_comb begin
-    case (imm_src)
-        // SW
-        // Sign extended para SW (25:17 y 7:4). 12 bits y el de signo 
-        // Puede no estar alineado 
-        2'b00: imm_extended = {{20{imm[21]}}, imm[20:13], imm[3:0]};
+                        // SW
+                        // Sign extended para SW (25:17 y 7:4). 12 bits y el de signo 
+                        // Puede no estar alineado 
+assign imm_extended = (imm_src == 2'b00) ? {{20{imm[21]}}, imm[20:13], imm[3:0]}
 
-        // LW 
-        // Sign extended para LW (25:17 y 15:12). 12 bits y el de signo
-        // Puede no estar alineado
-        2'b01: imm_extended = {{20{imm[21]}}, imm[20:13], imm[11:8]};
+                    // LW 
+                    // Sign extended para LW (25:17 y 15:12). 12 bits y el de signo
+                    // Puede no estar alineado
+                    : (imm_src == 2'b01) ? {{20{imm[21]}}, imm[20:13], imm[11:8]}
 
-        // Sign extended para J (25:17 , 15:12	11:8). 
-        // Total de 16 bits y el bit de signo 
-        // 2 0s al final para alineamiento
-        2'b10: imm_extended = {{14{imm[21]}}, imm[20:13], imm[11:8], imm[7:4], 2'b00};
+                    // Sign extended para J (25:17 , 15:12	11:8). 
+                    // Total de 16 bits y el bit de signo 
+                    // 2 0s al final para alineamiento
+                    : (imm_src == 2'b10) ? {{14{imm[21]}}, imm[20:13], imm[11:8], imm[7:4], 2'b00}
 
-        // Sign extended para B (25:17 y 7:4) 
-        // Total de 12 bits y el bit de signo
-        // 2 0s al final para alineamiento
-        2'b11: imm_extended = {{18{imm[21]}}, imm[20:13], imm[3:0], 2'b00};
-
-    endcase
-end
+                    // Sign extended para B (25:17 y 7:4) 
+                    // Total de 12 bits y el bit de signo
+                    // 2 0s al final para alineamiento
+                    : (imm_src == 2'b11) ? {{18{imm[21]}}, imm[20:13], imm[3:0], 2'b00}
+                    : 32'b0;
 
 endmodule

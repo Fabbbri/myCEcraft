@@ -5,6 +5,8 @@ module instr_rom #(
     output logic [31:0] instr   // Instrucción de 32 bits
 );
 
+    // Se accede por palabra (32 bits, 4 bytes)
+
     // Memoria de instrucciones
     logic [31:0] memory [0:DEPTH-1];
     // palabras de 32 bits (4 bytes). Memoria con Celdas DEPTH -1
