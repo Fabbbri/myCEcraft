@@ -8,6 +8,9 @@ De estas operaciones se tiene que:
 - S y J usan bits del 4 al 27
 - I y B usan bits del 4 al 31
 
+Lo que quiere decir que, los S y J tienen como entrada imm[23:0]
+Por otro lado, los I y B tienen como entrada imm[27:0]
+
 ### Tipo S
 
 Para los tipo S de opcode `0010` (para ST/LD de Word), `0011` (para ST/LD de Byte) y `1110` (para ST/LD de vault) se tiene:
@@ -52,26 +55,27 @@ Para los tipo J de opcode `0100` se tiene:
 Todos estos tienen como bit de signo al bit 27
 El func 19 indica si es un jal o un jalr. Siempre agarra los mismos bits para formar 18 bits
 
+JUMP (101) jalr o (000) jal
 | Imm | Bits reales |
 |--------------|--------------|
-| 0      | 9      |
-| 1      | 10     |
-| 2      | 11     |
-| 3      | 12     |
-| 4      | 13     |
-| 5      | 14     |
-| 6      | 15     |
-| 7      | 16     |
-| 8      | 17     |
-| 9      | 18     |
-| 10     | 20     |
-| 11     | 21     |
-| 12     | 22     |
-| 13     | 23     |
-| 14     | 24     |
-| 15     | 25     |
-| 16     | 26     |
-| 17     | 27     |
+| 2      | 9      |
+| 3      | 10     |
+| 4      | 11     |
+| 5      | 12     |
+| 6      | 13     |
+| 7      | 14     |
+| 8      | 15     |
+| 9      | 16     |
+| 10      | 17     |
+| 11      | 18     |
+| 12     | 20     |
+| 13     | 21     |
+| 14     | 22     |
+| 15     | 23     |
+| 16     | 24     |
+| 17     | 25     |
+| 18     | 26     |
+| 19     | 27     |
 
 ### Tipo B:
 
@@ -89,19 +93,19 @@ Dónde func permite diferenciar el tipo de operación y la combinación `00100` 
 
 | Imm | Bits reales |
 |--------------|--------------|
-| 0      | 4      |
-| 1      | 5      |
-| 2      | 6      |
-| 3      | 7      |
-| 4      | 8      |
-| 5      | 24     |
-| 6      | 25     |
-| 7      | 26     |
-| 8      | 27     |
-| 9      | 28     |
-| 10     | 29     |
-| 11     | 30     |
-| 12     | 31     |
+| 2      | 4      |
+| 3      | 5      |
+| 4      | 6      |
+| 5      | 7      |
+| 6      | 8      |
+| 7      | 24     |
+| 8      | 25     |
+| 9      | 26     |
+| 10     | 27     |
+| 11     | 28     |
+| 12     | 29     |
+| 13     | 30     |
+| 14     | 31     |
 
 ### Tipo I
 
