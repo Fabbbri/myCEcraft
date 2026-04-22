@@ -10,7 +10,7 @@ module tb_data_ram;
     logic [31:0] rdata;
 
     data_ram dut (
-        .clk(clk), .we(we), .size(size),
+        .clk(clk), .we_mem(we), .size(size),
         .addr(addr), .wdata(wdata), .rdata(rdata)
     );
 

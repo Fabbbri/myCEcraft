@@ -1,6 +1,6 @@
 module regfile (
     input  logic        clk, // reloj global
-    input  logic        we,  // Write Enable (para reg)
+    input  logic        we_reg,  // Write Enable (para reg)
     input  logic [3:0]  rs1, rs2, // Registros source
     input  logic [3:0]  rd, // Registro destino
     input  logic [31:0] wd, // Dato a escribir
@@ -18,15 +18,15 @@ module regfile (
     // Si se cumple que WE=1 AND rd es igual a rs1 (RAW en el mismo ciclo),
     // entonces se toma wd
 
-    assign rd1 = (we && rd == rs1) ? wd : regs[rs1];
-    assign rd2 = (we && rd == rs2) ? wd : regs[rs2];
+    assign rd1 = (we_reg && rd == rs1) ? wd : regs[rs1];
+    assign rd2 = (we_reg && rd == rs2) ? wd : regs[rs2];
 
     // ----------------------------------------------------------
     // Logica Secuencial para escritura
     // ----------------------------------------------------------
 
     always_ff @(posedge clk) begin
-        if (we && rd != 0) // si WE =1 y rd es distinto de 0 (en x0 no se escribe)
+        if (we_reg && rd != 0) // si WE =1 y rd es distinto de 0 (en x0 no se escribe)
             regs[rd] <= wd;
     end
 

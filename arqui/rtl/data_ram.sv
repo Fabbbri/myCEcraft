@@ -1,6 +1,6 @@
 module data_ram (
     input  logic        clk,
-    input  logic        we,
+    input  logic        we_mem,
     input  logic [1:0]  size,     // 00=byte, 10=word ... ¿01 posible half?
     input  logic [31:0] addr,
     input  logic [31:0] wdata,
@@ -36,7 +36,7 @@ module data_ram (
 
     // ESCRITURA
     always_ff @(posedge clk) begin
-        if (we) begin
+        if (we_mem) begin
             case (size)
 
                 2'b00: begin // SB
