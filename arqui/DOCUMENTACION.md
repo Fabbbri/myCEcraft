@@ -139,26 +139,51 @@ Los tipo I, de opcode = `0001` y `1011` para los de bóveda. Utilizan un func pa
 | 14     | 30     |
 | 15     | 31     |
 
+Como SRC para determinar que extensión realizar, se utiliza WE_REG y un IMM_SRC de esta forma:
+
+- ST(001) o LW (100)
+- JUMP (101) jalr o (000) jal
+- BRANCH (010)
+- IMMEDIATE (110) addi o (111) addi Signed
+
 ## ALU
 
 Las operaciones tipo R tienen todas `opcode [3:0] = 0000`
 
-| func[21:19] | índice | nemónico |
+| func[23:19] | índice | nemónico |
 |--------------|--------------|--------------|
-| Celda 1      | 1      | add     |
-| Celda 3      | 2      | sub     |
-| Celda 1      | 3      | sll     |
-| Celda 3      | 4      | slt     |
-| Celda 1      | 5      | xor     |
-| Celda 3      | 6      | srl     |
-| Celda 3      | 7      | sra     |
-| Celda 3      | 8      | or     |
-| Celda 3      | 9      | mul     |
-| Celda 3      | 10      | div    |
+| 00000      | 1      | add     |
+| 00001      | 2      | sub     |
+| 00010      | 3      | sll     |
+| 00011      | 4      | slt     |
+| 00100      | 5      | xor     |
+| 00101      | 6      | srl     |
+| 00110      | 7      | sra     |
+| 00111      | 8      | or      |
+| 01000      | 9      | and     |
+| 01001      | 10     | mul     |
+| 01010      | 11     | div     |
 
-Se tienen 10 operaciones:
+Se tienen 11 operaciones:
 
-- `add` realiza rs1 + rs2 y lo guarda en rd.
-- `sub` realiza rs1 - rs2 y lo guarda en rd.
-- `sll` realiza rs1 << rs2 y lo guarda en rd.
-- `slt` realiza rs1 + rs2 y lo guarda en rd.
+- `add` realiza rd = rs1 + rs2 
+- `sub` realiza rd = rs1 - rs2 
+- `sll` realiza rd = rs1 << rs2 
+- `slt` realiza rd = ¿rs1 < rs2?
+Lo hace usando rs1 - rs2 y luego 
+less=(signo_resultado)⊕(overflow), de forma que si rs1 < rs2 => rd = 0, si es mayor rd = 1.
+
+- `xor` realiza rd = rs1 ^ rs2 
+- `srl` realiza rd = rs1 >> rs2 
+- `sra` $signed(rs1) >>> rs2; (rellena con el signo)
+- `or` realia rd = rs1 | rs2
+- `and` realiza rd = rs1 & rs2
+- `mul` realiza rd = rs1 * rs2
+- `div` realiza rd = rs1 / rs2
+
+La ALU tiene actualmente las flags Z, N, V
+- `Z` se activa si rd = 0
+- `N` se activa si rd[31] = 1
+- `V` se activa con la multiplicación cuando ...
+
+

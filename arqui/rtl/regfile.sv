@@ -1,8 +1,8 @@
 module regfile (
     input  logic        clk, // reloj global
     input  logic        we_reg,  // Write Enable (para reg)
-    input  logic [3:0]  rs1, rs2, // Registros source
-    input  logic [3:0]  rd, // Registro destino
+    input  logic [4:0]  rs1, rs2, // Registros source
+    input  logic [4:0]  rd, // Registro destino
     input  logic [31:0] wd, // Dato a escribir
     output logic [31:0] rd1, rd2 // Registros YA leídos
 );
@@ -11,7 +11,7 @@ module regfile (
     // Logica Combinacional para lectura
     // ----------------------------------------------------------
 
-    logic [31:0] regs [15:0]; // 16 registros de 32 bits
+    logic [31:0] regs [31:0]; // 32 registros de 32 bits
 
     // Lectura con bypass NO RESUELVE RAW
     // (condicion) ? 1 : 0
@@ -32,7 +32,7 @@ module regfile (
 
     // Inicialización
     initial begin
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 32; i++)
             regs[i] = 0; // inicializa TODOS los registros en 0. x0 se mantiene en 0 siempre
     end
 

@@ -5,14 +5,14 @@ module regfile_tb;
     // Señales
     logic clk;
     logic we;
-    logic [3:0] rs1, rs2, rd;
+    logic [4:0] rs1, rs2, rd;
     logic [31:0] wd;
     logic [31:0] rd1, rd2;
 
     // Instancia del DUT (Device Under Test)
     regfile uut (
         .clk(clk),
-        .we(we),
+        .we_reg(we),
         .rs1(rs1),
         .rs2(rs2),
         .rd(rd),
