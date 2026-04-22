@@ -36,7 +36,7 @@ assign alu_result = (alu_control == 5'b00000) ? (sum)
                     : (alu_control == 5'b00010) ? (srcA << srcB[4:0])
 
                     // SLT
-                    : (alu_control == 5'b00011) ? {{31'b0},((sub)[31] ^ v_flag)}    
+                    : (alu_control == 5'b00011) ? {31'b0, (sub[31] ^ v_flag)} 
 
                     // XOR
                     : (alu_control == 5'b00100) ? (srcA ^ srcB)
@@ -45,7 +45,7 @@ assign alu_result = (alu_control == 5'b00000) ? (sum)
                     : (alu_control == 5'b00101) ? (srcA >> srcB[4:0])
 
                     // SRA
-                    : (alu_control == 5'b00110) ? ($signed(srcA) >>> srcB)
+                    : (alu_control == 5'b00110) ? (32'($signed(srcA) >>> srcB[4:0]))
 
                     // OR
                     : (alu_control == 5'b00111) ? (srcA | srcB)
