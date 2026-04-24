@@ -5,12 +5,12 @@ module tb_imm_extend;
     // ── DUT ────────────────────────────────────────────────────────────────
     logic [27:0] imm;
     logic  [1:0] imm_src;
-    logic        we_reg;
+    logic        we_reg, we_regV;
     logic [31:0] imm_extended;
 
     imm_extend dut (
         .imm(imm), .imm_src(imm_src), .we_reg(we_reg),
-        .imm_extended(imm_extended)
+        .we_regV(we_regV), .imm_extended(imm_extended)
     );
 
     // ── contadores ─────────────────────────────────────────────────────────

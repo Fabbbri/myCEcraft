@@ -184,6 +184,8 @@ less=(signo_resultado)⊕(overflow), de forma que si rs1 < rs2 => rd = 0, si es 
 La ALU tiene actualmente las flags Z, N, V
 - `Z` se activa si rd = 0
 - `N` se activa si rd[31] = 1
-- `V` se activa con la multiplicación cuando ...
+- `V` se activa con suma y resta, DEBE ACTUALIZARSE PARA LA MULTIPLICACIÓN.
+
+## VAULT
 
 

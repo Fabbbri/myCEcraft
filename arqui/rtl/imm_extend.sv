@@ -2,6 +2,7 @@ module imm_extend(
     input  logic [27:0]  imm, // bits 31 a 4
     input logic [1:0] imm_src,
     input logic we_reg,
+    input logic we_regV,
     output logic [31:0] imm_extended // extendido
 );
 
@@ -87,27 +88,7 @@ IMMEDIATE (110) addi o (111) addi Signed
 | 14     | 30     |
 | 15     | 31     |
 
-INTERN SIGNAL
-| imm | Bits reales |
-|--------------|--------------|
-| 0      | 9      |
-| 1      | 10     |
-| 2      | 11     |
-| 3      | 12     |
-| 4      | 13     |
-| 5      | 14     |
-| 6      | 15     |
-| 7      | 16     |
-| 8      | 17     |
-| 9      | 18     |
-| 10     | 20     |
-| 11     | 21     |
-| 12     | 22     |
-| 13     | 23     |
-| 14     | 24     |
-| 15     | 25     |
-| 16     | 26     |
-| 17     | 27     |
+
 */
 
 /*
@@ -118,8 +99,11 @@ intern - 4 = real
 4 = 0
 */
 
+logic imm_src2;
 logic [2:0] temp_signal;
-assign temp_signal = {we_reg, imm_src};
+
+assign imm_src2 = we_reg | we_regV; // imm para vault es igual
+assign temp_signal = {imm_src2, imm_src};
 
                         // SW
                         // Sign extended para SW [27:20][8:4], 12 bits y el de signo
