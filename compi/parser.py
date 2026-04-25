@@ -231,7 +231,7 @@ class Parser:
             initializer = self._expression()
 
         if require_semicolon:
-            self._consume(TokenType.SEMICOLON, "se esperaba ';' despues de la declaracion")
+            self._consume_statement_semicolon("se esperaba ';' despues de la declaracion")
 
         return VariableDeclaration(
             name=name.lexeme,
@@ -384,12 +384,12 @@ class Parser:
         if not self._check(TokenType.SEMICOLON):
             value = self._expression()
 
-        self._consume(TokenType.SEMICOLON, "se esperaba ';' despues de return")
+        self._consume_statement_semicolon("se esperaba ';' despues de return")
         return ReturnStatement(value=value, line=start.line, column=start.column)
 
     def _expression_statement(self) -> ASTNode:
         expression = self._assignment_or_expression()
-        self._consume(TokenType.SEMICOLON, "se esperaba ';' despues de la instruccion")
+        self._consume_statement_semicolon("se esperaba ';' despues de la instruccion")
 
         if isinstance(expression, Assignment):
             return expression
@@ -719,6 +719,37 @@ class Parser:
         if self._check(token_type):
             return self._advance()
         raise self._error(self._peek(), message)
+
+    def _consume_statement_semicolon(self, message: str) -> None:
+        if self._match(TokenType.SEMICOLON):
+            return
+
+        hint = self._special_operator_hint()
+        if hint is not None:
+            raise self._error(self._peek(), hint)
+
+        raise self._error(self._peek(), message)
+
+    def _special_operator_hint(self) -> str | None:
+        previous = self._previous()
+        current = self._peek()
+
+        if current.type not in {TokenType.IDENT, TokenType.KW_SUMMON, TokenType.LPAREN}:
+            return None
+
+        if previous.type == TokenType.INT_LITERAL and previous.lexeme == "4":
+            return (
+                "operador especial incompleto: se encontro '+4' seguido de otra "
+                "expresion; quiso decir '<+4'"
+            )
+
+        if previous.type == TokenType.INT_LITERAL and previous.lexeme == "5":
+            return (
+                "operador especial incompleto: se encontro '+5' seguido de otra "
+                "expresion; quiso decir '>+5'"
+            )
+
+        return None
 
     def _check(self, token_type: TokenType) -> bool:
         if self._is_at_end():

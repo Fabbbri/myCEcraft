@@ -114,16 +114,18 @@ class PrimitiveType(Type):
 @dataclass(frozen=True)
 class PointerType(Type):
     """
-    Representa pointer[<tipo_base>].
+    Representa pointer o pointer[<tipo_base>].
     """
 
-    base_type: Type
+    base_type: Type | None
 
-    def __init__(self, base_type: Type):
+    def __init__(self, base_type: Type | None = None):
         object.__setattr__(self, "kind", TypeKind.POINTER)
         object.__setattr__(self, "base_type", base_type)
 
     def describe(self) -> str:
+        if self.base_type is None:
+            return "pointer"
         return f"pointer[{self.base_type.describe()}]"
 
 
@@ -456,13 +458,31 @@ class SymbolTable:
 
         for symbol in scope.symbols.values():
             type_repr = symbol.type.describe() if symbol.type is not None else "None"
+            memory_repr = self._format_memory(symbol.memory_info)
             lines.append(
                 f"{indent}  - {symbol.name} :: {symbol.kind.name} :: {type_repr} "
                 f"(decl={symbol.decl_file}:{symbol.decl_line}:{symbol.decl_column})"
+                f"{memory_repr}"
             )
 
         for child in scope.children:
             self._dump_scope(child, lines)
+
+    def _format_memory(self, memory: MemoryInfo) -> str:
+        if memory.segment is None:
+            return ""
+
+        parts = [f" segment={memory.segment}"]
+        if memory.address is not None:
+            parts.append(f"addr=0x{memory.address:04X}")
+        if memory.offset is not None:
+            parts.append(f"offset={memory.offset:+}")
+        if memory.size_in_bytes is not None:
+            parts.append(f"size={memory.size_in_bytes}")
+        if not memory.resolved:
+            parts.append("unresolved")
+
+        return " [" + ", ".join(parts) + "]"
 
 
 # --------------------------------------------------------------------

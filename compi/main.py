@@ -4,6 +4,7 @@ import sys
 from ast_nodes import format_ast
 from lexer import Lexer, LexerError
 from parser import ParseError, Parser
+from semantic import SemanticAnalyzer, SemanticError
 
 
 def main() -> int:
@@ -11,6 +12,7 @@ def main() -> int:
 
     show_tokens = False
     show_ast = False
+    show_symbols = False
     input_file = None
 
     for arg in args:
@@ -18,6 +20,8 @@ def main() -> int:
             show_tokens = True
         elif arg in {"--ast", "-t"}:
             show_ast = True
+        elif arg in {"--symbols", "-m"}:
+            show_symbols = True
         elif input_file is None:
             input_file = arg
         else:
@@ -25,7 +29,7 @@ def main() -> int:
             return 2
 
     if input_file is None:
-        print("Uso: python main.py [--tokens] [-t|--ast] <archivo.craft>")
+        print("Uso: python main.py [--tokens] [-t|--ast] [-m|--symbols] <archivo.craft>")
         return 2
 
     input_path = Path(input_file)
@@ -57,12 +61,21 @@ def main() -> int:
 
         if show_ast:
             print(format_ast(ast))
-        elif not show_tokens:
-            print(f"Analisis sintactico completado: {input_path}")
+
+        semantic = SemanticAnalyzer(filename=str(input_path))
+        symbol_table = semantic.analyze(ast)
+
+        if show_symbols:
+            print(symbol_table.dump())
+        elif not show_tokens and not show_ast:
+            print(f"Analisis semantico completado: {input_path}")
     except LexerError as error:
         print(error)
         return 1
     except ParseError as error:
+        print(error)
+        return 1
+    except SemanticError as error:
         print(error)
         return 1
 

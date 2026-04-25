@@ -126,7 +126,55 @@ Actualmente detecta errores básicos como:
 
 ## 3. Análisis semántico
 
-N/A
+### Estado actual
+La fase de análisis semántico inicial está **implementada**.
+
+El analizador semántico recorre el AST generado por el parser y construye la
+tabla de símbolos con scopes, tipos y memoria preliminar.
+
+Actualmente realiza:
+
+- registro de imports como aliases de módulo
+- registro de funciones en el scope global
+- registro de parámetros dentro del scope de cada función
+- registro de variables globales, locales y de ciclos
+- validación de redeclaraciones dentro del mismo scope
+- validación básica de variables usadas antes de declararse
+- validación básica de llamadas a funciones locales
+- validación de aliases usados en llamadas tipo `summon:alias.funcion(...)`
+- inferencia básica de tipos en literales, expresiones, arreglos e índices
+- asignación preliminar de memoria
+- registro de etiquetas simbólicas para `if`, `while` y `for`
+
+### Convención de memoria actual
+
+Como la arquitectura todavía está en desarrollo, se usa una convención inicial
+compatible con la idea de usar `sp`/stack:
+
+- funciones: segmento `TEXT`, dirección pendiente
+- etiquetas de saltos: segmento `TEXT`, dirección pendiente
+- parámetros: segmento `STACK`, offsets positivos desde `sp`/frame pointer
+- variables locales: segmento `STACK`, offsets negativos
+- variables globales: segmento `DATA`, desde `0x1000`
+
+Las direcciones reales de funciones y etiquetas quedan sin resolver porque eso
+depende de la generación de ensamblador y del conteo real de instrucciones. Esa
+resolución corresponde a fases 4 y 5.
+
+### Uso
+
+```bash
+python compi/main.py -m compi/demo.craft
+```
+
+Opciones útiles:
+
+- `-m` o `--symbols`: imprime scopes, símbolos, tipos y memoria.
+- `-t` o `--ast`: imprime el AST.
+- `--tokens` o `-l`: imprime tokens.
+
+Si no se indica ninguna opción, el compilador realiza lexer + parser + análisis
+semántico y reporta que terminó correctamente.
 
 ---
 
@@ -157,14 +205,15 @@ N/A
 - lexer funcional
 - parser sintáctico
 - construcción e impresión del AST
+- análisis semántico inicial
+- tabla de símbolos con scopes
+- asignación preliminar de memoria para stack/data/text
 
 ### En progreso
-- análisis semántico
-- integración futura con tabla de símbolos
+- integración futura con generación de ensamblador
+- resolución real de direcciones de etiquetas
 
 ### Pendiente
-- análisis semántico
-- tabla de símbolos
 - ensamblador
 - saltos y referencias
 - binario final
