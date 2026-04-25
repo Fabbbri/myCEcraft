@@ -3,6 +3,7 @@ invoke "encrypt" as e;
 
 key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
 buffer:chest[int, 8] = [0, 1, 2, 3];
+DELTA:uint32 = 0x9e3779b9;
 
 @inline
 craft:int suma(a:int, b:int) {
@@ -14,6 +15,31 @@ craft:uint32 tea_round(v0:uint32, v1:uint32, sum:uint32) {
     aux:uint32 = v1 <+4 key[0];
     aux2:uint32 = v1 >+5 key[1];
     return aux ^ aux2 ^ sum;
+}
+
+craft:void tea_encrypt(v:chest[uint32, 2]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = 0;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        sum = sum + DELTA;
+
+        aux:uint32 = v1 <+4 key[0];
+        aux2:uint32 = v1 + sum;
+        aux3:uint32 = v1 >+5 key[1];
+
+        v0 = v0 + (aux ^ aux2 ^ aux3);
+
+        aux4:uint32 = v0 <+4 key[2];
+        aux5:uint32 = v0 + sum;
+        aux6:uint32 = v0 >+5 key[3];
+
+        v1 = v1 + (aux4 ^ aux5 ^ aux6);
+    }
+
+    v[0] = v0;
+    v[1] = v1;
 }
 
 craft:int main() {
@@ -35,6 +61,9 @@ craft:int main() {
         total = total - 1;
     }
 
-    summon:e.tea_round(key[0], key[1], 0x9e3779b9);
+    block:chest[uint32, 2] = [0x0, 0x0];
+
+    summon:tea_encrypt(block);
+
     return total;
 }
