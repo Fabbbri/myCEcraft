@@ -26,6 +26,8 @@ TYPES = {
     "chest": TokenType.TYPE_CHEST,
 }
 
+TAB_WIDTH = 4
+
 
 class LexerError(Exception):
     """
@@ -116,14 +118,14 @@ class Lexer:
     def _advance(self, text: str) -> None:
         self.pos += len(text)
 
-        line_breaks = text.count("\n")
-        if line_breaks == 0:
-            self.column += len(text)
-            return
-
-        self.line += line_breaks
-        last_newline = text.rfind("\n")
-        self.column = len(text) - last_newline
+        for char in text:
+            if char == "\n":
+                self.line += 1
+                self.column = 1
+            elif char == "\t":
+                self.column += TAB_WIDTH - ((self.column - 1) % TAB_WIDTH)
+            else:
+                self.column += 1
 
     def tokenize(self) -> list[Token]:
         tokens = []

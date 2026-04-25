@@ -1,15 +1,34 @@
 from pathlib import Path
 import sys
 
+from ast_nodes import format_ast
 from lexer import Lexer, LexerError
+from parser import ParseError, Parser
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("Uso: python main.py <archivo.craft>")
+    args = sys.argv[1:]
+
+    show_tokens = False
+    show_ast = False
+    input_file = None
+
+    for arg in args:
+        if arg in {"--tokens", "-l"}:
+            show_tokens = True
+        elif arg in {"--ast", "-t"}:
+            show_ast = True
+        elif input_file is None:
+            input_file = arg
+        else:
+            print(f"Error: argumento no reconocido '{arg}'")
+            return 2
+
+    if input_file is None:
+        print("Uso: python main.py [--tokens] [-t|--ast] <archivo.craft>")
         return 2
 
-    input_path = Path(sys.argv[1])
+    input_path = Path(input_file)
 
     if input_path.suffix.lower() != ".craft":
         print(f"Error: el archivo '{input_path}' debe tener extension .craft")
@@ -29,9 +48,21 @@ def main() -> int:
         lexer = Lexer(source_code, filename=str(input_path))
         tokens = lexer.tokenize()
 
-        for token in tokens:
-            print(token)
+        if show_tokens:
+            for token in tokens:
+                print(token)
+
+        parser = Parser(tokens, filename=str(input_path))
+        ast = parser.parse()
+
+        if show_ast:
+            print(format_ast(ast))
+        elif not show_tokens:
+            print(f"Analisis sintactico completado: {input_path}")
     except LexerError as error:
+        print(error)
+        return 1
+    except ParseError as error:
         print(error)
         return 1
 

@@ -71,7 +71,56 @@ Pendientes opcionales de mejora:
 
 ## 2. Análisis sintáctico
 
-N/A
+### Estado actual
+La fase de análisis sintáctico está **implementada**.
+
+El parser toma la lista de tokens generada por el lexer, valida la estructura
+del programa y construye un AST imprimible.
+
+Actualmente reconoce:
+
+- imports: `invoke "modulo" as alias;`
+- pragmas `@inline` aplicados a funciones
+- funciones: `craft:<tipo> nombre(<parametros>) { ... }`
+- parámetros `nombre:<tipo>`
+- tipos primitivos: `int`, `uint32`, `uint16`, `char`, `void`
+- tipos compuestos: `pointer[<tipo>]`, `pointer`, `chest[<tipo>, <tamano>]`
+- declaraciones de variables: `nombre:<tipo> = <expresion>;`
+- asignaciones: `nombre = <expresion>;` y `arreglo[i] = <expresion>;`
+- bloques `{ ... }`
+- `if` / `else if` / `else`
+- `while`
+- `for`
+- `return;` y `return <expresion>;`
+- llamadas con `summon:nombre(...)` y `summon:alias.nombre(...)`
+- literales enteros, hexadecimales, strings y arreglos `[ ... ]`
+- acceso a arreglos: `arr[i]`
+- expresiones aritméticas, relacionales, bit a bit y especiales `<+4`, `>+5`
+
+### Uso
+
+```bash
+python compi/main.py -t compi/demo.craft
+```
+
+Opciones útiles:
+
+- `-t` o `--ast`: imprime el AST.
+- `--tokens` o `-l`: imprime la lista de tokens antes del análisis sintáctico.
+
+Si no se indica ninguna opción, el compilador realiza lexer + parser y reporta
+que el análisis sintáctico terminó correctamente.
+
+### Errores sintácticos que detecta
+
+Actualmente detecta errores básicos como:
+
+- falta de `;`
+- falta de `)`, `]` o `}`
+- pragmas `@inline` fuera de funciones
+- tipos mal formados
+- llamadas `summon` incompletas
+- asignaciones con lado izquierdo no asignable
 
 ---
 
@@ -106,14 +155,14 @@ N/A
 - tabla de tokens
 - regex del lexer
 - lexer funcional
+- parser sintáctico
+- construcción e impresión del AST
 
 ### En progreso
-- implementación del parser
-- definición de la gramática mínima inicial
-- construcción progresiva del AST
+- análisis semántico
+- integración futura con tabla de símbolos
 
 ### Pendiente
-- parser completo
 - análisis semántico
 - tabla de símbolos
 - ensamblador

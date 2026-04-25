@@ -1,7 +1,40 @@
+invoke "math" as m;
+invoke "encrypt" as e;
+
+key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
+buffer:chest[int, 8] = [0, 1, 2, 3];
+
 @inline
-craftft:int suma(a:int, b:int) {
-    return a + b;
+craft:int suma(a:int, b:int) {
+    resultado:int = a + b;
+    return resultado;
 }
 
-invoke "math" as m;
-x:int = summon:m.suma(3, 6);
+craft:uint32 tea_round(v0:uint32, v1:uint32, sum:uint32) {
+    aux:uint32 = v1 <+4 key[0];
+    aux2:uint32 = v1 >+5 key[1];
+    return aux ^ aux2 ^ sum;
+}
+
+craft:int main() {
+    total:int = summon:m.suma(3, 6);
+
+    if (total > 20) {
+        total = total - 1;
+    } else if (total == 9) {
+        total = total + 10;
+    } else {
+        total = 0;
+    }
+
+    for (i:int = 0; i < 4; i = i + 1) {
+        buffer[i] = buffer[i] + total;
+    }
+
+    while (total > 0) {
+        total = total - 1;
+    }
+
+    summon:e.tea_round(key[0], key[1], 0x9e3779b9);
+    return total;
+}
