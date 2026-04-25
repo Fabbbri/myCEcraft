@@ -1,10 +1,11 @@
-module regfile (
+module neather_regfile (
     input  logic        clk, // reloj global
-    input  logic        we_reg,  // Write Enable (para reg)
-    input  logic [4:0]  rs1, rs2, // Registros source
-    input  logic [4:0]  rd, // Registro destino
-    input  logic [31:0] wd, // Dato a escribir
-    output logic [31:0] rd1, rd2 // Registros YA leídos
+    input  logic        we_regV,  // Write Enable (para reg Vault)
+    input  logic [4:0]  rv2, // Registro source
+    input  logic [4:0]  rdv, // Registro destino
+    input  logic [31:0] wdV, // Dato a escribir
+
+    output logic [31:0] rv // Registro YA leídos
 );
 
     // ----------------------------------------------------------
@@ -15,19 +16,18 @@ module regfile (
 
     // Lectura con bypass NO RESUELVE RAW
     // (condicion) ? 1 : 0
-    // Si se cumple que WE=1 AND rd es igual a rs1 (RAW en el mismo ciclo),
+    // Si se cumple que WE=1 AND rd es igual a rs (RAW en el mismo ciclo),
     // entonces se toma wd
 
-    assign rd1 = (we_reg && rd == rs1) ? wd : regs[rs1];
-    assign rd2 = (we_reg && rd == rs2) ? wd : regs[rs2];
+    assign rdV = (we_regV && rdV == rv2) ? wdV : regs[rv2];
 
     // ----------------------------------------------------------
     // Logica Secuencial para escritura
     // ----------------------------------------------------------
 
     always_ff @(posedge clk) begin
-        if (we_reg && rd != 0) // si WE =1 y rd es distinto de 0 (en x0 no se escribe)
-            regs[rd] <= wd;
+        if (we_regV && rdV != 0) // si WE =1 y rd es distinto de 0 (en x0 no se escribe)
+            regs[rdV] <= wdV;
     end
 
     // Inicialización
