@@ -5,7 +5,7 @@ module neather_regfile (
     input  logic [4:0]  rdv, // Registro destino
     input  logic [31:0] wdV, // Dato a escribir
 
-    output logic [31:0] rv // Registro YA leídos
+    output logic [31:0] rdv2 // Registro YA leídos
 );
 
     // ----------------------------------------------------------
@@ -14,20 +14,21 @@ module neather_regfile (
 
     logic [31:0] regs [31:0]; // 32 registros de 32 bits
 
+    // Registro READ
     // Lectura con bypass NO RESUELVE RAW
     // (condicion) ? 1 : 0
     // Si se cumple que WE=1 AND rd es igual a rs (RAW en el mismo ciclo),
     // entonces se toma wd
 
-    assign rdV = (we_regV && rdV == rv2) ? wdV : regs[rv2];
+    assign rdv2 = (we_regV && rdv == rv2) ? wdV : regs[rv2];
 
     // ----------------------------------------------------------
     // Logica Secuencial para escritura
     // ----------------------------------------------------------
 
     always_ff @(posedge clk) begin
-        if (we_regV && rdV != 0) // si WE =1 y rd es distinto de 0 (en x0 no se escribe)
-            regs[rdV] <= wdV;
+        if (we_regV && rdv != 0) // si WE =1 y rdestino es distinto de 0 (en x0 no se escribe)
+            regs[rdv] <= wdV;
     end
 
     // Inicialización
