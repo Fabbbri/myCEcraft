@@ -16,7 +16,7 @@ module tb_neather_regfile;
         .rv2(rs2),
         .rdv(rd),
         .wdV(wd),
-        .rv(rd2)
+        .rdv2(rd2)
     );
 
     // Clock: 10ns periodo
