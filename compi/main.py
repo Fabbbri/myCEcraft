@@ -23,12 +23,12 @@ def main() -> int:
             show_tokens = True
         elif arg in {"--ast", "-t"}:
             show_ast = True
+        elif arg in {"--asm", "-s"}:
+            show_asm = True
         elif arg in {"--symbols", "-m"}:
             show_symbols = True
         elif input_file is None:
             input_file = arg
-        elif arg in {"--asm", "-s"}:
-            show_asm = True
         else:
             print(f"Error: argumento no reconocido '{arg}'")
             return 2
