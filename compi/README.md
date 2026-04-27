@@ -209,7 +209,52 @@ Opciones útiles:
 
 ## 5. Cálculo de saltos y resolución de referencias
 
-N/A
+### Estado actual
+La fase de cálculo de saltos y resolución de referencias está implementada en
+una primera versión.
+
+Esta fase toma el ensamblador generado en fase 4 y realiza dos pasadas:
+
+- identifica etiquetas del segmento `.text` y las asocia con su dirección `pc`
+- reemplaza referencias simbólicas en saltos por offsets relativos en bytes
+- valida que los offsets estén alineados a 4 bytes
+- valida rangos de salto para instrucciones tipo `B` y `J`
+- conserva comentarios con la etiqueta original y la dirección destino
+
+La convención usada actualmente es:
+
+```text
+offset = target_pc - current_pc
+```
+
+### Uso
+
+```bash
+python compi/main.py -r compi/demo.craft
+```
+
+Esto genera:
+
+- `demo.asm`: ensamblador de fase 4
+- `demo.resolved.asm`: ensamblador con saltos y referencias resueltas
+
+También se puede combinar con `-s`:
+
+```bash
+python compi/main.py -s -r compi/demo.craft
+```
+
+Ejemplo de transformación:
+
+```asm
+bge x3, x4, .L_codegen_2_while_end
+```
+
+pasa a:
+
+```asm
+bge x3, x4, 24 ; target=.L_codegen_2_while_end ; addr=0x0038
+```
 
 ---
 
@@ -232,12 +277,12 @@ N/A
 - tabla de símbolos con scopes
 - asignación preliminar de memoria para stack/data/text
 - generación de ensamblador (fase 4)
+- cálculo de saltos y resolución de referencias (fase 5)
 
 ### En progreso
-- resolución real de direcciones de etiquetas
+- generación de código binario
 
 ### Pendiente
-- saltos y referencias
 - binario final
 
 ---

@@ -7,6 +7,7 @@ from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
 from codegen.generator import AssemblyGenerator
 from codegen.errors import CodegenError
+from codegen.resolver import LabelResolver, ResolutionError
 
 
 def main() -> int:
@@ -16,6 +17,7 @@ def main() -> int:
     show_ast = False
     show_symbols = False
     show_asm = False
+    show_resolved = False
     input_file = None
     
     for arg in args:
@@ -25,6 +27,8 @@ def main() -> int:
             show_ast = True
         elif arg in {"--asm", "-s"}:
             show_asm = True
+        elif arg in {"--resolve", "-r"}:
+            show_resolved = True
         elif arg in {"--symbols", "-m"}:
             show_symbols = True
         elif input_file is None:
@@ -34,7 +38,10 @@ def main() -> int:
             return 2
 
     if input_file is None:
-        print("Uso: python main.py [--tokens] [-t|--ast] [-m|--symbols] <archivo.craft>")
+        print(
+            "Uso: python main.py [--tokens] [-t|--ast] [-m|--symbols] "
+            "[-s|--asm] [-r|--resolve] <archivo.craft>"
+        )
         return 2
 
     input_path = Path(input_file)
@@ -70,7 +77,7 @@ def main() -> int:
         semantic = SemanticAnalyzer(filename=str(input_path))
         symbol_table = semantic.analyze(ast)
 
-        if show_asm:
+        if show_asm or show_resolved:
             generator = AssemblyGenerator(symbol_table)
             assembly_code = generator.generate(ast)
 
@@ -79,9 +86,18 @@ def main() -> int:
 
             print(f"Ensamblador generado: {asm_path}")
 
+            if show_resolved:
+                resolver = LabelResolver()
+                resolved = resolver.resolve(assembly_code)
+
+                resolved_path = input_path.with_suffix(".resolved.asm")
+                resolved_path.write_text(resolved.assembly, encoding="utf-8")
+
+                print(f"Referencias resueltas: {resolved_path}")
+
         if show_symbols:
             print(symbol_table.dump())
-        elif not show_tokens and not show_ast and not show_asm:
+        elif not show_tokens and not show_ast and not show_asm and not show_resolved:
             print(f"Analisis semantico completado: {input_path}")
     except LexerError as error:
         print(error)
@@ -93,6 +109,9 @@ def main() -> int:
         print(error)
         return 1
     except CodegenError as error:
+        print(error)
+        return 1
+    except ResolutionError as error:
         print(error)
         return 1
 
