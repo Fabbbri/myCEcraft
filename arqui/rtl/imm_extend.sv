@@ -1,8 +1,7 @@
 module imm_extend(
     input  logic [27:0]  imm, // bits 31 a 4
     input logic [1:0] imm_src,
-    input logic we_reg,
-    input logic we_regV,
+    input logic imms_src2
     output logic [31:0] imm_extended // extendido
 );
 
@@ -102,7 +101,6 @@ intern - 4 = real
 logic imm_src2;
 logic [2:0] temp_signal;
 
-assign imm_src2 = we_reg | we_regV; // imm para vault es igual
 assign temp_signal = {imm_src2, imm_src};
 
                         // SW
@@ -134,9 +132,12 @@ assign imm_extended = (temp_signal == 3'b001) ? {{20{imm[23]}}, imm[22:16], imm[
                     // Total de 16 bits (o 15 y el de signo)
                     // Puede no estar alineado
                     // src = (110) addiUnsigned o (111) addiSigned, 32 - 16 = 16, 32 - 15 = 17
+                    // 
                     : (temp_signal == 3'b110) ? {{16{1'b0}}, imm[27:12]}
                     : (temp_signal == 3'b111) ? {{17{imm[27]}}, imm[26:12]}
-                    
+
+                    : (temp_signal == 3'b011) ? {imm[27:12], {16{1'b0}}} // addiHIGH (011)
+
                     : 32'b0;
 
 endmodule
