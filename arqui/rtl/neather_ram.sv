@@ -3,7 +3,8 @@ module neather_ram (
     input  logic        we_memV,
     input  logic [31:0] addrV,
     input  logic [31:0] wdataV,
-    output logic [31:0] rdataV
+    output logic [31:0] rdataV,
+    output logic [31:0] rdataPass0V
 );
 
     // Se accede por byte (8bits)
@@ -29,7 +30,10 @@ module neather_ram (
     assign rdataV = {mem[addr_index + 3],
                     mem[addr_index + 2],
                     mem[addr_index + 1],
-                    mem[addr_index]} ;  // LW                                           
+                    mem[addr_index]} ;  // LW      
+
+    // Lectura fija a dirección 0
+    assign rdataPass0V = {mem[3], mem[2], mem[1], mem[0]};                                     
 
     // ESCRITURA
     always_ff @(posedge clk) begin
