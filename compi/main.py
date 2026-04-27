@@ -5,7 +5,7 @@ from ast_nodes import format_ast
 from lexer import Lexer, LexerError
 from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
-
+from codegen import AssemblyGenerator, CodegenError
 
 def main() -> int:
     args = sys.argv[1:]
@@ -13,8 +13,9 @@ def main() -> int:
     show_tokens = False
     show_ast = False
     show_symbols = False
+    show_asm = False
     input_file = None
-
+    
     for arg in args:
         if arg in {"--tokens", "-l"}:
             show_tokens = True
@@ -24,6 +25,8 @@ def main() -> int:
             show_symbols = True
         elif input_file is None:
             input_file = arg
+        elif arg in {"--asm", "-s"}:
+            show_asm = True
         else:
             print(f"Error: argumento no reconocido '{arg}'")
             return 2
@@ -65,9 +68,18 @@ def main() -> int:
         semantic = SemanticAnalyzer(filename=str(input_path))
         symbol_table = semantic.analyze(ast)
 
+        if show_asm:
+            generator = AssemblyGenerator(symbol_table)
+            assembly_code = generator.generate(ast)
+
+            asm_path = input_path.with_suffix(".asm")
+            asm_path.write_text(assembly_code, encoding="utf-8")
+
+            print(f"Ensamblador generado: {asm_path}")
+
         if show_symbols:
             print(symbol_table.dump())
-        elif not show_tokens and not show_ast:
+        elif not show_tokens and not show_ast and not show_asm:
             print(f"Analisis semantico completado: {input_path}")
     except LexerError as error:
         print(error)
@@ -76,6 +88,9 @@ def main() -> int:
         print(error)
         return 1
     except SemanticError as error:
+        print(error)
+        return 1
+    except CodegenError as error:
         print(error)
         return 1
 

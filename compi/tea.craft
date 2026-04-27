@@ -1,0 +1,25 @@
+key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
+buffer:chest[uint32, 2] = [0x0, 0x0];
+DELTA:uint32 = 0x9e3779b9;
+
+craft:void tea_encrypt(v:chest[uint32, 2]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = 0;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        sum = sum + DELTA;
+        aux:uint32 = v1 <+4 key[0];
+        aux2:uint32 = v1 + sum;
+        aux3:uint32 = v1 >+5 key[1];
+        v0 = v0 + (aux ^ aux2 ^ aux3);
+    }
+
+    v[0] = v0;
+    v[1] = v1;
+}
+
+craft:int main() {
+    summon:tea_encrypt(buffer);
+    return 0;
+}
