@@ -135,6 +135,7 @@ Makefile
 *.bin
 *.hex
 *.mem
+*.lst
 
 # =========================
 # Logs de herramientas
