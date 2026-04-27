@@ -14,6 +14,11 @@ class DataSectionMixin:
             for declaration in program.declarations
             if isinstance(declaration, VariableDeclaration)
         ]
+        global_vars = [
+            declaration
+            for declaration in global_vars
+            if not self._is_ender_chest_node(declaration.type)
+        ]
 
         if not global_vars:
             return
@@ -104,3 +109,10 @@ class DataSectionMixin:
         if value > 9:
             return f"0x{value:X}"
         return str(value)
+
+    def _is_ender_chest_node(self, node) -> bool:
+        return (
+            getattr(node, "name", None) == "chest"
+            and getattr(node, "base_type", None) is not None
+            and node.base_type.name == "ender"
+        )

@@ -12,12 +12,15 @@ from ast_nodes import (
     Identifier,
     IfStatement,
     IndexExpression,
+    Literal,
     ReturnStatement,
+    UnaryExpression,
     VariableDeclaration,
+    VaultInstruction,
     WhileStatement,
 )
 
-from symbol_table import ChestType, ScopeKind, Symbol
+from symbol_table import ChestType, PrimitiveName, PrimitiveType, ScopeKind, Symbol
 
 from registers import ARG_REGISTERS, FP, ZERO
 
@@ -25,6 +28,14 @@ from .errors import CodegenError
 
 
 class StatementsMixin:
+    def _semantic_label(self, node: ASTNode, role: str) -> str | None:
+        label_map = getattr(node, "_semantic_labels", None)
+        if isinstance(label_map, dict):
+            value = label_map.get(role)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
     def _generate_block_statements(self, block: Block) -> None:
         for statement in block.statements:
             self._generate_statement(statement)
@@ -46,6 +57,10 @@ class StatementsMixin:
             self._generate_return(node)
             return
 
+        if isinstance(node, VaultInstruction):
+            self._generate_vault_instruction(node)
+            return
+
         if isinstance(node, IfStatement):
             self._generate_if(node)
             return
@@ -63,6 +78,28 @@ class StatementsMixin:
             return
 
         raise CodegenError("statement no soportado por codegen inicial", node)
+
+    def _generate_vault_instruction(self, node: VaultInstruction) -> None:
+        mnemonic_map = {
+            "enderopen": "portalv",
+            "enderclose": "closev",
+            "enderload": "lwv",
+            "enderstore": "swv",
+            "enderkey": "changev",
+            "enderlow": "addiLOWv",
+            "enderhigh": "addiHIGHv",
+        }
+
+        mnemonic = mnemonic_map.get(node.keyword)
+        if mnemonic is None:
+            raise CodegenError(f"instruccion de boveda desconocida: {node.keyword}", node)
+
+        operands = list(node.operands)
+        if node.keyword == "enderopen" and len(operands) == 2:
+            operands.append("0")
+
+        suffix = f" {', '.join(operands)}" if operands else ""
+        self._emit(f"    {mnemonic}{suffix} ; {node.keyword}")
 
     def _generate_expression_statement(self, node: ExpressionStatement) -> None:
         """
@@ -116,6 +153,17 @@ class StatementsMixin:
         element_size = self._type_size(symbol.type.element_type)
 
         for index, element in enumerate(initializer.elements):
+            if symbol.memory_info.segment == "VAULT":
+                value = self._static_ender_value(element)
+                offset = index * element_size
+                low = value & 0xFFFF
+                high = (value >> 16) & 0xFFFF
+
+                self._emit(f"    addiLOWv v1, v0, {low} ; {symbol.name}[{index}] low")
+                self._emit(f"    addiHIGHv v1, v1, {high} ; {symbol.name}[{index}] high")
+                self._emit(f"    swv v1, {offset}(v0) ; {symbol.name}[{index}]")
+                continue
+
             value_reg = self._generate_expression(element)
             offset = index * element_size
 
@@ -145,6 +193,30 @@ class StatementsMixin:
                 raise CodegenError(f"chest sin memoria asignada: {symbol.name}", initializer)
 
             self._release_temp(value_reg)
+
+    def _static_ender_value(self, node: ASTNode) -> int:
+        if isinstance(node, Literal) and node.literal_type in {"int", "hex"}:
+            return int(node.value) & 0xFFFFFFFF
+
+        if (
+            isinstance(node, UnaryExpression)
+            and node.operator == "-"
+            and isinstance(node.operand, Literal)
+            and node.operand.literal_type in {"int", "hex"}
+        ):
+            return (-int(node.operand.value)) & 0xFFFFFFFF
+
+        raise CodegenError(
+            "los inicializadores de chest[ender, N] deben ser literales numericos",
+            node,
+        )
+
+    def _is_ender_chest(self, symbol: Symbol) -> bool:
+        return (
+            isinstance(symbol.type, ChestType)
+            and isinstance(symbol.type.element_type, PrimitiveType)
+            and symbol.type.element_type.name == PrimitiveName.ENDER
+        )
 
     def _generate_assignment(self, node: Assignment) -> None:
         value_reg = self._generate_expression(node.value)
@@ -181,8 +253,8 @@ class StatementsMixin:
         self._emit(f"    jal {ZERO.asm()}, {self._current_function_end_label}")
 
     def _generate_if(self, node: IfStatement) -> None:
-        else_label = self._new_label("if_else")
-        end_label = self._new_label("if_end")
+        else_label = self._semantic_label(node, "if_else") or self._new_label("if_else")
+        end_label = self._semantic_label(node, "if_end") or self._new_label("if_end")
 
         self._emit("")
         self._emit("    ; if")
@@ -199,8 +271,8 @@ class StatementsMixin:
         self._emit("")
 
     def _generate_while(self, node: WhileStatement) -> None:
-        start_label = self._new_label("while_start")
-        end_label = self._new_label("while_end")
+        start_label = self._semantic_label(node, "while_start") or self._new_label("while_start")
+        end_label = self._semantic_label(node, "while_end") or self._new_label("while_end")
 
         self._emit("")
         self._emit(f"{start_label}:")
@@ -211,8 +283,8 @@ class StatementsMixin:
         self._emit("")
 
     def _generate_for(self, node: ForStatement) -> None:
-        start_label = self._new_label("for_start")
-        end_label = self._new_label("for_end")
+        start_label = self._semantic_label(node, "for_start") or self._new_label("for_start")
+        end_label = self._semantic_label(node, "for_end") or self._new_label("for_end")
 
         previous_scope = self._current_scope
 

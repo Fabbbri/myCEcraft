@@ -5,13 +5,13 @@
 
 ; Tabla de etiquetas
 ;   main = 0x0000
-;   .L_codegen_1_while_start = 0x0018
-;   .L_codegen_2_while_end = 0x0038
+;   .L0_while_start = 0x0018
+;   .L1_while_end = 0x0038
 ;   .L_codegen_0_main_end = 0x0044
 
 ; Referencias resueltas
-;   pc=0x0020 bge -> .L_codegen_2_while_end (addr=0x0038, offset=24)
-;   pc=0x0034 jal -> .L_codegen_1_while_start (addr=0x0018, offset=-28)
+;   pc=0x0020 bge -> .L1_while_end (addr=0x0038, offset=24)
+;   pc=0x0034 jal -> .L0_while_start (addr=0x0018, offset=-28)
 ;   pc=0x0040 jal -> .L_codegen_0_main_end (addr=0x0044, offset=4)
 
 ; ==================================================
@@ -31,16 +31,16 @@ main:
     addi x3, x0, 0                                      ; pc=0x0010
     sw x3, -4(x17) ; x                                  ; pc=0x0014
 
-.L_codegen_1_while_start:
+.L0_while_start:
     lw x3, -4(x17) ; x                                  ; pc=0x0018
     addi x4, x0, 5                                      ; pc=0x001C
-    bge x3, x4, 24                                      ; pc=0x0020 ; target=.L_codegen_2_while_end ; addr=0x0038
+    bge x3, x4, 24                                      ; pc=0x0020 ; target=.L1_while_end ; addr=0x0038
     lw x4, -4(x17) ; x                                  ; pc=0x0024
     addi x3, x0, 1                                      ; pc=0x0028
     add x5, x4, x3                                      ; pc=0x002C
     sw x5, -4(x17) ; x                                  ; pc=0x0030
-    jal x0, -28                                         ; pc=0x0034 ; target=.L_codegen_1_while_start ; addr=0x0018
-.L_codegen_2_while_end:
+    jal x0, -28                                         ; pc=0x0034 ; target=.L0_while_start ; addr=0x0018
+.L1_while_end:
 
     lw x5, -4(x17) ; x                                  ; pc=0x0038
     add x11, x5, x0                                     ; pc=0x003C

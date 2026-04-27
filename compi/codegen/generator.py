@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ast_nodes import FunctionDeclaration, Program
+from ast_nodes import ArrayLiteral, FunctionDeclaration, Program, VariableDeclaration
 
 from symbol_table import Scope, ScopeKind, SymbolTable
 
@@ -81,9 +81,35 @@ class AssemblyGenerator(
         self._emit(".text")
         self._emit("")
 
+        self._emit_global_vault_initializers(program)
+
+        functions = [
+            declaration
+            for declaration in program.declarations
+            if isinstance(declaration, FunctionDeclaration)
+        ]
+
+        for declaration in sorted(functions, key=lambda function: function.name != "main"):
+            self._generate_function(declaration)
+
+    def _emit_global_vault_initializers(self, program: Program) -> None:
         for declaration in program.declarations:
-            if isinstance(declaration, FunctionDeclaration):
-                self._generate_function(declaration)
+            if not isinstance(declaration, VariableDeclaration):
+                continue
+
+            symbol = self._lookup_global_symbol(declaration.name)
+            if symbol is None or symbol.memory_info.segment != "VAULT":
+                continue
+
+            if not isinstance(declaration.initializer, ArrayLiteral):
+                raise CodegenError(
+                    "las variables globales chest[ender, N] deben inicializarse con arreglo",
+                    declaration,
+                )
+
+            self._emit(f"    ; inicializacion vault global {declaration.name}")
+            self._generate_variable_declaration(declaration)
+            self._emit("")
 
     def _generate_function(self, node: FunctionDeclaration) -> None:
         previous_scope = self._current_scope

@@ -170,6 +170,7 @@ class MemoryMixin:
                 PrimitiveName.UINT16: 2,
                 PrimitiveName.CHAR: 1,
                 PrimitiveName.VOID: 0,
+                PrimitiveName.ENDER: 4,
             }[symbol_type.name]
 
         if isinstance(symbol_type, ChestType):

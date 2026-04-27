@@ -81,6 +81,7 @@ class PrimitiveName(Enum):
     UINT16 = "uint16"
     CHAR = "char"
     VOID = "void"
+    ENDER = "ender"
 
 
 @dataclass(frozen=True)
@@ -596,6 +597,7 @@ if __name__ == "__main__":
         PrimitiveName.UINT16: 2,
         PrimitiveName.CHAR: 1,
         PrimitiveName.VOID: 0,
+        PrimitiveName.ENDER: 4,
     }
 
     def type_size(t: Type | None) -> int:

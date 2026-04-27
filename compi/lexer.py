@@ -13,6 +13,13 @@ KEYWORDS = {
     "summon": TokenType.KW_SUMMON,
     "invoke": TokenType.KW_INVOKE,
     "as": TokenType.KW_AS,
+    "enderopen": TokenType.KW_ENDEROPEN,
+    "enderclose": TokenType.KW_ENDERCLOSE,
+    "enderload": TokenType.KW_ENDERLOAD,
+    "enderstore": TokenType.KW_ENDERSTORE,
+    "enderkey": TokenType.KW_ENDERKEY,
+    "enderlow": TokenType.KW_ENDERLOW,
+    "enderhigh": TokenType.KW_ENDERHIGH,
 }
 
 # Diccionario de tipos de dato del lenguaje.
@@ -24,6 +31,7 @@ TYPES = {
     "void": TokenType.TYPE_VOID,
     "pointer": TokenType.TYPE_POINTER,
     "chest": TokenType.TYPE_CHEST,
+    "ender": TokenType.TYPE_ENDER,
 }
 
 TAB_WIDTH = 4

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from struct import pack
 
 from isa import InstructionFormat, require_instruction
-from registers import require_general_register
+from registers import require_general_register, require_vault_register
 
 
 class EncodingError(Exception):
@@ -343,6 +343,12 @@ class BinaryEncoder:
             return self._encode_j(mnemonic, operands, line_number)
         if spec.format == InstructionFormat.B:
             return self._encode_b(mnemonic, operands, line_number)
+        if spec.format == InstructionFormat.VS:
+            return self._encode_vs(mnemonic, operands, line_number)
+        if spec.format == InstructionFormat.IV:
+            return self._encode_iv(mnemonic, operands, line_number)
+        if spec.format == InstructionFormat.VR:
+            return self._encode_vr(mnemonic, operands, line_number)
 
         raise EncodingError(
             f"linea {line_number}: formato {spec.format.value} aun no soportado"
@@ -466,6 +472,78 @@ class BinaryEncoder:
             | (imm_high8 << 24)
         )
 
+    def _encode_vs(self, mnemonic: str, operands: list[str], line_number: int) -> int:
+        spec = require_instruction(mnemonic)
+        self._expect_operands(mnemonic, operands, 2, line_number)
+
+        value_reg = self._vault_register(operands[0], line_number)
+        offset, base_reg = self._vault_memory_operand(operands[1], line_number)
+        self._check_range(offset, -4096, 4095, mnemonic, line_number)
+
+        imm13 = offset & 0x1FFF
+        imm_low5 = imm13 & 0x1F
+        imm_high8 = (imm13 >> 5) & 0xFF
+
+        if mnemonic == "swv":
+            return (
+                spec.opcode
+                | (imm_low5 << 4)
+                | (base_reg << 9)
+                | (value_reg << 14)
+                | ((spec.func or 0) << 19)
+                | (imm_high8 << 20)
+            )
+
+        return (
+            spec.opcode
+            | (value_reg << 4)
+            | (base_reg << 9)
+            | (imm_low5 << 14)
+            | ((spec.func or 0) << 19)
+            | (imm_high8 << 20)
+        )
+
+    def _encode_iv(self, mnemonic: str, operands: list[str], line_number: int) -> int:
+        spec = require_instruction(mnemonic)
+        self._expect_operands(mnemonic, operands, 3, line_number)
+
+        rd = self._vault_register(operands[0], line_number)
+        rs1 = self._vault_register(operands[1], line_number)
+        immediate = self._immediate(operands[2], line_number)
+        self._check_range(immediate, 0, 0xFFFF, mnemonic, line_number)
+
+        return (
+            spec.opcode
+            | (rd << 4)
+            | (rs1 << 9)
+            | ((spec.func or 0) << 14)
+            | ((immediate & 0xFFFF) << 16)
+        )
+
+    def _encode_vr(self, mnemonic: str, operands: list[str], line_number: int) -> int:
+        spec = require_instruction(mnemonic)
+
+        if mnemonic == "closev" and not operands:
+            rd = rs1 = rs2 = 0
+        elif mnemonic == "changev":
+            self._expect_operands(mnemonic, operands, 2, line_number)
+            rd = self._vault_register(operands[0], line_number)
+            rs1 = self._vault_register(operands[1], line_number)
+            rs2 = 0
+        else:
+            self._expect_operands(mnemonic, operands, 3, line_number)
+            rd = self._vault_register(operands[0], line_number)
+            rs1 = self._vault_register(operands[1], line_number)
+            rs2 = self._vault_register(operands[2], line_number)
+
+        return (
+            spec.opcode
+            | (rd << 4)
+            | (rs1 << 9)
+            | (rs2 << 14)
+            | ((spec.func or 0) << 19)
+        )
+
     def _expect_operands(
         self,
         mnemonic: str,
@@ -482,6 +560,12 @@ class BinaryEncoder:
     def _register(self, value: str, line_number: int) -> int:
         try:
             return require_general_register(value).index
+        except ValueError as error:
+            raise EncodingError(f"linea {line_number}: {error}") from error
+
+    def _vault_register(self, value: str, line_number: int) -> int:
+        try:
+            return require_vault_register(value).index
         except ValueError as error:
             raise EncodingError(f"linea {line_number}: {error}") from error
 
@@ -502,6 +586,17 @@ class BinaryEncoder:
 
         offset = self._immediate(match.group("offset"), line_number)
         base_reg = self._register(match.group("base"), line_number)
+        return offset, base_reg
+
+    def _vault_memory_operand(self, value: str, line_number: int) -> tuple[int, int]:
+        match = self.MEMORY_RE.match(value)
+        if match is None:
+            raise EncodingError(
+                f"linea {line_number}: operando de memoria vault invalido: {value}"
+            )
+
+        offset = self._immediate(match.group("offset"), line_number)
+        base_reg = self._vault_register(match.group("base"), line_number)
         return offset, base_reg
 
     def _check_range(

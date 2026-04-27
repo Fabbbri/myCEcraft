@@ -132,6 +132,14 @@ class ExpressionStatement(ASTNode):
 
 
 @dataclass
+class VaultInstruction(ASTNode):
+    keyword: str
+    operands: list[str]
+    line: int
+    column: int
+
+
+@dataclass
 class Identifier(ASTNode):
     name: str
     line: int
@@ -252,6 +260,8 @@ def _summary_fields(node: ASTNode) -> set[str]:
         return {"name"}
     if isinstance(node, VariableDeclaration):
         return {"name"}
+    if isinstance(node, VaultInstruction):
+        return {"keyword", "operands"}
     if isinstance(node, Identifier):
         return {"name"}
     if isinstance(node, Literal):
@@ -279,6 +289,8 @@ def _node_summary(node: ASTNode) -> str:
         return f"(name={node.name!r}){location}"
     if isinstance(node, VariableDeclaration):
         return f"(name={node.name!r}){location}"
+    if isinstance(node, VaultInstruction):
+        return f"(keyword={node.keyword!r}, operands={node.operands!r}){location}"
     if isinstance(node, Identifier):
         return f"(name={node.name!r}){location}"
     if isinstance(node, Literal):

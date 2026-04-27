@@ -85,6 +85,7 @@ Actualmente reconoce:
 - parámetros `nombre:<tipo>`
 - tipos primitivos: `int`, `uint32`, `uint16`, `char`, `void`
 - tipos compuestos: `pointer[<tipo>]`, `pointer`, `chest[<tipo>, <tamano>]`
+- tipo especial de bóveda: `chest[ender, <tamano>]`
 - declaraciones de variables: `nombre:<tipo> = <expresion>;`
 - asignaciones: `nombre = <expresion>;` y `arreglo[i] = <expresion>;`
 - bloques `{ ... }`
@@ -145,6 +146,7 @@ Actualmente realiza:
 - inferencia básica de tipos en literales, expresiones, arreglos e índices
 - asignación preliminar de memoria
 - registro de etiquetas simbólicas para `if`, `while` y `for`
+- asignación de variables `chest[ender, N]` al segmento `VAULT`
 
 ### Convención de memoria actual
 
@@ -156,6 +158,7 @@ compatible con la idea de usar `sp`/stack:
 - parámetros: segmento `STACK`, offsets positivos desde `sp`/frame pointer
 - variables locales: segmento `STACK`, offsets negativos
 - variables globales: segmento `DATA`, desde `0x1000`
+- variables de bóveda: segmento `VAULT`, offsets desde `v0`
 
 Las direcciones reales de funciones y etiquetas quedan sin resolver porque eso
 depende de la generación de ensamblador y del conteo real de instrucciones. Esa
@@ -165,6 +168,38 @@ resolución corresponde a fases 4 y 5.
 
 ```bash
 python compi/main.py -m compi/demo.craft
+```
+
+### Ver la tabla de símbolos al final (junto con binario)
+
+Si querés generar el binario y además ver la tabla de símbolos al final de la ejecución,
+usá `-m/--symbols` junto con `-o`:
+
+```bash
+python compi/main.py -m -o compi/demo.bin compi/demo.craft
+```
+
+Esto imprime:
+- la salida habitual de generación (`.hex`, `.bin`, `.lst`), y
+- el dump de la tabla de símbolos (scopes + símbolos + memoria).
+
+### Ver direcciones resueltas de labels y funciones
+
+Las direcciones reales de `TEXT` (labels de saltos y entradas de función) dependen del
+conteo real de instrucciones en el ensamblador. Para ver esas direcciones, agregá `-r/--resolve`:
+
+```bash
+python compi/main.py -m -r -o compi/demo.bin compi/demo.craft
+```
+
+Con `-m -r` el compilador:
+- imprime un bloque `=== Labels resueltas (.text) ===` con `pc=0x....`, y
+- marca en la tabla de símbolos las `LABEL`/funciones que aparezcan en el `.text` con `addr=0x....`.
+
+Tip: si querés guardarlo en un archivo de texto:
+
+```bash
+python compi/main.py -m -r -o compi/demo.bin compi/demo.craft > compi/demo.symbols.txt
 ```
 
 Opciones útiles:
@@ -194,6 +229,55 @@ Actualmente esta fase:
   (`if`, `while`, `for`)
 - genera código para llamadas a función, paso de parámetros y retorno de valores
 - mantiene un contador de instrucciones para calcular direcciones de memoria
+- inicializa variables `chest[ender, N]` usando instrucciones de bóveda
+
+Ejemplo de bóveda:
+
+```craft
+craft:int main() {
+    enderopen x3, x4;
+    key:chest[ender, 4] = [2332323, 1234, 13234, 124];
+    enderlow v2, v0, 0x1234;
+    enderhigh v2, v2, 0xABCD;
+    enderkey v2, v1;
+    enderload v3, 0(v0);
+    enderstore v3, 4(v0);
+    enderclose;
+    return 0;
+}
+```
+
+`chest[ender, N]` puede usar cualquier nombre de variable y cualquier lista de
+literales numericos compatible con su tamaño. Los valores del ejemplo no son
+fijos.
+
+Las instrucciones explícitas de bóveda disponibles son:
+
+| Keyword | Ensamblador generado |
+|---|---|
+| `enderopen a, b;` | `portalv a, b, 0` |
+| `enderopen a, b, off;` | `portalv a, b, off` |
+| `enderclose;` | `closev` |
+| `enderload dst, off(base);` | `lwv dst, off(base)` |
+| `enderstore src, off(base);` | `swv src, off(base)` |
+| `enderkey dst, src;` | `changev dst, src` |
+| `enderlow dst, base, imm;` | `addiLOWv dst, base, imm` |
+| `enderhigh dst, base, imm;` | `addiHIGHv dst, base, imm` |
+
+Para inicializar arreglos de bóveda, el programador no tiene que escribir
+`enderlow`/`enderhigh` manualmente. El compilador traduce:
+
+```craft
+key:chest[ender, 4] = [1, 2, 3, 4];
+```
+
+a instrucciones como:
+
+```asm
+addiLOWv v1, v0, ...
+addiHIGHv v1, v1, ...
+swv v1, 0(v0)
+```
 
 ### Uso
 
@@ -260,7 +344,130 @@ bge x3, x4, 24 ; target=.L_codegen_2_while_end ; addr=0x0038
 
 ## 6. Generación de código binario
 
-N/A
+### Estado actual
+La fase de generación de código binario está implementada en una primera
+versión para instrucciones del segmento `.text`.
+
+Esta fase toma el ensamblador con referencias resueltas de fase 5 y codifica
+cada instrucción en una palabra de 32 bits según los formatos definidos para
+Craft21.
+
+Actualmente soporta:
+
+- instrucciones tipo `R`: `add`, `sub`, `sll`, `slt`, `xor`, `srl`, `sra`,
+  `or`, `and`, `mul`, `div`, `sleep`, `freeze`
+- instrucciones tipo `I`: `addi`, `addiHIGH`, `addiSigned`
+- instrucciones tipo `S`: `sw`, `lw`, `sb`, `lb`
+- instrucciones tipo `J`: `jal`, `jalr`
+- instrucciones tipo `B`: `beq`, `bne`, `blt`, `bge`, `portalv`
+
+### Uso
+
+```bash
+python compi/main.py compi/demo.craft -o compi/demo.bin
+```
+
+Esto genera:
+
+- `demo.bin`: imagen binaria completa con encabezado, `.text` y `.data`
+- `demo.hex`: una instrucción hexadecimal de 32 bits por línea
+- `demo.data.hex`: datos iniciales en bytes, si el programa tiene `.data`
+- `demo.lst`: listado legible con encabezado, PC, hexadecimal, instrucciones y datos
+
+Si se omite `-o`, también se puede generar binario con el alias `-b`:
+
+```bash
+python compi/main.py -b compi/demo.craft
+```
+
+En ese caso se usa el nombre del archivo fuente con extensión `.bin`.
+
+Para generar ensamblador además del binario:
+
+```bash
+python compi/main.py -s compi/demo.craft -o compi/demo.bin
+```
+
+Para guardar también el ensamblador con referencias resueltas:
+
+```bash
+python compi/main.py -r compi/demo.craft -o compi/demo.bin
+```
+
+El archivo `.hex` está pensado para cargarse con `$readmemh`, como en
+`instr_rom.sv`. El archivo `.bin` usa este encabezado big-endian:
+
+```text
+magic             4 bytes  "MYCE"
+version           2 bytes
+header_size       2 bytes
+entry_point       4 bytes
+text_offset       4 bytes
+text_size         4 bytes
+data_offset       4 bytes
+data_size         4 bytes
+text_base         4 bytes
+data_base         4 bytes
+instruction_count 4 bytes
+flags             4 bytes
+```
+
+Después del encabezado vienen las instrucciones codificadas en palabras de
+32 bits y luego los datos globales iniciales. Los datos se empaquetan en orden
+little-endian para que coincidan con `data_ram.sv`, donde el byte bajo vive en
+la dirección menor.
+
+### Alcance actual
+
+La versión actual empaqueta instrucciones y datos globales iniciales. El
+encabezado ya describe dónde empieza y cuánto mide cada sección.
+
+### Cargar `.hex` en la ROM de arquitectura
+
+La arquitectura actual no carga directamente el contenedor `.bin`. El módulo
+`instr_rom.sv` carga instrucciones desde:
+
+```systemverilog
+$readmemh("programs/program.hex", memory);
+```
+
+Por eso, para probar un programa compilado en la ROM se debe copiar el `.hex`
+generado por el compilador a `arqui/programs/program.hex`.
+
+Ejemplo con un programa sin datos globales:
+
+```powershell
+python compi/main.py compi/demo.craft -o compi/demo.bin
+New-Item -ItemType Directory -Force arqui/programs
+Copy-Item compi/demo.hex arqui/programs/program.hex
+Set-Content -NoNewline arqui/programs/data.hex ""
+```
+
+Ejemplo con un programa que sí genera `.data`, como `tea.craft`:
+
+```powershell
+python compi/main.py compi/tea.craft -o compi/tea.bin
+New-Item -ItemType Directory -Force arqui/programs
+Copy-Item compi/tea.hex arqui/programs/program.hex
+Copy-Item compi/tea.data.hex arqui/programs/data.hex
+```
+
+Luego se puede correr el testbench de ROM desde `arqui`:
+
+```powershell
+cd arqui
+make run TOP=tb_instr_rom
+```
+
+O desde la raíz del repositorio en un entorno tipo Bash:
+
+```bash
+./run.sh run tb_instr_rom
+```
+
+Para verificar manualmente, la primera línea de `program.hex` debe aparecer en
+la salida `instr` cuando `addr = 0`, la segunda línea cuando `addr = 4`, y así
+sucesivamente.
 
 ---
 
@@ -278,12 +485,13 @@ N/A
 - asignación preliminar de memoria para stack/data/text
 - generación de ensamblador (fase 4)
 - cálculo de saltos y resolución de referencias (fase 5)
+- generación inicial de código binario para instrucciones (fase 6)
 
 ### En progreso
-- generación de código binario
+- integración directa del binario final con la memoria de instrucciones/datos
 
 ### Pendiente
-- binario final
+- cargador/simulador que consuma directamente el contenedor `.bin`
 
 ---
 

@@ -11,6 +11,33 @@ from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
 
 
+def _apply_resolved_text_addresses(symbol_table, labels: dict[str, int]) -> None:
+    """
+    Aplica direcciones del .text ya resueltas (fase 5) sobre la tabla de símbolos.
+
+    Nota: hoy el codegen genera varias labels internas propias (prefijo .L_codegen_)
+    que no necesariamente existen como símbolos semánticos. Aun así, las funciones
+    sí aparecen como labels (por ejemplo, 'main:'), así que se pueden marcar como
+    resueltas aquí.
+    """
+
+    for scope in symbol_table.all_scopes:
+        for symbol in scope.symbols.values():
+            address = labels.get(symbol.name)
+            if address is None:
+                continue
+
+            if symbol.kind.name not in {"FUNCTION", "LABEL"}:
+                continue
+
+            symbol.memory_info.segment = "TEXT"
+            symbol.memory_info.address = address
+            symbol.memory_info.offset = None
+            symbol.memory_info.size_in_bytes = symbol.memory_info.size_in_bytes or 0
+            symbol.memory_info.resolved = True
+
+
+
 def main() -> int:
     args = sys.argv[1:]
 
@@ -107,6 +134,9 @@ def main() -> int:
                 resolver = LabelResolver()
                 resolved = resolver.resolve(assembly_code)
 
+                if show_symbols:
+                    _apply_resolved_text_addresses(symbol_table, resolved.labels)
+
                 resolved_path = input_path.with_suffix(".resolved.asm")
                 if show_resolved:
                     resolved_path.write_text(resolved.assembly, encoding="utf-8")
@@ -133,6 +163,11 @@ def main() -> int:
                         print(f"Codigo hexadecimal de datos generado: {data_hex_path}")
                     print(f"Codigo binario generado: {bin_path}")
                     print(f"Listado generado: {listing_path}")
+
+        if show_symbols and show_resolved:
+            print("\n=== Labels resueltas (.text) ===")
+            for label, pc in sorted(resolved.labels.items(), key=lambda item: item[1]):
+                print(f"{label:28} pc=0x{pc:04X}")
 
         if show_symbols:
             print(symbol_table.dump())

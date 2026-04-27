@@ -15,16 +15,16 @@ main:
     addi x3, x0, 0                                      ; pc=0x0010
     sw x3, -4(x17) ; x                                  ; pc=0x0014
 
-.L_codegen_1_while_start:
+.L0_while_start:
     lw x3, -4(x17) ; x                                  ; pc=0x0018
     addi x4, x0, 5                                      ; pc=0x001C
-    bge x3, x4, .L_codegen_2_while_end                  ; pc=0x0020
+    bge x3, x4, .L1_while_end                           ; pc=0x0020
     lw x4, -4(x17) ; x                                  ; pc=0x0024
     addi x3, x0, 1                                      ; pc=0x0028
     add x5, x4, x3                                      ; pc=0x002C
     sw x5, -4(x17) ; x                                  ; pc=0x0030
-    jal x0, .L_codegen_1_while_start                    ; pc=0x0034
-.L_codegen_2_while_end:
+    jal x0, .L0_while_start                             ; pc=0x0034
+.L1_while_end:
 
     lw x5, -4(x17) ; x                                  ; pc=0x0038
     add x11, x5, x0                                     ; pc=0x003C

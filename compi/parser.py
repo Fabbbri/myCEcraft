@@ -25,6 +25,7 @@ from ast_nodes import (
     TypeNode,
     UnaryExpression,
     VariableDeclaration,
+    VaultInstruction,
     WhileStatement,
 )
 from tokens import Token, TokenType
@@ -58,6 +59,7 @@ class Parser:
         TokenType.TYPE_VOID,
         TokenType.TYPE_POINTER,
         TokenType.TYPE_CHEST,
+        TokenType.TYPE_ENDER,
     }
 
     ASSIGNABLE_NODES = (Identifier, IndexExpression, MemberExpression)
@@ -71,6 +73,23 @@ class Parser:
         "summon",
         "invoke",
         "as",
+        "ender",
+        "enderopen",
+        "enderclose",
+        "enderload",
+        "enderstore",
+        "enderkey",
+        "enderlow",
+        "enderhigh",
+    }
+    VAULT_KEYWORDS = {
+        TokenType.KW_ENDEROPEN,
+        TokenType.KW_ENDERCLOSE,
+        TokenType.KW_ENDERLOAD,
+        TokenType.KW_ENDERSTORE,
+        TokenType.KW_ENDERKEY,
+        TokenType.KW_ENDERLOW,
+        TokenType.KW_ENDERHIGH,
     }
 
     def __init__(self, tokens: list[Token], filename: str = "<input>"):
@@ -257,8 +276,49 @@ class Parser:
             return self._for_statement()
         if self._check(TokenType.KW_RETURN):
             return self._return_statement()
+        if self._peek().type in self.VAULT_KEYWORDS:
+            return self._vault_instruction()
 
         return self._expression_statement()
+
+    def _vault_instruction(self) -> VaultInstruction:
+        start = self._advance()
+        operands: list[str] = []
+        current: list[str] = []
+        depth = 0
+
+        while not self._check(TokenType.SEMICOLON) and not self._is_at_end():
+            token = self._peek()
+
+            if token.type == TokenType.COMMA and depth == 0:
+                operands.append("".join(current).strip())
+                current = []
+                self._advance()
+                continue
+
+            if token.type in {TokenType.LPAREN, TokenType.LBRACKET}:
+                depth += 1
+            elif token.type in {TokenType.RPAREN, TokenType.RBRACKET}:
+                depth -= 1
+                if depth < 0:
+                    raise self._error(token, "delimitador de operando ender desbalanceado")
+
+            current.append(token.lexeme)
+            self._advance()
+
+        if depth != 0:
+            raise self._error(start, "operando ender con delimitadores sin cerrar")
+
+        if current:
+            operands.append("".join(current).strip())
+
+        self._consume_statement_semicolon("se esperaba ';' despues de la instruccion ender")
+        return VaultInstruction(
+            keyword=start.lexeme,
+            operands=operands,
+            line=start.line,
+            column=start.column,
+        )
 
     def _block(self, context: str = "bloque") -> Block:
         start = self._consume(TokenType.LBRACE, "se esperaba '{' para iniciar el bloque")

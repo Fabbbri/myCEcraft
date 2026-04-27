@@ -23,6 +23,7 @@ from ast_nodes import (
     TypeNode,
     UnaryExpression,
     VariableDeclaration,
+    VaultInstruction,
     WhileStatement,
 )
 from symbol_table import (
@@ -71,6 +72,7 @@ class FunctionFrame:
 
     next_param_offset: int = 8
     next_local_offset: int = 0
+    next_vault_offset: int = 0
 
 
 class SemanticAnalyzer:
@@ -87,6 +89,7 @@ class SemanticAnalyzer:
         self._current_function: FunctionDeclaration | None = None
         self._current_frame: FunctionFrame | None = None
         self._next_global_address = self.GLOBAL_DATA_BASE
+        self._next_vault_address = 0
         self._next_label_id = 0
 
     def analyze(self, program: Program) -> SymbolTable:
@@ -126,6 +129,12 @@ class SemanticAnalyzer:
 
     def _define_function_signature(self, node: FunctionDeclaration) -> None:
         return_type = self._type_from_node(node.return_type)
+        if self._is_ender_type(return_type):
+            raise SemanticError(
+                "ender solo puede usarse como elemento de chest[ender, N]",
+                node.return_type,
+                self.filename,
+            )
         parameter_types = [self._type_from_node(param.type) for param in node.parameters]
 
         try:
@@ -183,6 +192,12 @@ class SemanticAnalyzer:
 
     def _define_parameter(self, node, index: int) -> None:
         parameter_type = self._type_from_node(node.type)
+        if self._is_ender_type(parameter_type):
+            raise SemanticError(
+                "ender solo puede usarse como elemento de chest[ender, N]",
+                node.type,
+                self.filename,
+            )
         try:
             symbol = self.symbols.define_parameter(
                 name=node.name,
@@ -224,6 +239,8 @@ class SemanticAnalyzer:
             return self._analyze_for(node)
         if isinstance(node, ReturnStatement):
             return self._analyze_return(node)
+        if isinstance(node, VaultInstruction):
+            return self._analyze_vault_instruction(node)
         if isinstance(node, ExpressionStatement):
             return self._infer_expression_type(node.expression)
         if isinstance(node, Block):
@@ -238,6 +255,12 @@ class SemanticAnalyzer:
         is_global: bool,
     ) -> Type:
         variable_type = self._type_from_node(node.type)
+        if self._is_ender_type(variable_type):
+            raise SemanticError(
+                "ender solo puede usarse como elemento de chest[ender, N]",
+                node.type,
+                self.filename,
+            )
 
         if node.initializer is not None:
             init_type = self._infer_expression_type(node.initializer)
@@ -495,6 +518,10 @@ class SemanticAnalyzer:
             return
 
         if isinstance(expected, ChestType) and isinstance(actual, ChestType):
+            if self._is_ender_type(expected.element_type) and self._is_numeric(actual.element_type):
+                if actual.size <= expected.size:
+                    return
+
             if expected.element_type.describe() == actual.element_type.describe():
                 if actual.size <= expected.size:
                     return
@@ -524,6 +551,8 @@ class SemanticAnalyzer:
             return PrimitiveType(PrimitiveName.CHAR)
         if node.name == "void":
             return PrimitiveType(PrimitiveName.VOID)
+        if node.name == "ender":
+            return PrimitiveType(PrimitiveName.ENDER)
         if node.name == "pointer":
             base = (
                 self._type_from_node(node.base_type)
@@ -541,6 +570,12 @@ class SemanticAnalyzer:
     def _define_label(self, node: ASTNode, role: str) -> Symbol:
         label_name = f".L{self._next_label_id}_{role}"
         self._next_label_id += 1
+
+        label_map = getattr(node, "_semantic_labels", None)
+        if not isinstance(label_map, dict):
+            label_map = {}
+            setattr(node, "_semantic_labels", label_map)
+        label_map[role] = label_name
 
         symbol = self.symbols.define_label(
             name=label_name,
@@ -561,6 +596,15 @@ class SemanticAnalyzer:
 
     def _assign_global_memory(self, symbol: Symbol) -> None:
         size = self._align(self._type_size(symbol.type))
+        if self._is_ender_chest_type(symbol.type):
+            symbol.memory_info.segment = "VAULT"
+            symbol.memory_info.address = self._next_vault_address
+            symbol.memory_info.offset = self._next_vault_address
+            symbol.memory_info.size_in_bytes = size
+            symbol.memory_info.resolved = True
+            self._next_vault_address += size
+            return
+
         symbol.memory_info.segment = "DATA"
         symbol.memory_info.address = self._next_global_address
         symbol.memory_info.offset = None
@@ -585,6 +629,15 @@ class SemanticAnalyzer:
             return
 
         size = self._align(self._type_size(symbol.type))
+        if self._is_ender_chest_type(symbol.type):
+            symbol.memory_info.segment = "VAULT"
+            symbol.memory_info.address = self._current_frame.next_vault_offset
+            symbol.memory_info.offset = self._current_frame.next_vault_offset
+            symbol.memory_info.size_in_bytes = size
+            symbol.memory_info.resolved = True
+            self._current_frame.next_vault_offset += size
+            return
+
         self._current_frame.next_local_offset -= size
         symbol.memory_info.segment = "STACK"
         symbol.memory_info.address = None
@@ -602,6 +655,7 @@ class SemanticAnalyzer:
                 PrimitiveName.UINT16: 2,
                 PrimitiveName.CHAR: 1,
                 PrimitiveName.VOID: 0,
+                PrimitiveName.ENDER: 4,
             }[symbol_type.name]
         if isinstance(symbol_type, PointerType):
             return 4
@@ -621,6 +675,18 @@ class SemanticAnalyzer:
             PrimitiveName.UINT16,
             PrimitiveName.CHAR,
         }
+
+    def _is_ender_type(self, symbol_type: Type | None) -> bool:
+        return (
+            isinstance(symbol_type, PrimitiveType)
+            and symbol_type.name == PrimitiveName.ENDER
+        )
+
+    def _is_ender_chest_type(self, symbol_type: Type | None) -> bool:
+        return (
+            isinstance(symbol_type, ChestType)
+            and self._is_ender_type(symbol_type.element_type)
+        )
 
     def _unknown_type(self) -> Type:
         return PointerType(None)
@@ -644,6 +710,36 @@ class SemanticAnalyzer:
             and node.operand.literal_type in {"int", "hex"}
         ):
             return -int(node.operand.value)
+        return None
+
+    def _analyze_vault_instruction(self, node: VaultInstruction) -> None:
+        expected_arity = {
+            "enderopen": {2, 3},
+            "enderclose": {0},
+            "enderload": {2},
+            "enderstore": {2},
+            "enderkey": {2},
+            "enderlow": {3},
+            "enderhigh": {3},
+        }
+
+        allowed = expected_arity.get(node.keyword)
+        if allowed is None:
+            raise SemanticError(
+                f"instruccion de boveda desconocida '{node.keyword}'",
+                node,
+                self.filename,
+            )
+
+        if len(node.operands) not in allowed:
+            expected = " o ".join(str(count) for count in sorted(allowed))
+            raise SemanticError(
+                f"'{node.keyword}' esperaba {expected} operandos "
+                f"pero recibio {len(node.operands)}",
+                node,
+                self.filename,
+            )
+
         return None
 
     def _block_guarantees_return(self, block: Block) -> bool:

@@ -23,6 +23,13 @@ class TokenType(Enum):
     KW_SUMMON = auto()
     KW_INVOKE = auto()
     KW_AS = auto()
+    KW_ENDEROPEN = auto()
+    KW_ENDERCLOSE = auto()
+    KW_ENDERLOAD = auto()
+    KW_ENDERSTORE = auto()
+    KW_ENDERKEY = auto()
+    KW_ENDERLOW = auto()
+    KW_ENDERHIGH = auto()
 
     # Tipos de dato definidos en el lenguaje
     TYPE_INT = auto()
@@ -32,6 +39,7 @@ class TokenType(Enum):
     TYPE_VOID = auto()
     TYPE_POINTER = auto()
     TYPE_CHEST = auto()
+    TYPE_ENDER = auto()
 
     # Anotaciones o pragmas del compilador
     PRAGMA_INLINE = auto()
