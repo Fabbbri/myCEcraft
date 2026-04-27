@@ -100,20 +100,33 @@ INSTRUCTIONS: dict[str, InstructionSpec] = {
     ),
 
     # Tipo VR: instrucciones register-register dentro de la boveda.
-    "sllv": InstructionSpec("sllv", InstructionFormat.VR, opcode=0b1100, func=0b00000),
-    "slrv": InstructionSpec("slrv", InstructionFormat.VR, opcode=0b1100, func=0b00001),
+    "sllv": InstructionSpec(
+        "sllv",
+        InstructionFormat.VR,
+        opcode=0b1010,
+        func=0b00000,
+        ),
+
+    "slrv": InstructionSpec(
+        "slrv",
+        InstructionFormat.VR,
+        opcode=0b1010,
+        func=0b00001,
+    ),
+
     "changev": InstructionSpec(
         "changev",
         InstructionFormat.VR,
-        opcode=0b1100,
-        func=0b00010,
+        opcode=0b1011,
+        func=0b00000,
         description="Modifica registros/llaves de boveda en Secure Mode",
     ),
+
     "closev": InstructionSpec(
         "closev",
         InstructionFormat.VR,
         opcode=0b1100,
-        func=0b00011,
+        func=0b00000,
         description="Cierra Secure Mode y limpia registros de boveda",
     ),
 
