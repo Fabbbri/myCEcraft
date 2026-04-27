@@ -180,7 +180,30 @@ semántico y reporta que terminó correctamente.
 
 ## 4. Generación de ensamblador
 
-N/A
+### Estado actual
+La fase de generación de ensamblador está implementada.
+
+En esta fase, el compilador traduce el código fuente a ensamblador para la
+arquitectura definida.
+
+Actualmente esta fase:
+
+- genera instrucciones de ensamblador para asignaciones y operaciones
+  aritméticas/lógicas
+- genera saltos condicionales e incondicionales para estructuras de control
+  (`if`, `while`, `for`)
+- genera código para llamadas a función, paso de parámetros y retorno de valores
+- mantiene un contador de instrucciones para calcular direcciones de memoria
+
+### Uso
+
+```bash
+python compi/main.py -s compi/demo.craft
+```
+
+Opciones útiles:
+
+- `-s` o `--asm`: genera el archivo `.asm` del programa de entrada.
 
 ---
 
@@ -208,13 +231,12 @@ N/A
 - análisis semántico inicial
 - tabla de símbolos con scopes
 - asignación preliminar de memoria para stack/data/text
+- generación de ensamblador (fase 4)
 
 ### En progreso
-- integración futura con generación de ensamblador
 - resolución real de direcciones de etiquetas
 
 ### Pendiente
-- ensamblador
 - saltos y referencias
 - binario final
 

@@ -5,7 +5,9 @@ from ast_nodes import format_ast
 from lexer import Lexer, LexerError
 from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
-from codegen import AssemblyGenerator, CodegenError
+from codegen.generator import AssemblyGenerator
+from codegen.errors import CodegenError
+
 
 def main() -> int:
     args = sys.argv[1:]

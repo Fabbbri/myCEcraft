@@ -105,7 +105,7 @@ INSTRUCTIONS: dict[str, InstructionSpec] = {
         InstructionFormat.VR,
         opcode=0b1010,
         func=0b00000,
-        ),
+    ),
 
     "slrv": InstructionSpec(
         "slrv",
