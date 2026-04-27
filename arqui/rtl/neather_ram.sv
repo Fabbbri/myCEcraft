@@ -26,23 +26,21 @@ module neather_ram (
     end
 
     // LECTURA
-    assign rdata = {mem[addr_index + 3],
+    assign rdataV = {mem[addr_index + 3],
                     mem[addr_index + 2],
                     mem[addr_index + 1],
-                    mem[addr_index]}   // LW                                           
+                    mem[addr_index]} ;  // LW                                           
 
     // ESCRITURA
     always_ff @(posedge clk) begin
         if (we_memV) begin
-                if (addr_index <= 16'hFFFC) begin
+            if (addr_index <= 16'hFFFC) begin
                         mem[addr_index]     <= wdataV[7:0];
                         mem[addr_index + 1] <= wdataV[15:8];
                         mem[addr_index + 2] <= wdataV[23:16];
                         mem[addr_index + 3] <= wdataV[31:24];
-                end
             end
-
-            default: ; // no-op
         end
+    end
 
 endmodule

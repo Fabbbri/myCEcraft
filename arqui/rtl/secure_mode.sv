@@ -5,8 +5,8 @@ module secure_mode(
     output logic sm
 );
 
-always_ff @(posedge clk or podedge reset) begin
-    if (resetl) begin
+always_ff @(posedge clk or posedge reset) begin
+    if (reset) begin
         sm <= 1'b0;
     end else if (neather_portal) begin
         sm <= 1'b1;

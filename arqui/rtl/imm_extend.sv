@@ -1,7 +1,8 @@
 module imm_extend(
     input  logic [27:0]  imm, // bits 31 a 4
     input logic [1:0] imm_src,
-    input logic imms_src2
+    input logic imm_src2,
+
     output logic [31:0] imm_extended // extendido
 );
 
@@ -98,7 +99,6 @@ intern - 4 = real
 4 = 0
 */
 
-logic imm_src2;
 logic [2:0] temp_signal;
 
 assign temp_signal = {imm_src2, imm_src};

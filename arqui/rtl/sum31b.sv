@@ -5,6 +5,6 @@ module sum31b(
 
 );
 
-assign out = in1 + in2
+assign out = in1 + in2;
 
 endmodule
