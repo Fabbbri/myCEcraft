@@ -5,34 +5,112 @@ module execute(
     input logic neather_portalIN,
     input logic [4:0] alu_control,
     input logic [1:0] alu_src,
-    input logic we_reg, neather_mode, w_regV
-    input logic [31:0] rd1E, rd2E, immE, pc_actE, wdE, pc_plus4E, rdV2E, wdVE,
+    input logic we_reg, neather_mode, w_regv,
+    input logic [31:0] rd1E, rd2E, immE, pc_actE, wdE, pc_plus4E, rdv2E, wdvE,
 
-    output logic pc_srcEx, neather_portalOUT,
-    output logic result_srcOUT, neather_wreg_srcOUT, w_memvOUT, we_memOUT, 
-    output logic sizeOUT, we_regOUT, neather_modeOUT, w_regVOUT,
+    output logic pc_srcEx, z_OUT, neather_portalOUT,
+    output logic [1:0] result_srcOUT, 
+    output logic neather_wreg_srcOUT, w_memvOUT, we_memOUT, 
+    output logic sizeOUT, we_regOUT, neather_modeOUT, w_regvOUT,
 
-    output logic [31:0] alu_result, rd2OUT, rdV2OUT, wdOUT, pc_plus4OUT, wdVOUT
+    output logic [31:0] alu_result, rd2OUT, rdv2OUT, wdOUT, pc_plus4OUT, wdvOUT,
     output logic [31:0] pc_targetOUT
 );
+
+// ==========================================================
+//                       INSTANCIA TEA MUX31
+// ==========================================================
 
 logic tea_src;
 
 assign tea_src = alu_control[0];
 
-// ==========================================================
-//                       INSTANCIA MUX31
-// ==========================================================
+logic [31:0] d4;
+logic [31:0] d5;
+assign d4 = 32'd4;
+assign d5 = 32'd5;
+
+logic [31:0] tea01;
 
 mux31 mux31 (
-    .in1(),
-    .in2(),
-    .src(),
-    .out()
-
+    .in1(d4),
+    .in2(d5),
+    .src(tea_src),
+    .out(tea01)
 );
 
-// Señales de compuertas and
+// ==========================================================
+//                       INSTANCIA PCTARG_SUM
+// ==========================================================
+
+logic [31:0] pc_target;
+
+sum31b sum31b(
+    .in1(immE),
+    .in2(pc_actE),
+    .out(pc_target)
+);
+
+// ==========================================================
+//                       INSTANCIA ALU_SRC MUX31_2
+// ==========================================================
+
+logic [31:0] srcB;
+
+mux31_2 mux31_2(
+    .in1(rd2E),
+    .in2(tea01),
+    .in3(rdv2E),
+    .in4(pc_target),
+    .src(alu_src),
+    .out(srcB)
+);
+
+// ==========================================================
+//                       INSTANCIA ALU
+// ==========================================================
+
+logic v_flagUNUSED;
+logic z_aux;
+logic n_aux;
+
+alu alu(
+    .srcA(rd1E),
+    .srcB(srcB),
+    .alu_control(alu_control),
+    .alu_result(alu_result),
+    .z_flag(z_aux),
+    .n_flag(n_aux),
+    .v_flag(v_flagUNUSED)
+);
+
+// ==========================================================
+//                       LÓGICA DE BRANCHES Y JUMP
+// ==========================================================
+
+logic notz;
+logic notn;
+
+assign notz = ~z_aux;
+assign notn = ~n_aux;
+
+// Compuertas AND
+
+logic beqAND;
+logic bneAND;
+
+logic bgeOR;
+logic bgeAND;
+
+logic bltAND;
+
+assign beqAND = beq & z_aux;
+assign bneAND = bne & notz;
+
+assign bgeOR = z_aux | notn;
+assign bgeAND = bgeOR & bge;
+
+assign bltAND = blt & n_aux;
 
 // ==========================================================
 //                       INSTANCIA OR5GATE
@@ -40,11 +118,40 @@ mux31 mux31 (
 
 orgate5 orgate5 (
     .in1(jump),
-    .in2(),
-    .in3(),
-    .in4(),
-    .in5(),
+    .in2(beqAND),
+    .in3(bneAND),
+    .in4(bgeAND),
+    .in5(bltAND),
     .out(pc_srcEx)
 );
+
+// ==========================================================
+//                       OTRAS SEÑALES
+// ==========================================================
+
+assign result_srcOUT = result_src;
+assign neather_wreg_srcOUT = neather_wreg_src;
+assign w_memvOUT = w_memv;
+assign we_memOUT = we_mem;
+assign sizeOUT = size;
+
+assign neather_portalOUT = neather_portalIN;
+assign z_OUT = z_aux;
+
+assign we_regOUT = we_reg;
+assign neather_modeOUT = neather_mode;
+assign w_regvOUT = w_regv;
+
+// NON CONTROL SIGNALS
+
+assign rd2OUT = rd2E;
+assign rdv2OUT = rdv2E;
+
+assign wdOUT = wdE;
+assign pc_plus4OUT = pc_plus4E;
+assign wdvOUT = wdvE;
+
+assign pc_targetOUT = pc_target;
+
 
 endmodule
