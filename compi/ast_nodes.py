@@ -45,6 +45,7 @@ class Program(ASTNode):
     declarations: list[ASTNode]
     line: int = 1
     column: int = 1
+    pragmas: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -135,6 +136,21 @@ class ExpressionStatement(ASTNode):
 class VaultInstruction(ASTNode):
     keyword: str
     operands: list[str]
+    line: int
+    column: int
+
+
+@dataclass
+class EnderPortalStatement(ASTNode):
+    password: ASTNode
+    body: Block | None
+    line: int
+    column: int
+
+
+@dataclass
+class ChangePasswordInstruction(ASTNode):
+    value: ASTNode
     line: int
     column: int
 
@@ -254,6 +270,8 @@ def _format_value(value: Any, lines: list[str], level: int, label: str | None) -
 def _summary_fields(node: ASTNode) -> set[str]:
     if isinstance(node, ImportDeclaration):
         return {"module", "alias"}
+    if isinstance(node, Program):
+        return {"pragmas"}
     if isinstance(node, FunctionDeclaration):
         return {"name", "pragmas"}
     if isinstance(node, Parameter):
@@ -262,6 +280,10 @@ def _summary_fields(node: ASTNode) -> set[str]:
         return {"name"}
     if isinstance(node, VaultInstruction):
         return {"keyword", "operands"}
+    if isinstance(node, EnderPortalStatement):
+        return set()
+    if isinstance(node, ChangePasswordInstruction):
+        return set()
     if isinstance(node, Identifier):
         return {"name"}
     if isinstance(node, Literal):
@@ -282,6 +304,9 @@ def _node_summary(node: ASTNode) -> str:
 
     if isinstance(node, ImportDeclaration):
         return f"(module={node.module!r}, alias={node.alias!r}){location}"
+    if isinstance(node, Program):
+        pragmas = f"(pragmas={node.pragmas!r})" if node.pragmas else ""
+        return f"{pragmas}{location}"
     if isinstance(node, FunctionDeclaration):
         pragmas = f", pragmas={node.pragmas!r}" if node.pragmas else ""
         return f"(name={node.name!r}{pragmas}){location}"

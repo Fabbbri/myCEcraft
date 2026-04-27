@@ -13,6 +13,7 @@ Actualmente el lexer reconoce correctamente:
 - **Tipos**:
   - `int`, `uint32`, `uint16`, `char`, `void`, `pointer`, `chest`
 - **Pragmas**:
+  - `@EnterCraftWorld`
   - `@inline`
 - **Literales**:
   - enteros decimales
@@ -80,6 +81,7 @@ del programa y construye un AST imprimible.
 Actualmente reconoce:
 
 - imports: `invoke "modulo" as alias;`
+- pragma obligatorio de archivo: `@EnterCraftWorld`
 - pragmas `@inline` aplicados a funciones
 - funciones: `craft:<tipo> nombre(<parametros>) { ... }`
 - parámetros `nombre:<tipo>`
@@ -234,6 +236,7 @@ Actualmente esta fase:
 Ejemplo de bóveda:
 
 ```craft
+@EnterCraftWorld
 craft:int main() {
     enderopen x3, x4;
     key:chest[ender, 4] = [2332323, 1234, 13234, 124];
@@ -263,6 +266,19 @@ Las instrucciones explícitas de bóveda disponibles son:
 | `enderkey dst, src;` | `changev dst, src` |
 | `enderlow dst, base, imm;` | `addiLOWv dst, base, imm` |
 | `enderhigh dst, base, imm;` | `addiHIGHv dst, base, imm` |
+| `enderPortal(clave);` | carga la clave y emite `portalv` |
+| `enderPortal(clave): ... endchange` | abre un bloque protegido y salta al cierre `endchange` |
+| `enderchange(num)` | divide `num` en low/high y emite `changev v0, low, high` + `swv` |
+| `enderclose` | `closev` |
+
+Todo archivo `.craft` debe incluir `@EnterCraftWorld`. El generador emite al
+inicio de `.text`:
+
+```asm
+portalv x0, x0, enderExit
+lwv v0, 0(v0)
+enderExit:
+```
 
 Para inicializar arreglos de bóveda, el programador no tiene que escribir
 `enderlow`/`enderhigh` manualmente. El compilador traduce:
@@ -288,6 +304,7 @@ python compi/main.py -s compi/demo.craft
 Opciones útiles:
 
 - `-s` o `--asm`: genera el archivo `.asm` del programa de entrada.
+- Los artefactos generados por defecto se escriben en `output/`.
 
 ---
 

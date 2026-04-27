@@ -7,6 +7,8 @@ from ast_nodes import (
     BinaryExpression,
     Block,
     CallExpression,
+    ChangePasswordInstruction,
+    EnderPortalStatement,
     ExpressionStatement,
     ForStatement,
     Identifier,
@@ -57,6 +59,14 @@ class StatementsMixin:
             self._generate_return(node)
             return
 
+        if isinstance(node, EnderPortalStatement):
+            self._generate_ender_portal_statement(node)
+            return
+
+        if isinstance(node, ChangePasswordInstruction):
+            self._generate_change_password_instruction(node)
+            return
+
         if isinstance(node, VaultInstruction):
             self._generate_vault_instruction(node)
             return
@@ -88,6 +98,7 @@ class StatementsMixin:
             "enderkey": "changev",
             "enderlow": "addiLOWv",
             "enderhigh": "addiHIGHv",
+            "close": "closev",
         }
 
         mnemonic = mnemonic_map.get(node.keyword)
@@ -100,6 +111,105 @@ class StatementsMixin:
 
         suffix = f" {', '.join(operands)}" if operands else ""
         self._emit(f"    {mnemonic}{suffix} ; {node.keyword}")
+
+    def _generate_ender_portal_statement(self, node: EnderPortalStatement) -> None:
+        password_reg = self._generate_portal_password(node.password)
+
+        if node.body is None:
+            self._emit(f"    portalv {password_reg}, {ZERO.asm()}, 0 ; enderPortal")
+            self._release_temp(password_reg)
+            return
+
+        end_label = self._new_label("endchange")
+        self._emit(f"    portalv {password_reg}, {ZERO.asm()}, {end_label} ; enderPortal")
+        self._release_temp(password_reg)
+
+        previous_scope = self._current_scope
+        block_scope = self._consume_child_scope(
+            parent=previous_scope,
+            kind=ScopeKind.BLOCK,
+            name_prefix="enderPortal",
+        )
+
+        if block_scope is None:
+            raise CodegenError("scope de enderPortal no encontrado", node)
+
+        self._current_scope = block_scope
+        self._generate_block_statements(node.body)
+        self._current_scope = previous_scope
+
+        self._emit(f"{end_label}:")
+
+    def _generate_portal_password(self, node: ASTNode) -> str:
+        value = self._static_integer_value(node)
+        if value is None:
+            return self._generate_expression(node)
+
+        value &= 0xFFFFFFFF
+        low = value & 0xFFFF
+        high = (value >> 16) & 0xFFFF
+
+        low_reg = self._acquire_temp()
+        high_reg = self._acquire_temp()
+
+        self._emit(f"    addi {low_reg}, {ZERO.asm()}, {low}")
+        self._emit(f"    addiHIGH {high_reg}, {ZERO.asm()}, {high}")
+        self._emit(f"    add {low_reg}, {low_reg}, {high_reg}")
+        self._release_temp(high_reg)
+
+        return low_reg
+
+    def _generate_change_password_instruction(self, node: ChangePasswordInstruction) -> None:
+        value = self._static_integer_value(node.value)
+
+        if value is not None:
+            value &= 0xFFFFFFFF
+            low = value & 0xFFFF
+            high = (value >> 16) & 0xFFFF
+            low_reg = self._acquire_temp()
+            high_reg = self._acquire_temp()
+
+            self._emit(f"    addi {low_reg}, {ZERO.asm()}, {low}")
+            self._emit(f"    addiHIGH {high_reg}, {ZERO.asm()}, {high}")
+            self._emit(f"    changev v0, {low_reg}, {high_reg} ; enderchange")
+            self._emit("    swv v0, 0(v0)")
+
+            self._release_temp(high_reg)
+            self._release_temp(low_reg)
+            return
+
+        value_reg = self._generate_expression(node.value)
+        mask_reg = self._acquire_temp()
+        low_reg = self._acquire_temp()
+        shift_reg = self._acquire_temp()
+        high_reg = self._acquire_temp()
+
+        self._emit_load_immediate(mask_reg, 0xFFFF)
+        self._emit(f"    and {low_reg}, {value_reg}, {mask_reg}")
+        self._emit(f"    addi {shift_reg}, {ZERO.asm()}, 16")
+        self._emit(f"    srl {high_reg}, {value_reg}, {shift_reg}")
+        self._emit(f"    changev v0, {low_reg}, {high_reg} ; enderchange")
+        self._emit("    swv v0, 0(v0)")
+
+        self._release_temp(high_reg)
+        self._release_temp(shift_reg)
+        self._release_temp(low_reg)
+        self._release_temp(mask_reg)
+        self._release_temp(value_reg)
+
+    def _static_integer_value(self, node: ASTNode) -> int | None:
+        if isinstance(node, Literal) and node.literal_type in {"int", "hex"}:
+            return int(node.value)
+
+        if (
+            isinstance(node, UnaryExpression)
+            and node.operator == "-"
+            and isinstance(node.operand, Literal)
+            and node.operand.literal_type in {"int", "hex"}
+        ):
+            return -int(node.operand.value)
+
+        return None
 
     def _generate_expression_statement(self, node: ExpressionStatement) -> None:
         """

@@ -1,3 +1,4 @@
+@EnterCraftWorld
 craft:int main() {
     enderopen x3, x4;
     key:chest[ender, 4] = [2332323, 1234, 13234, 124];

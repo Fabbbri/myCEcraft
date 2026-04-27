@@ -10,6 +10,8 @@ from ast_nodes import (
     BinaryExpression,
     Block,
     CallExpression,
+    ChangePasswordInstruction,
+    EnderPortalStatement,
     ExpressionStatement,
     ForStatement,
     FunctionDeclaration,
@@ -81,6 +83,12 @@ class Parser:
         "enderkey",
         "enderlow",
         "enderhigh",
+        "enderPortal",
+        "changePassword",
+        "close",
+        "endChange",
+        "endchange",
+        "enderchange",
     }
     VAULT_KEYWORDS = {
         TokenType.KW_ENDEROPEN,
@@ -90,6 +98,7 @@ class Parser:
         TokenType.KW_ENDERKEY,
         TokenType.KW_ENDERLOW,
         TokenType.KW_ENDERHIGH,
+        TokenType.KW_CLOSE,
     }
 
     def __init__(self, tokens: list[Token], filename: str = "<input>"):
@@ -101,8 +110,20 @@ class Parser:
     def parse(self) -> Program:
         declarations: list[ASTNode] = []
         pending_pragmas: list[str] = []
+        program_pragmas: list[str] = []
+        first_token = self._peek()
 
         while not self._is_at_end():
+            if self._match(TokenType.PRAGMA_ENTER_CRAFT_WORLD):
+                pragma = self._previous()
+                if pragma.lexeme in program_pragmas:
+                    raise self._error(
+                        pragma,
+                        f"el pragma '{pragma.lexeme}' solo puede aparecer una vez",
+                    )
+                program_pragmas.append(pragma.lexeme)
+                continue
+
             if self._match(TokenType.PRAGMA_INLINE):
                 pending_pragmas.append(self._previous().lexeme)
                 continue
@@ -121,7 +142,13 @@ class Parser:
 
             declarations.append(self._declaration_or_statement())
 
-        return Program(declarations=declarations)
+        if "@EnterCraftWorld" not in program_pragmas:
+            raise self._error(
+                first_token,
+                "el archivo debe incluir el pragma '@EnterCraftWorld'",
+            )
+
+        return Program(declarations=declarations, pragmas=program_pragmas)
 
     def _declaration_or_statement(self) -> ASTNode:
         self._check_common_keyword_typo()
@@ -276,16 +303,97 @@ class Parser:
             return self._for_statement()
         if self._check(TokenType.KW_RETURN):
             return self._return_statement()
+        if self._check(TokenType.KW_ENDERPORTAL):
+            return self._ender_portal_statement()
+        if self._check(TokenType.KW_CHANGEPASSWORD):
+            raise self._error(
+                self._peek(),
+                "'changePassword' fue renombrado a 'enderchange'",
+            )
+        if self._check(TokenType.KW_ENDERCHANGE):
+            return self._ender_change_instruction()
+        if self._check(TokenType.KW_ENDCHANGE):
+            if self._peek().lexeme == "endChange":
+                raise self._error(
+                    self._peek(),
+                    "'endChange' fue renombrado a 'endchange'",
+                )
+            raise self._error(
+                self._peek(),
+                "'endchange' solo puede cerrar un bloque enderPortal",
+            )
         if self._peek().type in self.VAULT_KEYWORDS:
             return self._vault_instruction()
 
         return self._expression_statement()
+
+    def _ender_portal_statement(self) -> EnderPortalStatement:
+        start = self._consume(TokenType.KW_ENDERPORTAL, "se esperaba 'enderPortal'")
+        self._consume(TokenType.LPAREN, "se esperaba '(' despues de 'enderPortal'")
+        password = self._assignment_or_expression()
+        self._consume(TokenType.RPAREN, "se esperaba ')' despues de la clave del portal")
+
+        body = None
+        if self._match(TokenType.COLON):
+            statements: list[ASTNode] = []
+
+            while True:
+                if self._is_at_end() or self._check(TokenType.RBRACE):
+                    raise self._error(
+                        self._peek(),
+                        "se esperaba 'endchange' para cerrar el bloque enderPortal",
+                    )
+
+                if self._check(TokenType.KW_ENDCHANGE):
+                    if self._peek().lexeme == "endChange":
+                        raise self._error(
+                            self._peek(),
+                            "'endChange' fue renombrado a 'endchange'",
+                        )
+                    self._advance()
+                    self._match(TokenType.SEMICOLON)
+                    break
+
+                statements.append(self._declaration_or_statement())
+
+            body = Block(statements=statements, line=start.line, column=start.column)
+        else:
+            self._consume_statement_semicolon(
+                "se esperaba ';' o ':' despues de enderPortal(...)"
+            )
+
+        return EnderPortalStatement(
+            password=password,
+            body=body,
+            line=start.line,
+            column=start.column,
+        )
+
+    def _ender_change_instruction(self) -> ChangePasswordInstruction:
+        start = self._consume(
+            TokenType.KW_ENDERCHANGE,
+            "se esperaba 'enderchange'",
+        )
+        self._consume(TokenType.LPAREN, "se esperaba '(' despues de 'enderchange'")
+        value = self._assignment_or_expression()
+        self._consume(TokenType.RPAREN, "se esperaba ')' despues del valor")
+        self._consume_optional_high_level_semicolon()
+        return ChangePasswordInstruction(value=value, line=start.line, column=start.column)
 
     def _vault_instruction(self) -> VaultInstruction:
         start = self._advance()
         operands: list[str] = []
         current: list[str] = []
         depth = 0
+
+        if start.type in {TokenType.KW_CLOSE, TokenType.KW_ENDERCLOSE}:
+            self._match(TokenType.SEMICOLON)
+            return VaultInstruction(
+                keyword=start.lexeme,
+                operands=[],
+                line=start.line,
+                column=start.column,
+            )
 
         while not self._check(TokenType.SEMICOLON) and not self._is_at_end():
             token = self._peek()
@@ -319,6 +427,23 @@ class Parser:
             line=start.line,
             column=start.column,
         )
+
+    def _consume_optional_high_level_semicolon(self) -> None:
+        if self._match(TokenType.SEMICOLON):
+            return
+
+        if (
+            self._check(TokenType.KW_ENDCHANGE)
+            or self._check(TokenType.KW_ENDERCHANGE)
+            or self._check(TokenType.KW_CLOSE)
+            or self._check(TokenType.KW_ENDERCLOSE)
+        ):
+            return
+
+        if self._check(TokenType.KW_CHANGEPASSWORD) or self._check(TokenType.KW_ENDERPORTAL):
+            return
+
+        self._consume_statement_semicolon("se esperaba ';' despues de la instruccion")
 
     def _block(self, context: str = "bloque") -> Block:
         start = self._consume(TokenType.LBRACE, "se esperaba '{' para iniciar el bloque")

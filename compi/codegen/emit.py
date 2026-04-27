@@ -8,8 +8,29 @@ from .errors import CodegenError
 
 
 class EmitMixin:
+    NOP_AFTER_CONTROL_TRANSFER = True
+    NOP_CONTROL_TRANSFER = {
+        "beq",
+        "bne",
+        "blt",
+        "bge",
+        "portalv",
+        "jal",
+        "jalr",
+    }
+
     def _emit(self, line: str) -> None:
         self.lines.append(line)
+        if self.NOP_AFTER_CONTROL_TRANSFER and self._needs_control_transfer_nop(line):
+            self.lines.append("    sleep ; nop despues de control")
+
+    def _needs_control_transfer_nop(self, line: str) -> bool:
+        code = line.split(";", 1)[0].strip()
+        if not code or code.endswith(":") or code.startswith("."):
+            return False
+
+        mnemonic = code.split(None, 1)[0]
+        return mnemonic in self.NOP_CONTROL_TRANSFER
 
     def _with_instruction_addresses(self, assembly: str) -> str:
         result: list[str] = []

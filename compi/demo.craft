@@ -1,3 +1,4 @@
+@EnterCraftWorld
 craft:int main() {
     x:int = 0;
 

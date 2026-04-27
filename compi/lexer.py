@@ -20,6 +20,12 @@ KEYWORDS = {
     "enderkey": TokenType.KW_ENDERKEY,
     "enderlow": TokenType.KW_ENDERLOW,
     "enderhigh": TokenType.KW_ENDERHIGH,
+    "enderPortal": TokenType.KW_ENDERPORTAL,
+    "changePassword": TokenType.KW_CHANGEPASSWORD,
+    "enderchange": TokenType.KW_ENDERCHANGE,
+    "close": TokenType.KW_CLOSE,
+    "endChange": TokenType.KW_ENDCHANGE,
+    "endchange": TokenType.KW_ENDCHANGE,
 }
 
 # Diccionario de tipos de dato del lenguaje.
@@ -63,6 +69,7 @@ class Lexer:
         ("LINE_COMMENT", re.compile(r"//[^\n]*")),
         ("BLOCK_COMMENT", re.compile(r"/\*[\s\S]*?\*/")),
 
+        ("PRAGMA_ENTER_CRAFT_WORLD", re.compile(r"@EnterCraftWorld\b")),
         ("PRAGMA_INLINE", re.compile(r"@inline\b")),
 
         ("SPECIAL_LPLUS4", re.compile(r"<\+4")),
@@ -166,6 +173,14 @@ class Lexer:
 
             if name == "PRAGMA_INLINE":
                 return Token(TokenType.PRAGMA_INLINE, lexeme, start_line, start_column)
+
+            if name == "PRAGMA_ENTER_CRAFT_WORLD":
+                return Token(
+                    TokenType.PRAGMA_ENTER_CRAFT_WORLD,
+                    lexeme,
+                    start_line,
+                    start_column,
+                )
 
             if name == "IDENT":
                 token_type = KEYWORDS.get(lexeme) or TYPES.get(lexeme) or TokenType.IDENT

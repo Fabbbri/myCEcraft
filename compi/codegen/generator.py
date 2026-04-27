@@ -81,6 +81,7 @@ class AssemblyGenerator(
         self._emit(".text")
         self._emit("")
 
+        self._emit_enter_craft_world_preamble(program)
         self._emit_global_vault_initializers(program)
 
         functions = [
@@ -91,6 +92,17 @@ class AssemblyGenerator(
 
         for declaration in sorted(functions, key=lambda function: function.name != "main"):
             self._generate_function(declaration)
+
+    def _emit_enter_craft_world_preamble(self, program: Program) -> None:
+        if "@EnterCraftWorld" not in program.pragmas:
+            return
+
+        end_label = self._new_label("enderExit")
+        self._emit("    ; @EnterCraftWorld")
+        self._emit(f"    portalv x0, x0, {end_label}")
+        self._emit("    lwv v0, 0(v0)")
+        self._emit(f"{end_label}:")
+        self._emit("")
 
     def _emit_global_vault_initializers(self, program: Program) -> None:
         for declaration in program.declarations:

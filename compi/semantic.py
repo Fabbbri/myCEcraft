@@ -9,6 +9,8 @@ from ast_nodes import (
     BinaryExpression,
     Block,
     CallExpression,
+    ChangePasswordInstruction,
+    EnderPortalStatement,
     ExpressionStatement,
     ForStatement,
     FunctionDeclaration,
@@ -239,6 +241,10 @@ class SemanticAnalyzer:
             return self._analyze_for(node)
         if isinstance(node, ReturnStatement):
             return self._analyze_return(node)
+        if isinstance(node, EnderPortalStatement):
+            return self._analyze_ender_portal_statement(node)
+        if isinstance(node, ChangePasswordInstruction):
+            return self._analyze_change_password_instruction(node)
         if isinstance(node, VaultInstruction):
             return self._analyze_vault_instruction(node)
         if isinstance(node, ExpressionStatement):
@@ -342,6 +348,31 @@ class SemanticAnalyzer:
         value_type = self._infer_expression_type(node.value)
         self._check_assignment_compatible(expected, value_type, node)
         return value_type
+
+    def _analyze_ender_portal_statement(self, node: EnderPortalStatement) -> None:
+        password_type = self._infer_expression_type(node.password)
+        if not self._is_unknown(password_type) and not self._is_numeric(password_type):
+            raise SemanticError(
+                "enderPortal espera una clave numerica",
+                node.password,
+                self.filename,
+            )
+
+        if node.body is not None:
+            self._analyze_block(node.body, "enderPortal", ScopeKind.BLOCK)
+
+        return None
+
+    def _analyze_change_password_instruction(self, node: ChangePasswordInstruction) -> None:
+        value_type = self._infer_expression_type(node.value)
+        if not self._is_unknown(value_type) and not self._is_numeric(value_type):
+            raise SemanticError(
+                "enderchange espera un valor numerico",
+                node.value,
+                self.filename,
+            )
+
+        return None
 
     def _infer_assignment_target_type(self, node: ASTNode) -> Type:
         if isinstance(node, Identifier):
@@ -721,6 +752,7 @@ class SemanticAnalyzer:
             "enderkey": {2},
             "enderlow": {3},
             "enderhigh": {3},
+            "close": {0},
         }
 
         allowed = expected_arity.get(node.keyword)

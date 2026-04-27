@@ -1,3 +1,4 @@
+@EnterCraftWorld
 key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
 buffer:chest[uint32, 2] = [0x0, 0x0];
 DELTA:uint32 = 0x9e3779b9;

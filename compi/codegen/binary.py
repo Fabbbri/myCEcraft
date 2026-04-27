@@ -525,11 +525,14 @@ class BinaryEncoder:
 
         if mnemonic == "closev" and not operands:
             rd = rs1 = rs2 = 0
-        elif mnemonic == "changev":
-            self._expect_operands(mnemonic, operands, 2, line_number)
+        elif mnemonic == "changev" and len(operands) == 2:
             rd = self._vault_register(operands[0], line_number)
             rs1 = self._vault_register(operands[1], line_number)
             rs2 = 0
+        elif mnemonic == "changev" and len(operands) == 3:
+            rd = self._vault_register(operands[0], line_number)
+            rs1 = self._register(operands[1], line_number)
+            rs2 = self._register(operands[2], line_number)
         else:
             self._expect_operands(mnemonic, operands, 3, line_number)
             rd = self._vault_register(operands[0], line_number)
