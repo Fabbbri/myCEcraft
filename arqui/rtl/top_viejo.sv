@@ -1,7 +1,11 @@
-module top(
+module top_viejo(
     input logic clk,
     input logic reset
 );
+
+// ==========================================================
+//                       INSTANCIAS
+// ==========================================================
 
 // ==========================================================
 //                       ISSUE
@@ -49,6 +53,8 @@ logic neather_wreg_srcDE, w_memvDE, we_memDE, sizeDE, neather_portalDE;
 logic [4:0] alu_controlDE, instrDDE;
 logic neather_modeDE, we_regDE, w_regvDE;
 logic [31:0] rd1DE, rd2DE, immDE, rdv2DE;
+// pc y pc4 siguen siendo el mismo en DE
+
 
 decode Decode(
     .clk(clk),
@@ -158,24 +164,15 @@ logic [4:0] alu_controlEX, instrDEX;
 logic we_regEX, neather_modeEX, w_regvEX;
 logic [31:0] rd1EX, rd2EX, immEX, pc_actEX, pcplus4EX, rdv2EX;
 
-logic pc_srcEX, zEX, neather_portalEX;
-
-logic [31:0] alu_resultEX, pc_targetEX;
-
 // DESPUES HAY QUE METERLE con: logic rdataPass0vMEM;
 
-// Salidas de EX que se pasan a EX/MEM (separadas de las entradas)
-logic [1:0]  result_srcEX_out;
-logic        neather_wreg_srcEX_out, w_memvEX_out, we_memEX_out, sizeEX_out;
-logic        we_regEX_out, neather_modeEX_out, w_regvEX_out;
-logic        neather_portalEX_out;
-logic [31:0] rd2EX_out, rdv2EX_out, pcplus4EX_out;
-logic [4:0]  instrDEX_out;
+logic pc_srcEX, zEX, neather_portalEX; // (se usa en WB y en DECODE)
+
+logic [31:0] alu_resultEX, pc_targetEX;
 
 execute Exec(
     .jump(jumpEX),
     .blt(bltEX), 
-    .bge(bgeEX),
     .bne(bneEX), 
     .beq(beqEX),
     .result_src(result_srcEX),
@@ -186,7 +183,6 @@ execute Exec(
     .neather_portalIN(neather_portalEX),
     .alu_control(alu_controlEX),
     .alu_src(alu_srcEX),
-    .we_reg(we_regEX),
     .neather_mode(neather_modeEX), 
     .w_regv(w_regvEX),
     .rd1E(rd1EX), 
@@ -199,51 +195,46 @@ execute Exec(
 
     .pc_srcEx(pc_srcEX), 
     .z_OUT(zEX), 
-    .neather_portalOUT(neather_portalEX_out),
-    .result_srcOUT(result_srcEX_out),
-    .neather_wreg_srcOUT(neather_wreg_srcEX_out), 
-    .w_memvOUT(w_memvEX_out), 
-    .we_memOUT(we_memEX_out), 
-    .sizeOUT(sizeEX_out), 
-    .we_regOUT(we_regEX_out), 
-    .neather_modeOUT(neather_modeEX_out),
-    .w_regvOUT(w_regvEX_out),
+    .neather_portalOUT(neather_portalEX), // no cambia
+    .result_srcOUT(result_srcEX), // no cambia
+    .neather_wreg_srcOUT(neather_wreg_srcEX), 
+    .w_memvOUT(w_memvEX), 
+    .we_memOUT(we_memEX), 
+    .sizeOUT(sizeEX), 
+    .we_regOUT(we_regEX), 
+    .neather_modeOUT(neather_modeEX),
+    .w_regvOUT(w_regvEX),
 
     .alu_result(alu_resultEX), 
-    .rd2OUT(rd2EX_out), 
-    .rdv2OUT(rdv2EX_out), 
-    .pc_plus4OUT(pcplus4EX_out),
+    .rd2OUT(rd2EX), 
+    .rdv2OUT(rdv2EX), 
+    .pc_plus4OUT(pcplus4EX),
     .pc_targetOUT(pc_targetEX),
-    .instrDOUT(instrDEX_out)
+    .instrDOUT(instrDEX)
 );
+
 
 // ==========================================================
 //                       EX/MEM
 // ==========================================================
 
-logic [1:0]  result_srcMEM;
-logic        neather_wreg_srcMEM, w_memvMEM, we_memMEM, sizeMEM;
-logic        we_regMEM, neather_modeMEM, w_regvMEM;
-logic [31:0] alu_resultMEM, rd2MEM, rdv2MEM, pcPlus4MEM;
-logic [4:0]  instrDMEM;
-
 ex_mem_pipe ex_mem(
     .clk(clk),
     .reset(reset),
 
-    .result_src(result_srcEX_out),
-    .neather_wreg_src(neather_wreg_srcEX_out), 
-    .w_memv(w_memvEX_out), 
-    .we_mem(we_memEX_out), 
-    .size(sizeEX_out), 
-    .we_reg(we_regEX_out), 
-    .neather_mode(neather_modeEX_out), 
-    .w_regv(w_regvEX_out),
+    .result_src(result_srcEX),
+    .neather_wreg_src(neather_wreg_srcEX), 
+    .w_memv(w_memvEX), 
+    .we_mem(we_memEX), 
+    .size(sizeEX), 
+    .we_reg(we_regEX), 
+    .neather_mode(neather_modeEX), 
+    .w_regv(w_regvEX),
     .alu_result(alu_resultEX), 
-    .rd2(rd2EX_out),
-    .rdv2(rdv2EX_out), 
-    .pcPlus4(pcplus4EX_out),
-    .instrD(instrDEX_out), 
+    .rd2(rd2EX),
+    .rdv2(rdv2EX), 
+    .pcPlus4(pcplus4EX),
+    .instrD(instrDEX), 
 
     .result_srcOUT(result_srcMEM), 
     .neather_wreg_srcOUT(neather_wreg_srcMEM), 
@@ -264,61 +255,65 @@ ex_mem_pipe ex_mem(
 //                       MEM
 // ==========================================================
 
-logic [31:0] rMemDataMEM, rvMemDataMEM;
-logic [31:0] rdataPass0vMEM;
+logic [1:0] result_srcMEM;
+logic neather_wreg_srcMEM, w_memvMEM, we_memMEM, sizeMEM;
+logic we_regMEM, neather_modeMEM, w_regvMEM;
+logic [31:0] alu_resultMEM, rd2MEM, rdv2MEM, pcPlus4MEM;
+logic [4:0] instrDMEM;
 
-// Salidas de memory que van a mem_wb_pipe (separadas de las entradas de MEM)
-logic [31:0] alu_resultMEM_out, pcPlus4MEM_out;
-logic [4:0]  instrDMEM_out;
+logic [31:0] rMemDataMEM, rvMemDataMEM;
+
+logic rdataPass0vMEM;
 
 memory mem(
     .clk(clk),
 
+    .result_src(result_srcMEM), 
+    .neather_wreg_src(neather_wreg_srcMEM), 
     .w_memv(w_memvMEM), 
     .we_mem(we_memMEM), 
     .size(sizeMEM),
+    .we_reg(we_regMEM), 
     .neather_mode(neather_modeMEM),
+    .w_regv(w_regvMEM),
 
     .alu_result(alu_resultMEM), 
     .rd2(rd2MEM), 
     .rdv2(rdv2MEM), 
-    .pc_plus4(pcPlus4MEM),
+    .pc_plus4(pcPlus4MEM), // es la misma, se expande
     .instrD(instrDMEM),
 
+    .result_srcOUT(result_srcMEM),
+    .neather_wreg_srcOUT(neather_wreg_srcMEM), 
+    .we_regOUT(we_regMEM), 
+    .neather_modeOUT(neather_modeMEM),
+    .w_regvOUT(w_regvMEM),
     .rMemData(rMemDataMEM), 
     .rvMemData(rvMemDataMEM), 
-    .alu_resultOUT(alu_resultMEM_out), 
-    .pc_plus4OUT(pcPlus4MEM_out),
+    .alu_resultOUT(alu_resultMEM), 
+    .pc_plus4OUT(pcPlus4MEM),
     .rdataPass0v(rdataPass0vMEM),
-    .instrDOUT(instrDMEM_out)
+    .instrDOUT(instrDMEM)
 );
 
 // ==========================================================
 //                       MEM/WB
 // ==========================================================
 
-logic [1:0]  result_srcWB;
-logic        neather_wreg_srcWB, we_regWB, neather_modeWB, w_regvWB;
-logic [31:0] rMemDataWB, rvMemDataWB, alu_resultWB, pc_plus4WB;
-logic [4:0]  instrDWB;
-
 mem_wb_pipe mem_wb(
     .clk(clk),
     .reset(reset),
 
-    // señales de control vienen directo de ex_mem_pipe (no pasan por memory)
     .result_src(result_srcMEM), 
     .neather_wreg_src(neather_wreg_srcMEM),
     .we_reg(we_regMEM), 
     .neather_mode(neather_modeMEM), 
     .w_regv(w_regvMEM),
-
-    // datos vienen de memory
     .rMemData(rMemDataMEM),  
-    .alu_result(alu_resultMEM_out), 
+    .alu_result(alu_resultMEM), 
     .rvMemData(rvMemDataMEM), 
-    .pcPlus4(pcPlus4MEM_out),
-    .instrD(instrDMEM_out), 
+    .pcPlus4(pcPlus4MEM),
+    .instrD(instrDMEM), 
 
     .result_srcOUT(result_srcWB), 
     .neather_wreg_srcOUT(neather_wreg_srcWB),
@@ -336,13 +331,12 @@ mem_wb_pipe mem_wb(
 //                       WB
 // ==========================================================
 
-logic [31:0] newpc, wdWB, wdvWB;
+logic [1:0] result_srcWB;
+logic neather_wreg_srcWB, we_regWB, neather_modeWB, w_regvWB;
+logic [31:0] rMemDataWB, rvMemDataWB, alu_resultWB, pc_plus4WB;
+logic [4:0] instrDWB;
 
-// Salidas de writeback que retroalimentan a otros modulos
-// (separadas de las entradas we_regWB, neather_modeWB, w_regvWB, instrDWB
-//  que ya vienen de mem_wb_pipe)
-logic        we_regWB_fb, neather_modeWB_fb, w_regvWB_fb;
-logic [4:0]  instrDWB_fb;
+logic [31:0] newpc, wdWB, wdvWB;
 
 writeback WriteBack(
     .result_src(result_srcWB),
@@ -357,35 +351,22 @@ writeback WriteBack(
     .pc_plus4(pc_plus4WB), 
 
     .pc_srcEx(pc_srcEX),
-    .pc_plus4F(pc4F),
+    .pc_plus4F(pc4F), // para el mux
     .pc_target_EX(pc_targetEX),
     .instrD(instrDWB),
 
-    .we_regOUT(we_regWB_fb), 
-    .neather_modeOUT(neather_modeWB_fb), 
-    .w_regvOUT(w_regvWB_fb),
+// outputs
+
+    .we_regOUT(we_regWB), 
+    .neather_modeOUT(neather_modeWB), 
+    .w_regvOUT(w_regvWB),
     
     .wdOUT(wdWB), 
     .wdvOUT(wdvWB),
 
-    .new_addr(newpc),
-    .instrDOUT(instrDWB_fb)
+    .new_addr(newpc), // sale del mux de pc
+    .instrDOUT(instrDWB)
 );
-
-// ==========================================================
-//                       FEEDBACK WB → DECODE
-// ==========================================================
-
-// Las señales de feedback que decode necesita vienen de writeback,
-// no del pipe mem_wb. Se renombran aquí para que quede claro.
-// we_regWB, w_regvWB, neather_modeWB, instrDWB ya existen como
-// salidas de mem_wb_pipe, pero el decode necesita los valores
-// procesados por writeback:
-
-// Si writeback solo los pasa sin modificar, conecta directo:
-// assign we_regWB    = we_regWB_fb;   // ← driver doble, NO hacer esto
-// En su lugar, decode debería recibir we_regWB_fb directamente.
-// Puede ajustarse las conexiones de Decode arriba para usar _fb si es necesario.
 
 // ==========================================================
 //                       WB/IF

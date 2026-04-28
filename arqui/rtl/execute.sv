@@ -7,7 +7,7 @@ module execute(
     input logic [1:0] alu_src,
     input logic we_reg, neather_mode, w_regv,
     input logic [31:0] rd1E, rd2E, immE, pc_actE, pc_plus4E, rdv2E,
-    input logic [4:0] instrD;
+    input logic [4:0] instrD,
 
     output logic pc_srcEx, z_OUT, neather_portalOUT,
     output logic [1:0] result_srcOUT, 
