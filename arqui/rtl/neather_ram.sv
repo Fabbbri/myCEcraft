@@ -36,7 +36,7 @@ module neather_ram (
     // Lectura fija a dirección 0
 
     logic [15:0] addr_index_portal;
-    addr_index_portal = addrPortal[15:0]
+    addr_index_portal = addrPortal[15:0];
 
     assign rdataPass0V = {mem[addr_index_portal + 3],
                         mem[addr_index_portal + 2],
