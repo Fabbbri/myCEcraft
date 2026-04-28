@@ -4,17 +4,17 @@
 ; ==================================================
 
 ; Tabla de etiquetas
-;   .L_codegen_0_enderExit = 0x0008
-;   main = 0x0008
-;   .L0_while_start = 0x0020
-;   .L1_while_end = 0x0040
-;   .L_codegen_1_main_end = 0x004C
+;   .L_codegen_0_enderExit = 0x0018
+;   main = 0x0018
+;   .L0_while_start = 0x0054
+;   .L1_while_end = 0x00B8
+;   .L_codegen_1_main_end = 0x00E0
 
 ; Referencias resueltas
-;   pc=0x0000 portalv -> .L_codegen_0_enderExit (addr=0x0008, offset=8)
-;   pc=0x0028 bge -> .L1_while_end (addr=0x0040, offset=24)
-;   pc=0x003C jal -> .L0_while_start (addr=0x0020, offset=-28)
-;   pc=0x0048 jal -> .L_codegen_1_main_end (addr=0x004C, offset=4)
+;   pc=0x0000 portalv -> .L_codegen_0_enderExit (addr=0x0018, offset=24)
+;   pc=0x0074 bge -> .L1_while_end (addr=0x00B8, offset=68)
+;   pc=0x00B0 jal -> .L0_while_start (addr=0x0054, offset=-92)
+;   pc=0x00D8 jal -> .L_codegen_1_main_end (addr=0x00E0, offset=8)
 
 ; ==================================================
 ; Ensamblador generado para Craft21
@@ -24,37 +24,84 @@
 .text
 
     ; @EnterCraftWorld
-    portalv x0, x0, 8                                   ; pc=0x0000 ; target=.L_codegen_0_enderExit ; addr=0x0008
-    lwv v0, 0(v0)                                       ; pc=0x0004
+    portalv x0, x0, 24                                  ; pc=0x0000 ; target=.L_codegen_0_enderExit ; addr=0x0018
+    sleep ; nop despues de control                      ; pc=0x0004
+    lwv v0, 0(v0)                                       ; pc=0x0008
+    sleep ; stall RAW                                   ; pc=0x000C
+    sleep ; stall RAW                                   ; pc=0x0010
+    sleep ; stall RAW                                   ; pc=0x0014
 .L_codegen_0_enderExit:
 
 main:
     ; prologue
-    addiSigned x2, x2, -16                              ; pc=0x0008
-    sw x1, 0(x2)                                        ; pc=0x000C
-    sw x17, 4(x2)                                       ; pc=0x0010
-    addi x17, x2, 16                                    ; pc=0x0014
+    addiSigned x2, x2, -16                              ; pc=0x0018
+    sleep ; stall RAW                                   ; pc=0x001C
+    sleep ; stall RAW                                   ; pc=0x0020
+    sleep ; stall RAW                                   ; pc=0x0024
+    sw x1, 0(x2)                                        ; pc=0x0028
+    sw x17, 4(x2)                                       ; pc=0x002C
+    addi x17, x2, 16                                    ; pc=0x0030
+    sleep ; stall RAW                                   ; pc=0x0034
+    sleep ; stall RAW                                   ; pc=0x0038
+    sleep ; stall RAW                                   ; pc=0x003C
 
-    addi x3, x0, 0                                      ; pc=0x0018
-    sw x3, -4(x17) ; x                                  ; pc=0x001C
+    addi x3, x0, 0                                      ; pc=0x0040
+    sleep ; stall RAW                                   ; pc=0x0044
+    sleep ; stall RAW                                   ; pc=0x0048
+    sleep ; stall RAW                                   ; pc=0x004C
+    sw x3, -4(x17) ; x                                  ; pc=0x0050
 
 .L0_while_start:
-    lw x3, -4(x17) ; x                                  ; pc=0x0020
-    addi x4, x0, 5                                      ; pc=0x0024
-    bge x3, x4, 24                                      ; pc=0x0028 ; target=.L1_while_end ; addr=0x0040
-    lw x4, -4(x17) ; x                                  ; pc=0x002C
-    addi x3, x0, 1                                      ; pc=0x0030
-    add x5, x4, x3                                      ; pc=0x0034
-    sw x5, -4(x17) ; x                                  ; pc=0x0038
-    jal x0, -28                                         ; pc=0x003C ; target=.L0_while_start ; addr=0x0020
+    lw x3, -4(x17) ; x                                  ; pc=0x0054
+    sleep ; stall RAW                                   ; pc=0x0058
+    sleep ; stall RAW                                   ; pc=0x005C
+    sleep ; stall RAW                                   ; pc=0x0060
+    addi x4, x0, 5                                      ; pc=0x0064
+    sleep ; stall RAW                                   ; pc=0x0068
+    sleep ; stall RAW                                   ; pc=0x006C
+    sleep ; stall RAW                                   ; pc=0x0070
+    bge x3, x4, 68                                      ; pc=0x0074 ; target=.L1_while_end ; addr=0x00B8
+    sleep ; nop despues de control                      ; pc=0x0078
+    lw x4, -4(x17) ; x                                  ; pc=0x007C
+    sleep ; stall RAW                                   ; pc=0x0080
+    sleep ; stall RAW                                   ; pc=0x0084
+    sleep ; stall RAW                                   ; pc=0x0088
+    addi x3, x0, 1                                      ; pc=0x008C
+    sleep ; stall RAW                                   ; pc=0x0090
+    sleep ; stall RAW                                   ; pc=0x0094
+    sleep ; stall RAW                                   ; pc=0x0098
+    add x5, x4, x3                                      ; pc=0x009C
+    sleep ; stall RAW                                   ; pc=0x00A0
+    sleep ; stall RAW                                   ; pc=0x00A4
+    sleep ; stall RAW                                   ; pc=0x00A8
+    sw x5, -4(x17) ; x                                  ; pc=0x00AC
+    jal x0, -92                                         ; pc=0x00B0 ; target=.L0_while_start ; addr=0x0054
+    sleep ; nop despues de control                      ; pc=0x00B4
 .L1_while_end:
 
-    lw x5, -4(x17) ; x                                  ; pc=0x0040
-    add x11, x5, x0                                     ; pc=0x0044
-    jal x0, 4                                           ; pc=0x0048 ; target=.L_codegen_1_main_end ; addr=0x004C
+    lw x5, -4(x17) ; x                                  ; pc=0x00B8
+    sleep ; stall RAW                                   ; pc=0x00BC
+    sleep ; stall RAW                                   ; pc=0x00C0
+    sleep ; stall RAW                                   ; pc=0x00C4
+    add x11, x5, x0                                     ; pc=0x00C8
+    sleep ; stall RAW                                   ; pc=0x00CC
+    sleep ; stall RAW                                   ; pc=0x00D0
+    sleep ; stall RAW                                   ; pc=0x00D4
+    jal x0, 8                                           ; pc=0x00D8 ; target=.L_codegen_1_main_end ; addr=0x00E0
+    sleep ; nop despues de control                      ; pc=0x00DC
 .L_codegen_1_main_end:
     ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x004C
-    lw x17, 4(x2)                                       ; pc=0x0050
-    addi x2, x2, 16                                     ; pc=0x0054
-    jalr x1, 0                                          ; pc=0x0058
+    lw x1, 0(x2)                                        ; pc=0x00E0
+    sleep ; stall RAW                                   ; pc=0x00E4
+    sleep ; stall RAW                                   ; pc=0x00E8
+    sleep ; stall RAW                                   ; pc=0x00EC
+    lw x17, 4(x2)                                       ; pc=0x00F0
+    sleep ; stall RAW                                   ; pc=0x00F4
+    sleep ; stall RAW                                   ; pc=0x00F8
+    sleep ; stall RAW                                   ; pc=0x00FC
+    addi x2, x2, 16                                     ; pc=0x0100
+    sleep ; stall RAW                                   ; pc=0x0104
+    sleep ; stall RAW                                   ; pc=0x0108
+    sleep ; stall RAW                                   ; pc=0x010C
+    jalr x1, 0                                          ; pc=0x0110
+    sleep ; nop despues de control                      ; pc=0x0114

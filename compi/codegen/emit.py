@@ -18,11 +18,41 @@ class EmitMixin:
         "jal",
         "jalr",
     }
+    RAW_STALL_CYCLES = 3
+    RAW_WRITEBACK = {
+        "add",
+        "sub",
+        "sll",
+        "slt",
+        "xor",
+        "srl",
+        "sra",
+        "or",
+        "and",
+        "mul",
+        "div",
+        "addi",
+        "addiHIGH",
+        "addiSigned",
+        "lw",
+        "lb",
+        "jal",
+        "jalr",
+        "sllv",
+        "slrv",
+        "changev",
+        "lwv",
+        "addiLOWv",
+        "addiHIGHv",
+    }
 
     def _emit(self, line: str) -> None:
         self.lines.append(line)
         if self.NOP_AFTER_CONTROL_TRANSFER and self._needs_control_transfer_nop(line):
             self.lines.append("    sleep ; nop despues de control")
+        if self.RAW_STALL_CYCLES and self._needs_raw_stall(line):
+            for _ in range(self.RAW_STALL_CYCLES):
+                self.lines.append("    sleep ; stall RAW")
 
     def _needs_control_transfer_nop(self, line: str) -> bool:
         code = line.split(";", 1)[0].strip()
@@ -31,6 +61,20 @@ class EmitMixin:
 
         mnemonic = code.split(None, 1)[0]
         return mnemonic in self.NOP_CONTROL_TRANSFER
+
+    def _needs_raw_stall(self, line: str) -> bool:
+        code = line.split(";", 1)[0].strip()
+        if not code or code.endswith(":") or code.startswith("."):
+            return False
+
+        mnemonic = code.split(None, 1)[0]
+        if mnemonic in {"sleep", "freeze"}:
+            return False
+
+        if mnemonic in self.NOP_CONTROL_TRANSFER:
+            return False
+
+        return mnemonic in self.RAW_WRITEBACK
 
     def _with_instruction_addresses(self, assembly: str) -> str:
         result: list[str] = []
