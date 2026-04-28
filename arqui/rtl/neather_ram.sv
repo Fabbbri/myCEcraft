@@ -2,6 +2,7 @@ module neather_ram (
     input  logic        clk,
     input  logic        we_memV,
     input  logic [31:0] addrV,
+    input  logic [31:0] addrPortal,
     input  logic [31:0] wdataV,
     output logic [31:0] rdataV,
     output logic [31:0] rdataPass0V
@@ -33,7 +34,14 @@ module neather_ram (
                     mem[addr_index]} ;  // LW      
 
     // Lectura fija a dirección 0
-    assign rdataPass0V = {mem[3], mem[2], mem[1], mem[0]};                                     
+
+    logic [15:0] addr_index_portal;
+    addr_index_portal = addrPortal[15:0]
+
+    assign rdataPass0V = {mem[addr_index_portal + 3],
+                        mem[addr_index_portal + 2],
+                        mem[addr_index_portal + 1],
+                        mem[addr_index_portal]} ;  // LW                                       
 
     // ESCRITURA
     always_ff @(posedge clk) begin

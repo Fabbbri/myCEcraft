@@ -6,15 +6,17 @@ module execute(
     input logic [4:0] alu_control,
     input logic [1:0] alu_src,
     input logic we_reg, neather_mode, w_regv,
-    input logic [31:0] rd1E, rd2E, immE, pc_actE, wdE, pc_plus4E, rdv2E, wdvE,
+    input logic [31:0] rd1E, rd2E, immE, pc_actE, pc_plus4E, rdv2E,
+    input logic [4:0] instrD;
 
     output logic pc_srcEx, z_OUT, neather_portalOUT,
     output logic [1:0] result_srcOUT, 
     output logic neather_wreg_srcOUT, w_memvOUT, we_memOUT, 
     output logic sizeOUT, we_regOUT, neather_modeOUT, w_regvOUT,
 
-    output logic [31:0] alu_result, rd2OUT, rdv2OUT, wdOUT, pc_plus4OUT, wdvOUT,
-    output logic [31:0] pc_targetOUT
+    output logic [31:0] alu_result, rd2OUT, rdv2OUT, pc_plus4OUT,
+    output logic [31:0] pc_targetOUT,
+    output logic [4:0] instrDOUT
 );
 
 // ==========================================================
@@ -32,7 +34,7 @@ assign d5 = 32'd5;
 
 logic [31:0] tea01;
 
-mux31 mux31 (
+mux31 teaMux (
     .in1(d4),
     .in2(d5),
     .src(tea_src),
@@ -45,7 +47,7 @@ mux31 mux31 (
 
 logic [31:0] pc_target;
 
-sum31b sum31b(
+sum31b pcTargetSum(
     .in1(immE),
     .in2(pc_actE),
     .out(pc_target)
@@ -57,7 +59,7 @@ sum31b sum31b(
 
 logic [31:0] srcB;
 
-mux31_2 mux31_2(
+mux31_2 alu_mux(
     .in1(rd2E),
     .in2(tea01),
     .in3(rdv2E),
@@ -74,7 +76,7 @@ logic v_flagUNUSED;
 logic z_aux;
 logic n_aux;
 
-alu alu(
+alu ALU(
     .srcA(rd1E),
     .srcB(srcB),
     .alu_control(alu_control),
@@ -116,7 +118,7 @@ assign bltAND = blt & n_aux;
 //                       INSTANCIA OR5GATE
 // ==========================================================
 
-orgate5 orgate5 (
+orgate5 TypeJ_OR(
     .in1(jump),
     .in2(beqAND),
     .in3(bneAND),
@@ -140,16 +142,15 @@ assign z_OUT = z_aux;
 
 assign we_regOUT = we_reg;
 assign neather_modeOUT = neather_mode;
-assign w_regvOUT = w_regv;
+assign w_regvOUT = w_regv; // DIRECCION CONTR
 
 // NON CONTROL SIGNALS
 
 assign rd2OUT = rd2E;
 assign rdv2OUT = rdv2E;
 
-assign wdOUT = wdE;
+assign instrDOUT = instrD;
 assign pc_plus4OUT = pc_plus4E;
-assign wdvOUT = wdvE;
 
 assign pc_targetOUT = pc_target;
 
