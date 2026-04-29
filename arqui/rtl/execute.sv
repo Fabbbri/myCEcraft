@@ -1,5 +1,5 @@
 module execute(
-    input logic jump, blt, bne, beq,
+    input logic jump, blt, bne, beq, bge,
     input logic [1:0] result_src,
     input logic neather_wreg_src, w_memv, we_mem, size, 
     input logic neather_portalIN,
@@ -63,7 +63,7 @@ mux31_2 alu_mux(
     .in1(rd2E),
     .in2(tea01),
     .in3(rdv2E),
-    .in4(pc_target),
+    .in4(immE),
     .src(alu_src),
     .out(srcB)
 );

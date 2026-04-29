@@ -4,10 +4,69 @@ module top(
 );
 
 // ==========================================================
-//                       ISSUE
+//   DECLARACIONES — TODAS ARRIBA, ANTES DE CUALQUIER INSTANCIA
 // ==========================================================
 
+// IF
 logic [31:0] pcF, pc4F, instrF;
+
+// IF/ID → ID
+logic [31:0] instrDE, pcDE, pc4DE;
+
+logic [31:0] pc4DEOUT, pcDEOUT;
+
+// ID → ID/EX
+logic        jumpDE, bltDE, bgeDE, bneDE, beqDE;
+logic [1:0]  result_srcDE, alu_srcDE;
+logic        neather_wreg_srcDE, w_memvDE, we_memDE, sizeDE, neather_portalDE;
+logic [4:0]  alu_controlDE, instrDDE;
+logic        neather_modeDE, we_regDE, w_regvDE;
+logic [31:0] rd1DE, rd2DE, immDE, rdv2DE;
+
+// ID/EX → EX
+logic        jumpEX, bltEX, bgeEX, bneEX, beqEX;
+logic [1:0]  result_srcEX, alu_srcEX;
+logic        neather_wreg_srcEX, w_memvEX, we_memEX, sizeEX;
+logic [4:0]  alu_controlEX, instrDEX;
+logic        we_regEX, neather_modeEX, w_regvEX;
+logic [31:0] rd1EX, rd2EX, immEX, pc_actEX, pcplus4EX, rdv2EX;
+logic        pc_srcEX, zEX, neather_portalEX;
+
+// EX → EX/MEM
+logic [31:0] alu_resultEX, pc_targetEX;
+logic [1:0]  result_srcEX_out;
+logic        neather_wreg_srcEX_out, w_memvEX_out, we_memEX_out, sizeEX_out;
+logic        we_regEX_out, neather_modeEX_out, w_regvEX_out;
+logic        neather_portalEX_out;
+logic [31:0] rd2EX_out, rdv2EX_out, pcplus4EX_out;
+logic [4:0]  instrDEX_out;
+
+// EX/MEM → MEM
+logic [1:0]  result_srcMEM;
+logic        neather_wreg_srcMEM, w_memvMEM, we_memMEM, sizeMEM;
+logic        we_regMEM, neather_modeMEM, w_regvMEM;
+logic [31:0] alu_resultMEM, rd2MEM, rdv2MEM, pcPlus4MEM;
+logic [4:0]  instrDMEM;
+
+// MEM → MEM/WB
+logic [31:0] rMemDataMEM, rvMemDataMEM, rdataPass0vMEM;
+logic [31:0] alu_resultMEM_out, pcPlus4MEM_out;
+logic [4:0]  instrDMEM_out;
+
+// MEM/WB → WB
+logic [1:0]  result_srcWB;
+logic        neather_wreg_srcWB, we_regWB, neather_modeWB, w_regvWB;
+logic [31:0] rMemDataWB, rvMemDataWB, alu_resultWB, pc_plus4WB;
+logic [4:0]  instrDWB;
+
+// WB → feedback
+logic [31:0] newpc, wdWB, wdvWB;
+logic        we_regWB_fb, neather_modeWB_fb, w_regvWB_fb;
+logic [4:0]  instrDWB_fb;
+
+// ==========================================================
+//                       ISSUE
+// ==========================================================
 
 issue Issue(
     .clk(clk),
@@ -40,15 +99,6 @@ if_id_pipe if_id(
 // ==========================================================
 //                       DECODE
 // ==========================================================
-
-logic [31:0] instrDE, pcDE, pc4DE;
-
-logic jumpDE, bltDE, bgeDE, bneDE, beqDE;
-logic [1:0] result_srcDE, alu_srcDE;
-logic neather_wreg_srcDE, w_memvDE, we_memDE, sizeDE, neather_portalDE;
-logic [4:0] alu_controlDE, instrDDE;
-logic neather_modeDE, we_regDE, w_regvDE;
-logic [31:0] rd1DE, rd2DE, immDE, rdv2DE;
 
 decode Decode(
     .clk(clk),
@@ -85,8 +135,8 @@ decode Decode(
     .rd1(rd1DE), 
     .rd2(rd2DE), 
     .imm(immDE), 
-    .pc_actOUT(pcDE), 
-    .pc_plus4OUT(pc4DE), 
+    .pc_actOUT(pcDEOUT), 
+    .pc_plus4OUT(pc4DEOUT), 
     .rdv2(rdv2DE)  
 );
 
@@ -118,8 +168,8 @@ id_ex_pipe id_ex(
     .rd1(rd1DE), 
     .rd2(rd2DE), 
     .imm(immDE), 
-    .pc_act(pcDE), 
-    .pc_plus4(pc4DE), 
+    .pc_act(pcDEOUT), 
+    .pcplus4(pc4DEOUT), 
     .rdv2(rdv2DE),
 
     .jumpOUT(jumpEX), 
@@ -151,26 +201,7 @@ id_ex_pipe id_ex(
 //                       EX
 // ==========================================================
 
-logic jumpEX, bltEX, bgeEX, bneEX, beqEX;
-logic [1:0] result_srcEX, alu_srcEX;
-logic neather_wreg_srcEX, w_memvEX, we_memEX, sizeEX;
-logic [4:0] alu_controlEX, instrDEX;
-logic we_regEX, neather_modeEX, w_regvEX;
-logic [31:0] rd1EX, rd2EX, immEX, pc_actEX, pcplus4EX, rdv2EX;
-
-logic pc_srcEX, zEX, neather_portalEX;
-
-logic [31:0] alu_resultEX, pc_targetEX;
-
 // DESPUES HAY QUE METERLE con: logic rdataPass0vMEM;
-
-// Salidas de EX que se pasan a EX/MEM (separadas de las entradas)
-logic [1:0]  result_srcEX_out;
-logic        neather_wreg_srcEX_out, w_memvEX_out, we_memEX_out, sizeEX_out;
-logic        we_regEX_out, neather_modeEX_out, w_regvEX_out;
-logic        neather_portalEX_out;
-logic [31:0] rd2EX_out, rdv2EX_out, pcplus4EX_out;
-logic [4:0]  instrDEX_out;
 
 execute Exec(
     .jump(jumpEX),
@@ -221,12 +252,6 @@ execute Exec(
 //                       EX/MEM
 // ==========================================================
 
-logic [1:0]  result_srcMEM;
-logic        neather_wreg_srcMEM, w_memvMEM, we_memMEM, sizeMEM;
-logic        we_regMEM, neather_modeMEM, w_regvMEM;
-logic [31:0] alu_resultMEM, rd2MEM, rdv2MEM, pcPlus4MEM;
-logic [4:0]  instrDMEM;
-
 ex_mem_pipe ex_mem(
     .clk(clk),
     .reset(reset),
@@ -264,13 +289,6 @@ ex_mem_pipe ex_mem(
 //                       MEM
 // ==========================================================
 
-logic [31:0] rMemDataMEM, rvMemDataMEM;
-logic [31:0] rdataPass0vMEM;
-
-// Salidas de memory que van a mem_wb_pipe (separadas de las entradas de MEM)
-logic [31:0] alu_resultMEM_out, pcPlus4MEM_out;
-logic [4:0]  instrDMEM_out;
-
 memory mem(
     .clk(clk),
 
@@ -297,10 +315,6 @@ memory mem(
 //                       MEM/WB
 // ==========================================================
 
-logic [1:0]  result_srcWB;
-logic        neather_wreg_srcWB, we_regWB, neather_modeWB, w_regvWB;
-logic [31:0] rMemDataWB, rvMemDataWB, alu_resultWB, pc_plus4WB;
-logic [4:0]  instrDWB;
 
 mem_wb_pipe mem_wb(
     .clk(clk),
@@ -335,14 +349,6 @@ mem_wb_pipe mem_wb(
 // ==========================================================
 //                       WB
 // ==========================================================
-
-logic [31:0] newpc, wdWB, wdvWB;
-
-// Salidas de writeback que retroalimentan a otros modulos
-// (separadas de las entradas we_regWB, neather_modeWB, w_regvWB, instrDWB
-//  que ya vienen de mem_wb_pipe)
-logic        we_regWB_fb, neather_modeWB_fb, w_regvWB_fb;
-logic [4:0]  instrDWB_fb;
 
 writeback WriteBack(
     .result_src(result_srcWB),

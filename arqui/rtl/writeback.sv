@@ -10,7 +10,7 @@ module writeback(
     input logic [4:0] instrD,
 
     output logic we_regOUT, neather_modeOUT, w_regvOUT,
-    output logic wdOUT, wdvOUT,
+    output logic [31:0] wdOUT, wdvOUT,
 
     output logic [31:0] new_addr,
     output logic [4:0] instrDOUT
@@ -31,7 +31,7 @@ mux31 wreg_mux(
 //                       TEA_SUM
 // ==========================================================
 
-logic teaSum11;
+logic [31:0] teaSum11;
 
 sum31b tea_sum(
     .in1(alu_result),
@@ -44,8 +44,8 @@ sum31b tea_sum(
 // ==========================================================
 
 mux31_2 resultSRC_mux(
-    .in1(rMemData),
-    .in2(alu_result),
+    .in1(alu_result), // 00
+    .in2(rMemData), // 01
     .in3(pc_plus4),
     .in4(teaSum11),
     .src(result_src),

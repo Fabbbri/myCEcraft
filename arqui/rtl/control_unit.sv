@@ -178,8 +178,9 @@ assign result_src   = (opcode == 4'b0010 && func19 == 1'b1) ? 2'b01 // LW
 assign alu_src  = (opcode == 4'b0001) ? 2'b11 // Type Imm
                 : (opcode == 4'b0010) ? 2'b11 // Type SW/LW
                 : (opcode == 4'b0011) ? 2'b11 // Type SB/LB
-                : (opcode == 4'b0100) ? 2'b11 // Type JUMP
-                : (opcode == 4'b0110) ? 2'b11 // Type BRANCH
+                : (opcode == 4'b0011 && func19 == 1'b1) ? 2'b00 // CAMBIAR
+                : (opcode == 4'b0100) ? 2'b11 // Type JALR porque hace ra = ra + imm ... JAL no es xx
+                : (opcode == 4'b0110) ? 2'b00 // Type BRANCH
                 : (opcode == 4'b1010) ? 2'b01 // Type TEA (RVault)
                 : (opcode == 4'b1110) ? 2'b10 // Type SWv/LWv Vault
                 : 2'b00; // el resto es 00 o no importa

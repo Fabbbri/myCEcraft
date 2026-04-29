@@ -9,15 +9,15 @@ module issue(
 //                       PC
 // ==========================================================
 
-logic pc_en,
-logic addr_aux,
+logic pc_en;
+logic [31:0] addr_aux;
 
 pc pc_reg(
     .clk(clk),
     .pc_enable(pc_en),
     .reset(reset),
     .new_addr(new_addr),
-    .addr(addr_aux),
+    .addr(addr_aux)
 );
 
 // ==========================================================
@@ -43,8 +43,9 @@ sumador_pc SUMPC(
 // ==========================================================
 
 
-logic pc_dec_aux;
-assign pc_dec_aux = {instr[23:19], instr[3:0]}
+logic [8:0] pc_dec_aux;
+assign pc_dec_aux = {instr[23:19], instr[3:0]};
+
 pc_decoder pcDec(
     .pcDEC(pc_dec_aux),
     .pc_enable(pc_en)
