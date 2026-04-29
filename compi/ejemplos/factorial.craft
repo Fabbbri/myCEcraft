@@ -1,0 +1,13 @@
+@EnterCraftWorld
+craft:int main() {
+    n:int = 5;
+    resultado:int = 1;
+    i:int = 1;
+
+    while (i <= n) {
+        resultado = resultado * i;
+        i = i + 1;
+    }
+
+    return resultado;
+}

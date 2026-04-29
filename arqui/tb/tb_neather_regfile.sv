@@ -1,24 +1,22 @@
 `timescale 1ns/1ps
 
-module regfile_tb;
+module tb_neather_regfile;
 
     // Señales
     logic clk;
     logic we;
-    logic [4:0] rs1, rs2, rd;
+    logic [4:0] rs2, rd;
     logic [31:0] wd;
-    logic [31:0] rd1, rd2;
+    logic [31:0] rd2;
 
     // Instancia del DUT (Device Under Test)
-    regfile uut (
+    neather_regfile uut (
         .clk(clk),
-        .we_reg(we),
-        .rs1(rs1),
-        .rs2(rs2),
-        .rd(rd),
-        .wd(wd),
-        .rd1(rd1),
-        .rd2(rd2)
+        .we_regV(we),
+        .rv2(rs2),
+        .rdv(rd),
+        .wdV(wd),
+        .rdv2(rd2)
     );
 
     // Clock: 10ns periodo
@@ -26,18 +24,17 @@ module regfile_tb;
 
     // Task para mostrar estado
     task show;
-        $display("T=%0t | we=%b rd=%0d wd=%0d | rs1=%0d rd1=%0d | rs2=%0d rd2=%0d",
-                  $time, we, rd, wd, rs1, rd1, rs2, rd2);
+        $display("T=%0t | we=%b rd=%0d wd=%0d | rs2=%0d rd2=%0d",
+                  $time, we, rd, wd, rs2, rd2);
     endtask
 
     initial begin
-        $dumpfile("sim/waves/regfile_tb.vcd");
-        $dumpvars(0, regfile_tb);
+        $dumpfile("sim/waves/tb_neather_regfile.vcd");
+        $dumpvars(0, tb_neather_regfile);
 
         // Inicialización
         clk = 0;
         we  = 0;
-        rs1 = 0;
         rs2 = 0;
         rd  = 0;
         wd  = 0;
@@ -54,21 +51,20 @@ module regfile_tb;
         #10; // flanco de reloj
         we = 0;
 
-        rs1 = 1;
+        rs2 = 1;
         #1;
         show();
 
         // =========================
         // TEST 2: Lectura doble
         // =========================
-        $display("\nTEST 2: Lectura doble");
+        $display("\nTEST 2: Lectura");
         rd = 2;
         wd = 32'd100;
         we = 1;
         #10;
         we = 0;
 
-        rs1 = 1;
         rs2 = 2;
         #1;
         show();
@@ -79,7 +75,7 @@ module regfile_tb;
         $display("\nTEST 3: Bypass");
         rd  = 3;
         wd  = 32'd77;
-        rs1 = 3; // leer mismo que escribo
+        rs2 = 3; // leer mismo que escribo
         we  = 1;
 
         #1; // SIN esperar clock → bypass debería activarse
@@ -98,7 +94,7 @@ module regfile_tb;
         #10;
         we = 0;
 
-        rs1 = 0;
+        rs2 = 0;
         #1;
         show();
 
@@ -117,7 +113,7 @@ module regfile_tb;
 
         // Leerlos
         for (int i = 4; i < 8; i++) begin
-            rs1 = i;
+            rs2 = i;
             #1;
             show();
         end

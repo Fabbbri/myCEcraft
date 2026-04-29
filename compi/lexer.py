@@ -13,6 +13,19 @@ KEYWORDS = {
     "summon": TokenType.KW_SUMMON,
     "invoke": TokenType.KW_INVOKE,
     "as": TokenType.KW_AS,
+    "enderopen": TokenType.KW_ENDEROPEN,
+    "enderclose": TokenType.KW_ENDERCLOSE,
+    "enderload": TokenType.KW_ENDERLOAD,
+    "enderstore": TokenType.KW_ENDERSTORE,
+    "enderkey": TokenType.KW_ENDERKEY,
+    "enderlow": TokenType.KW_ENDERLOW,
+    "enderhigh": TokenType.KW_ENDERHIGH,
+    "enderPortal": TokenType.KW_ENDERPORTAL,
+    "changePassword": TokenType.KW_CHANGEPASSWORD,
+    "enderchange": TokenType.KW_ENDERCHANGE,
+    "close": TokenType.KW_CLOSE,
+    "endChange": TokenType.KW_ENDCHANGE,
+    "endchange": TokenType.KW_ENDCHANGE,
 }
 
 # Diccionario de tipos de dato del lenguaje.
@@ -24,7 +37,10 @@ TYPES = {
     "void": TokenType.TYPE_VOID,
     "pointer": TokenType.TYPE_POINTER,
     "chest": TokenType.TYPE_CHEST,
+    "ender": TokenType.TYPE_ENDER,
 }
+
+TAB_WIDTH = 4
 
 
 class LexerError(Exception):
@@ -53,6 +69,7 @@ class Lexer:
         ("LINE_COMMENT", re.compile(r"//[^\n]*")),
         ("BLOCK_COMMENT", re.compile(r"/\*[\s\S]*?\*/")),
 
+        ("PRAGMA_ENTER_CRAFT_WORLD", re.compile(r"@EnterCraftWorld\b")),
         ("PRAGMA_INLINE", re.compile(r"@inline\b")),
 
         ("SPECIAL_LPLUS4", re.compile(r"<\+4")),
@@ -116,14 +133,14 @@ class Lexer:
     def _advance(self, text: str) -> None:
         self.pos += len(text)
 
-        line_breaks = text.count("\n")
-        if line_breaks == 0:
-            self.column += len(text)
-            return
-
-        self.line += line_breaks
-        last_newline = text.rfind("\n")
-        self.column = len(text) - last_newline
+        for char in text:
+            if char == "\n":
+                self.line += 1
+                self.column = 1
+            elif char == "\t":
+                self.column += TAB_WIDTH - ((self.column - 1) % TAB_WIDTH)
+            else:
+                self.column += 1
 
     def tokenize(self) -> list[Token]:
         tokens = []
@@ -156,6 +173,14 @@ class Lexer:
 
             if name == "PRAGMA_INLINE":
                 return Token(TokenType.PRAGMA_INLINE, lexeme, start_line, start_column)
+
+            if name == "PRAGMA_ENTER_CRAFT_WORLD":
+                return Token(
+                    TokenType.PRAGMA_ENTER_CRAFT_WORLD,
+                    lexeme,
+                    start_line,
+                    start_column,
+                )
 
             if name == "IDENT":
                 token_type = KEYWORDS.get(lexeme) or TYPES.get(lexeme) or TokenType.IDENT

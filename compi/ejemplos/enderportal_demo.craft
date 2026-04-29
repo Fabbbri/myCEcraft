@@ -1,0 +1,12 @@
+@EnterCraftWorld
+
+craft:int main() {
+    num:int = 12441;
+
+    enderPortal(2121):
+        enderchange(num)
+        enderclose
+    endchange
+
+    return 0;
+}

@@ -129,12 +129,6 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
-# =========================
-# Archivos grandes opcionales
-# =========================
-*.bin
-*.hex
-*.mem
 
 # =========================
 # Logs de herramientas
