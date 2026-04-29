@@ -454,7 +454,10 @@ class BinaryEncoder:
         self._expect_operands(mnemonic, operands, 3, line_number)
 
         rs1 = self._register(operands[0], line_number)
-        rs2 = self._register(operands[1], line_number)
+        if mnemonic == "portalv":
+            rs2 = self._portal_register(operands[1], line_number)
+        else:
+            rs2 = self._register(operands[1], line_number)
         offset = self._immediate(operands[2], line_number)
         self._check_aligned(offset, mnemonic, line_number)
         self._check_range(offset, -16384, 16380, mnemonic, line_number)
@@ -571,6 +574,12 @@ class BinaryEncoder:
             return require_vault_register(value).index
         except ValueError as error:
             raise EncodingError(f"linea {line_number}: {error}") from error
+
+    def _portal_register(self, value: str, line_number: int) -> int:
+        try:
+            return require_vault_register(value).index
+        except ValueError:
+            return self._register(value, line_number)
 
     def _immediate(self, value: str, line_number: int) -> int:
         try:

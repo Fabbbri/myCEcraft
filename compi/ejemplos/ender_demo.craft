@@ -1,6 +1,6 @@
 @EnterCraftWorld
 craft:int main() {
-    enderopen x3, x4;
+    enderopen x3;
     key:chest[ender, 4] = [2332323, 1234, 13234, 124];
     enderlow v2, v0, 0x1234;
     enderhigh v2, v2, 0xABCD;

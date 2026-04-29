@@ -27,7 +27,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0038
     sleep ; stall RAW                                   ; pc=0x003C
 
-    portalv x3, x4, 0 ; enderopen                       ; pc=0x0040
+    portalv x3, v0, 0 ; enderopen                       ; pc=0x0040
     sleep ; nop despues de control                      ; pc=0x0044
     addiLOWv v1, v0, 38563 ; key[0] low                 ; pc=0x0048
     sleep ; stall RAW                                   ; pc=0x004C

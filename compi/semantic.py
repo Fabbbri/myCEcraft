@@ -745,7 +745,7 @@ class SemanticAnalyzer:
 
     def _analyze_vault_instruction(self, node: VaultInstruction) -> None:
         expected_arity = {
-            "enderopen": {2, 3},
+            "enderopen": {1, 2},
             "enderclose": {0},
             "enderload": {2},
             "enderstore": {2},

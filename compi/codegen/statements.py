@@ -24,7 +24,7 @@ from ast_nodes import (
 
 from symbol_table import ChestType, PrimitiveName, PrimitiveType, ScopeKind, Symbol
 
-from registers import ARG_REGISTERS, FP, ZERO
+from registers import ARG_REGISTERS, FP, V0, ZERO
 
 from .errors import CodegenError
 
@@ -106,8 +106,15 @@ class StatementsMixin:
             raise CodegenError(f"instruccion de boveda desconocida: {node.keyword}", node)
 
         operands = list(node.operands)
-        if node.keyword == "enderopen" and len(operands) == 2:
-            operands.append("0")
+        if node.keyword == "enderopen":
+            if len(operands) not in {1, 2}:
+                raise CodegenError(
+                    f"'enderopen' esperaba 1 o 2 operandos pero recibio {len(operands)}",
+                    node,
+                )
+            offset = operands[1] if len(operands) == 2 else "0"
+            self._emit(f"    portalv {operands[0]}, {V0.asm()}, {offset} ; {node.keyword}")
+            return
 
         suffix = f" {', '.join(operands)}" if operands else ""
         self._emit(f"    {mnemonic}{suffix} ; {node.keyword}")
@@ -116,12 +123,12 @@ class StatementsMixin:
         password_reg = self._generate_portal_password(node.password)
 
         if node.body is None:
-            self._emit(f"    portalv {password_reg}, {ZERO.asm()}, 0 ; enderPortal")
+            self._emit(f"    portalv {password_reg}, {V0.asm()}, 0 ; enderPortal")
             self._release_temp(password_reg)
             return
 
         end_label = self._new_label("endchange")
-        self._emit(f"    portalv {password_reg}, {ZERO.asm()}, {end_label} ; enderPortal")
+        self._emit(f"    portalv {password_reg}, {V0.asm()}, {end_label} ; enderPortal")
         self._release_temp(password_reg)
 
         previous_scope = self._current_scope

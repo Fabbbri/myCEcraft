@@ -274,7 +274,7 @@ Ejemplo de bóveda:
 ```craft
 @EnterCraftWorld
 craft:int main() {
-    enderopen x3, x4;
+    enderopen x3;
     key:chest[ender, 4] = [2332323, 1234, 13234, 124];
     enderlow v2, v0, 0x1234;
     enderhigh v2, v2, 0xABCD;
@@ -294,16 +294,16 @@ Las instrucciones explícitas de bóveda disponibles son:
 
 | Keyword | Ensamblador generado |
 |---|---|
-| `enderopen a, b;` | `portalv a, b, 0` |
-| `enderopen a, b, off;` | `portalv a, b, off` |
+| `enderopen a;` | `portalv a, v0, 0` |
+| `enderopen a, off;` | `portalv a, v0, off` |
 | `enderclose;` | `closev` |
 | `enderload dst, off(base);` | `lwv dst, off(base)` |
 | `enderstore src, off(base);` | `swv src, off(base)` |
 | `enderkey dst, src;` | `changev dst, src` |
 | `enderlow dst, base, imm;` | `addiLOWv dst, base, imm` |
 | `enderhigh dst, base, imm;` | `addiHIGHv dst, base, imm` |
-| `enderPortal(clave);` | carga la clave y emite `portalv` |
-| `enderPortal(clave): ... endchange` | abre un bloque protegido y salta al cierre `endchange` |
+| `enderPortal(clave);` | carga la clave y emite `portalv clave, v0, 0` |
+| `enderPortal(clave): ... endchange` | carga la clave y emite `portalv clave, v0, offset a endchange` |
 | `enderchange(num)` | divide `num` en low/high y emite `changev v0, low, high` + `swv` |
 | `enderclose` | `closev` |
 
