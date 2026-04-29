@@ -5,9 +5,9 @@ module mux31_2(
     output logic [31:0] out
 );
 
-assign out =  (src == 2'b00)? (in1)
-            : (src == 2'b01)? (in2)
-            : (src == 2'b10)? (in3)
-            : (src == 2'b11)? (in4)
+assign out =  (src == 2'b00) ? (in1)
+            : (src == 2'b01) ? (in2)
+            : (src == 2'b10) ? (in3)
+            : (in4); // (src == 2'b11) ? es el ultimo caso, entonces es default
 
 endmodule
