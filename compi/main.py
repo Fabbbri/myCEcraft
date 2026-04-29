@@ -10,7 +10,9 @@ from codegen.generator import AssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
 
-DEFAULT_OUTPUT_DIR = Path("output")
+DEFAULT_ASM_DIR = Path("compi") / "asm_unresolved"
+DEFAULT_ASM_RESOLVED_DIR = Path("compi") / "asm_resolved"
+DEFAULT_BIN_HEX_DIR = Path("compi") / "bin_output"
 
 
 def _apply_resolved_text_addresses(symbol_table, labels: dict[str, int]) -> None:
@@ -124,13 +126,18 @@ def main() -> int:
         symbol_table = semantic.analyze(ast)
 
         if show_asm or show_resolved or show_binary:
-            output_dir = DEFAULT_OUTPUT_DIR
-            output_dir.mkdir(parents=True, exist_ok=True)
+            asm_dir = DEFAULT_ASM_DIR
+            asm_resolved_dir = DEFAULT_ASM_RESOLVED_DIR
+            bin_hex_dir = DEFAULT_BIN_HEX_DIR
+
+            asm_dir.mkdir(parents=True, exist_ok=True)
+            asm_resolved_dir.mkdir(parents=True, exist_ok=True)
+            bin_hex_dir.mkdir(parents=True, exist_ok=True)
 
             generator = AssemblyGenerator(symbol_table)
             assembly_code = generator.generate(ast)
 
-            asm_path = output_dir / f"{input_path.stem}.asm"
+            asm_path = asm_dir / f"{input_path.stem}.asm"
             if show_asm or show_resolved:
                 asm_path.write_text(assembly_code, encoding="utf-8")
                 print(f"Ensamblador generado: {asm_path}")
@@ -142,7 +149,7 @@ def main() -> int:
                 if show_symbols:
                     _apply_resolved_text_addresses(symbol_table, resolved.labels)
 
-                resolved_path = output_dir / f"{input_path.stem}.resolved.asm"
+                resolved_path = asm_resolved_dir / f"{input_path.stem}.resolved.asm"
                 if show_resolved:
                     resolved_path.write_text(resolved.assembly, encoding="utf-8")
                     print(f"Referencias resueltas: {resolved_path}")
@@ -151,11 +158,7 @@ def main() -> int:
                     encoder = BinaryEncoder()
                     binary = encoder.encode(resolved.assembly)
 
-                    bin_path = (
-                        Path(output_file)
-                        if output_file
-                        else output_dir / f"{input_path.stem}.bin"
-                    )
+                    bin_path = bin_hex_dir / f"{input_path.stem}.bin"
                     bin_path.parent.mkdir(parents=True, exist_ok=True)
                     hex_path = bin_path.with_suffix(".hex")
                     data_hex_path = bin_path.with_name(f"{bin_path.stem}.data.hex")

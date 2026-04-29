@@ -106,9 +106,12 @@ class MemoryMixin:
                     f"    lw {base_reg}, {base_offset}({FP.asm()}) ; base ref {symbol.name}"
                 )
             else:
-                self._emit(
-                    f"    addi {base_reg}, {FP.asm()}, {base_offset} ; base {symbol.name}"
+                self._emit_add_immediate(
+                    base_reg,
+                    FP.asm(),
+                    base_offset,
                 )
+                self._emit(f"    ; base {symbol.name}")
 
             return base_reg
 
