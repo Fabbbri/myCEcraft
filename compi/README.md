@@ -1,5 +1,41 @@
 # Estado del proyecto — Compilador myCEcraft
 
+## Guía de uso.
+- Imprimir análisis lexico
+```bash
+python3 compi/main.py --tokens compi/ejemplos/demo.craft
+```
+
+- Imprimir análisis sintáctico
+```bash
+python3 compi/main.py -t compi/ejemplos/demo.craft
+```
+- Imprimir AST
+```bash
+python3 compi/main.py --ast compi/ejemplos/demo.craft
+```
+
+- Imprimir tabla de simbolos con referencias sin resolver:
+```bash
+python3 compi/main.py -m compi/ejemplos/demo.craft
+```
+
+- Generar ensamblador sin resolver y resuelto:
+```bash
+python3 compi/main.py -r compi/ejemplos/demo.craft
+```
+
+- Generar ensamblador resuelto e imprimir la tabla de simbolos actualizada con listado de labels:
+```bash
+python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
+```
+
+- Generar ensamblador resuelto, no resuelto y.bin, .hex, y .lst 
+```bash
+python3 compi/main.py -r -b compi/ejemplos/demo.craft
+```
+
+
 ## 1. Análisis léxico
 
 ### Estado actual

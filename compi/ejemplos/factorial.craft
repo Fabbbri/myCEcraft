@@ -1,5 +1,6 @@
 @EnterCraftWorld
-craft:int factorial(n:int) {
+craft:int main() {
+    n:int = 5;
     resultado:int = 1;
     i:int = 1;
 
@@ -9,9 +10,4 @@ craft:int factorial(n:int) {
     }
 
     return resultado;
-}
-
-craft:int main() {
-    n:int = 5;
-    return summon:factorial(n);
 }
