@@ -2,8 +2,10 @@
 
 module tb_top;
 
-    parameter int          MAX_CYCLES = 5000;
-    parameter logic [31:0] HALT_PC    = 32'h00000110;
+    parameter int MAX_CYCLES = 10000;
+
+    // HALT_PC es variable entre tests
+    logic [31:0] halt_pc = 32'h00000110;
 
     logic clk   = 0;
     logic reset = 0;
@@ -11,51 +13,30 @@ module tb_top;
     int tests_failed = 0;
 
     top dut (.clk(clk), .reset(reset));
-
     always #5 clk = ~clk;
 
     `define REGS  dut.Decode.RegBank.regs
     `define PC    dut.Issue.addr_aux
+    `define ROM   dut.Issue.ROM.memory
 
     task automatic apply_reset();
         reset = 1;
         repeat (5) @(posedge clk);
         @(negedge clk);
         reset = 0;
-        $display("[RESET] Reset liberado en t=%0t ns", $time);
     endtask
 
-    // =========================================================
-    //  Task: Esperar fin — con debug inline por ciclo
-    // =========================================================
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
         timed_out = 0;
         cycles    = 0;
-
         forever begin
             @(posedge clk);
             cycles++;
-
-            // ── DEBUG: muestra solo las iteraciones del loop ──
-            // Ciclos 250-350: primera iteración del loop
-            // Ciclos 1700+:   últimas iteraciones antes del halt
-            if ((cycles >= 250 && cycles <= 350) ||
-                (cycles >= 1700)) begin
-                $display("c=%0d PC=%h | EX: rd1=%h rd2=%h bge=%b pc_src=%b | WB: rd=%0d wd=%h we=%b | x3=%h x4=%h x17=%h",
-                    cycles,
-                    `PC,
-                    dut.rd1EX, dut.rd2EX,
-                    dut.bgeEX, dut.pc_srcEX,
-                    dut.instrDWB, dut.wdWB, dut.we_regWB,
-                    `REGS[3], `REGS[4], `REGS[17]);
-            end
-
-            if (`PC === HALT_PC) begin
+            if (`PC === halt_pc) begin
                 $display("[INFO]  HALT en PC=%h  (ciclo %0d)", `PC, cycles);
                 return;
             end
-
             if (cycles >= MAX_CYCLES) begin
                 $display("[ERROR] Timeout tras %0d ciclos — último PC: %h",
                           MAX_CYCLES, `PC);
@@ -73,7 +54,8 @@ module tb_top;
             $display("  [PASS] %-4s (x%02d) = %h", name, idx, got);
         end else begin
             tests_failed++;
-            $display("  [FAIL] %-4s (x%02d)  esperado=%h  obtenido=%h", name, idx, expected, got);
+            $display("  [FAIL] %-4s (x%02d)  esperado=%h  obtenido=%h",
+                      name, idx, expected, got);
         end
     endtask
 
@@ -85,14 +67,28 @@ module tb_top;
         $display("  --------------------------");
     endtask
 
-    task automatic run_test(string test_name);
+    task automatic load_and_reset(input string hex_file);
+        // Inicializar ROM con NOPs
+        for (int i = 0; i < 256; i++)
+            `ROM[i] = 32'h00580000;
+        $readmemh(hex_file, `ROM);
+        $display("[LOAD]  %s", hex_file);
+        apply_reset();
+    endtask
+
+    task automatic run_test(
+        input string       test_name,
+        input string       hex_file,
+        input logic [31:0] new_halt_pc
+    );
         bit timed_out;
 
         $display("\n============================================================");
         $display("  TEST: %s", test_name);
         $display("============================================================");
 
-        apply_reset();
+        halt_pc = new_halt_pc;
+        load_and_reset(hex_file);
         wait_for_finish(timed_out);
 
         if (timed_out) begin
@@ -103,15 +99,11 @@ module tb_top;
         end
 
         repeat (4) @(posedge clk);
-
-        $display("\n  --- Registros clave ---");
-        check_reg(11, 32'h00000005, "x11");
-        check_reg( 3, 32'h00000005, "x3");
-        check_reg( 5, 32'h00000005, "x5");
-        check_reg( 2, 32'h00000000, "x2");
-        check_reg( 0, 32'h00000000, "x0");
     endtask
 
+    // =========================================================
+    //  Bloque principal
+    // =========================================================
     initial begin
         $display("============================================================");
         $display("         CRAFT21 ARCHITECTURE TESTBENCH");
@@ -120,8 +112,30 @@ module tb_top;
         $dumpfile("sim/waves/tb_top.vcd");
         $dumpvars(0, tb_top);
 
-        run_test("while loop x<5, return x=5");
+        // TEST 1
+        run_test("while loop x<5, return x=5", "programs/program.hex", 32'h00000110);
+        $display("\n  --- Registros clave ---");
+        check_reg(11, 32'h00000005, "x11");
+        check_reg( 3, 32'h00000005, "x3");
+        check_reg( 5, 32'h00000005, "x5");
+        check_reg( 2, 32'h00000000, "x2");
+        check_reg( 0, 32'h00000000, "x0");
 
+        // TEST 2
+        run_test("busqueda lineal arreglo, return pos=3", "programs/busqueda_arreglo.hex", 32'h00000268);
+        $display("\n  --- Registros clave ---");
+        check_reg(11, 32'h00000003, "x11");
+        check_reg( 2, 32'h00000000, "x2");
+        check_reg( 0, 32'h00000000, "x0");
+
+        // TEST 3
+        run_test("factorial(5) = 120", "programs/factorial.hex", 32'h0000016C);
+        $display("\n  --- Registros clave ---");
+        check_reg(11, 32'h00000078, "x11");  // 5! = 120 = 0x78
+        check_reg( 2, 32'h00000000, "x2");
+        check_reg( 0, 32'h00000000, "x0");
+
+        // REPORTE FINAL
         $display("\n============================================================");
         $display("  REPORTE FINAL");
         $display("============================================================");
@@ -137,8 +151,9 @@ module tb_top;
         $display("============================================================\n");
         $finish;
     end
-
+    
     `undef REGS
     `undef PC
+    `undef ROM
 
 endmodule
