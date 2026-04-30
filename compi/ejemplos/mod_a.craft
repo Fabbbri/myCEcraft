@@ -1,0 +1,6 @@
+@EnterCraftWorld
+invoke "mod_b" as b;
+
+craft:int suma2(x:int) {
+    return summon:b.suma1(x) + 1;
+}

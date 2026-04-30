@@ -35,6 +35,36 @@ python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
 python3 compi/main.py -r -b compi/ejemplos/demo.craft
 ```
 
+## Imports (invoke) expandido
+
+Cuando un archivo contiene `invoke`, el compilador hace una expansion simple
+antes de compilar:
+
+- Crea un nuevo archivo combinado en `compi/expanded/` con sufijo `.expanded.craft`.
+- Inserta el contenido de los modulos importados al inicio del archivo.
+- Elimina los `invoke` del archivo combinado.
+- Reescribe llamadas `summon:alias.func(...)` a `summon:func(...)`.
+- Si el archivo principal tiene `@EnterCraftWorld`, se conserva en el archivo
+  expandido (una sola vez).
+- Soporta imports anidados y evita ciclos (un modulo ya importado no se repite).
+
+Ejemplo:
+
+```craft
+@EnterCraftWorld
+invoke "mod_a" as a;
+
+craft:int main() {
+    return summon:a.suma2(3);
+}
+```
+
+El archivo expandido se genera como:
+
+```
+compi/expanded/<archivo>.expanded.craft
+```
+
 
 ## 1. Análisis léxico
 

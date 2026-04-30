@@ -1,0 +1,16 @@
+@EnterCraftWorld
+// --- import: C:\Users\XPC\OneDrive - Estudiantes ITCR\Escritorio\ITCR\S126\Compi\Proyecto\myCEcraft\compi\ejemplos\mod_a.craft ---
+// --- import: C:\Users\XPC\OneDrive - Estudiantes ITCR\Escritorio\ITCR\S126\Compi\Proyecto\myCEcraft\compi\ejemplos\mod_b.craft ---
+craft:int suma1(x:int) {
+    return x + 1;
+}
+// --- fin import ---
+
+craft:int suma2(x:int) {
+    return summon:suma1(x) + 1;
+}
+// --- fin import ---
+
+craft:int main() {
+    return summon:suma2(3);
+}
