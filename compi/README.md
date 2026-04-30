@@ -62,7 +62,7 @@ craft:int main() {
 El archivo expandido se genera como:
 
 ```
-compi/expanded/<archivo>.expanded.craft
+compi/output/expanded/<archivo>.expanded.craft
 ```
 
 
