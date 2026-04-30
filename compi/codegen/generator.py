@@ -101,6 +101,7 @@ class AssemblyGenerator(
         self._emit("    ; @EnterCraftWorld")
         self._emit(f"    portalv x0, x0, {end_label}")
         self._emit("    lwv v0, 0(v0)")
+        self._emit("    closev ; cerrar Secure Mode despues del bootstrap")
         self._emit(f"{end_label}:")
         self._emit("")
 
