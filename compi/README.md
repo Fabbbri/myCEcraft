@@ -65,6 +65,20 @@ El archivo expandido se genera como:
 compi/output/expanded/<archivo>.expanded.craft
 ```
 
+## Tabla de simbolos: direccion en STACK
+
+Para variables locales en `STACK`, la tabla muestra la direccion ya calculada
+como offset relativo al `sp` despues del prologo de la funcion. Por ejemplo,
+si en ensamblador se ve:
+
+```riscv
+lw x3, -4(x17) ; x
+```
+
+`x17` es el `fp` (frame pointer) y el prologo hace `addi x17, x2, frame_size`.
+Entonces la direccion efectiva es `sp + (frame_size - 4)`. En la tabla se
+imprime ese valor en hexadecimal (por ejemplo `0x000C`).
+
 
 ## 1. Análisis léxico
 
