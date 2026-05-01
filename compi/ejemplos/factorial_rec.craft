@@ -1,0 +1,11 @@
+@EnterCraftWorld
+craft:int fact(n:int) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * summon:fact(n - 1);
+}
+
+craft:int main() {
+    return summon:fact(5);
+}

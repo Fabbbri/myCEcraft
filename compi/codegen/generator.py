@@ -93,6 +93,10 @@ class AssemblyGenerator(
         for declaration in sorted(functions, key=lambda function: function.name != "main"):
             self._generate_function(declaration)
 
+        self._emit("    ; final de programa")
+        self._emit("    addiHIGH x1, x0, 0xDEAD")
+        self._emit("    jalr x1, 0")
+
     def _emit_enter_craft_world_preamble(self, program: Program) -> None:
         if "@EnterCraftWorld" not in program.pragmas:
             return
