@@ -103,7 +103,9 @@ class BinaryResult:
     def data_hex_text(self) -> str:
         if not self.data_items:
             return ""
-        return "\n".join(f"{byte:02X}" for byte in self.data_binary) + "\n"
+        lines = [f"@{self.header.data_base:08X}"]
+        lines.extend(f"{byte:02X}" for byte in self.data_binary)
+        return "\n".join(lines) + "\n"
 
     @property
     def listing_text(self) -> str:
@@ -215,6 +217,14 @@ class BinaryEncoder:
         data_offset = text_offset + text_size
         text_base = instructions[0].pc if instructions else 0
         data_base = data_items[0].address if data_items else 0
+
+        if data_items:
+            text_end = text_base + text_size
+            if text_end > data_base:
+                raise EncodingError(
+                    "colision de segmentos: .text termina en "
+                    f"0x{text_end:08X}, pero .data empieza en 0x{data_base:08X}"
+                )
 
         return ProgramHeader(
             magic=b"MYCE",

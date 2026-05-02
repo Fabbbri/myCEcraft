@@ -1,5 +1,4 @@
 @EnterCraftWorld
-// --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\mod_a.craft ---
 // --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\mod_b.craft ---
 craft:int suma1(x:int) {
     return x + 1;
@@ -8,9 +7,4 @@ craft:int suma1(x:int) {
 
 craft:int suma2(x:int) {
     return summon:suma1(x) + 1;
-}
-// --- fin import ---
-
-craft:int main() {
-    return summon:suma2(3);
 }

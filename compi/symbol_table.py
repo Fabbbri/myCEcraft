@@ -680,7 +680,7 @@ if __name__ == "__main__":
 
     # Simula una asignacion de memoria para pruebas del backend.
     # Convenciones de ejemplo:
-    # - Variables globales: segmento DATA desde 0x1000.
+    # - Variables globales: segmento DATA desde 0x8000.
     # - Parametros/variables locales: segmento STACK con offsets negativos.
     # - Funciones: segmento TEXT con direccion de entrada.
     size_map = {
@@ -703,7 +703,7 @@ if __name__ == "__main__":
             return type_size(t.element_type) * t.size
         return 0
 
-    next_global_address = 0x1000
+    next_global_address = 0x8000
     next_text_address = 0x2000
 
     for symbol in table.global_scope.symbols.values():

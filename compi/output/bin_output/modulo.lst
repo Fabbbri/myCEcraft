@@ -1,0 +1,78 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 228 bytes
+;   data_offset       = 272
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 57
+
+; Seccion .text
+0x0000: 00200076    ; portalv x0, x0, 28
+0x0004: 00580000    ; sleep
+0x0008: 0008000E    ; lwv v0, 0(v0)
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 00580000    ; sleep
+0x0018: 0000000C    ; closev
+0x001C: FFF88421    ; addiSigned x2, x2, -8
+0x0020: 00580000    ; sleep
+0x0024: 00580000    ; sleep
+0x0028: 00580000    ; sleep
+0x002C: 00004402    ; sw x1, 0(x2)
+0x0030: 00044442    ; sw x17, 4(x2)
+0x0034: 00080511    ; addi x17, x2, 8
+0x0038: 00580000    ; sleep
+0x003C: 00580000    ; sleep
+0x0040: 00580000    ; sleep
+0x0044: 0002E282    ; sw x11, 8(x17)
+0x0048: 000322C2    ; sw x12, 12(x17)
+0x004C: 000A2232    ; lw x3, 8(x17)
+0x0050: 00580000    ; sleep
+0x0054: 00580000    ; sleep
+0x0058: 00580000    ; sleep
+0x005C: 000B2242    ; lw x4, 12(x17)
+0x0060: 00580000    ; sleep
+0x0064: 00580000    ; sleep
+0x0068: 00580000    ; sleep
+0x006C: 00010650    ; add x5, x3, x4
+0x0070: 00580000    ; sleep
+0x0074: 00580000    ; sleep
+0x0078: 00580000    ; sleep
+0x007C: 00000AB0    ; add x11, x5, x0
+0x0080: 00580000    ; sleep
+0x0084: 00580000    ; sleep
+0x0088: 00580000    ; sleep
+0x008C: 00000404    ; jal x0, 8
+0x0090: 00580000    ; sleep
+0x0094: 00080412    ; lw x1, 0(x2)
+0x0098: 00580000    ; sleep
+0x009C: 00580000    ; sleep
+0x00A0: 00580000    ; sleep
+0x00A4: 00090512    ; lw x17, 4(x2)
+0x00A8: 00580000    ; sleep
+0x00AC: 00580000    ; sleep
+0x00B0: 00580000    ; sleep
+0x00B4: 00080421    ; addi x2, x2, 8
+0x00B8: 00580000    ; sleep
+0x00BC: 00580000    ; sleep
+0x00C0: 00580000    ; sleep
+0x00C4: 00080014    ; jalr x1, 0
+0x00C8: 00580000    ; sleep
+0x00CC: DEAD4011    ; addiHIGH x1, x0, 0xDEAD
+0x00D0: 00580000    ; sleep
+0x00D4: 00580000    ; sleep
+0x00D8: 00580000    ; sleep
+0x00DC: 00080014    ; jalr x1, 0
+0x00E0: 00580000    ; sleep
+
+; Seccion .data
+; <sin datos globales>

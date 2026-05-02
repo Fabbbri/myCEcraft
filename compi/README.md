@@ -239,7 +239,7 @@ compatible con la idea de usar `sp`/stack:
 - etiquetas de saltos: segmento `TEXT`, dirección pendiente
 - parámetros: segmento `STACK`, offsets positivos desde `sp`/frame pointer
 - variables locales: segmento `STACK`, offsets negativos
-- variables globales: segmento `DATA`, desde `0x1000`
+- variables globales: segmento `DATA`, desde `0x8000`
 - variables de bóveda: segmento `VAULT`, offsets desde `v0`
 
 Las direcciones reales de funciones y etiquetas quedan sin resolver porque eso

@@ -1,10 +1,9 @@
-// --- import: C:\Users\XPC\OneDrive - Estudiantes ITCR\Escritorio\ITCR\S126\Compi\Proyecto\myCEcraft\compi\ejemplos\modulo.craft ---
+@EnterCraftWorld
+// --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\modulo.craft ---
 craft:int suma(a:int, b:int) {
     return a + b;
 }
 // --- fin import ---
-
-@EnterCraftWorld
 
 craft:int main() {
     x:int = summon:suma(3, 5);

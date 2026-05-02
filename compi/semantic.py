@@ -83,7 +83,7 @@ class SemanticAnalyzer:
     """
 
     STACK_ALIGNMENT = 4
-    GLOBAL_DATA_BASE = 0x1000
+    GLOBAL_DATA_BASE = 0x8000
 
     def __init__(self, filename: str = "<input>"):
         self.filename = filename

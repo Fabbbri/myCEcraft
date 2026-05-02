@@ -106,3 +106,11 @@ main:
     sleep ; stall RAW                                   ; pc=0x0110
     jalr x1, 0                                          ; pc=0x0114
     sleep ; nop despues de control                      ; pc=0x0118
+
+    ; final de programa
+    addiHIGH x1, x0, 0xDEAD                             ; pc=0x011C
+    sleep ; stall RAW                                   ; pc=0x0120
+    sleep ; stall RAW                                   ; pc=0x0124
+    sleep ; stall RAW                                   ; pc=0x0128
+    jalr x1, 0                                          ; pc=0x012C
+    sleep ; nop despues de control                      ; pc=0x0130
