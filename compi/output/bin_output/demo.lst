@@ -8,12 +8,12 @@
 ;   header_size       = 44 bytes
 ;   entry_point       = 0x00000000
 ;   text_offset       = 44
-;   text_size         = 308 bytes
-;   data_offset       = 352
+;   text_size         = 284 bytes
+;   data_offset       = 328
 ;   data_size         = 0 bytes
 ;   text_base         = 0x00000000
 ;   data_base         = 0x00000000
-;   instruction_count = 77
+;   instruction_count = 71
 
 ; Seccion .text
 0x0000: 00200076    ; portalv x0, x0, 28
@@ -73,26 +73,20 @@
 0x00D8: 00580000    ; sleep
 0x00DC: 00000404    ; jal x0, 8
 0x00E0: 00580000    ; sleep
-0x00E4: 00080412    ; lw x1, 0(x2)
+0x00E4: 00090512    ; lw x17, 4(x2)
 0x00E8: 00580000    ; sleep
 0x00EC: 00580000    ; sleep
 0x00F0: 00580000    ; sleep
-0x00F4: 00090512    ; lw x17, 4(x2)
+0x00F4: 00100421    ; addi x2, x2, 16
 0x00F8: 00580000    ; sleep
 0x00FC: 00580000    ; sleep
 0x0100: 00580000    ; sleep
-0x0104: 00100421    ; addi x2, x2, 16
+0x0104: DEAD4011    ; addiHIGH x1, x0, 0xDEAD
 0x0108: 00580000    ; sleep
 0x010C: 00580000    ; sleep
 0x0110: 00580000    ; sleep
 0x0114: 00080014    ; jalr x1, 0
 0x0118: 00580000    ; sleep
-0x011C: DEAD4011    ; addiHIGH x1, x0, 0xDEAD
-0x0120: 00580000    ; sleep
-0x0124: 00580000    ; sleep
-0x0128: 00580000    ; sleep
-0x012C: 00080014    ; jalr x1, 0
-0x0130: 00580000    ; sleep
 
 ; Seccion .data
 ; <sin datos globales>

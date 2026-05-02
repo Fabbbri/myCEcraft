@@ -480,15 +480,15 @@ main:
     sleep ; nop despues de control                      ; pc=0x0690
 .L_codegen_1_main_end:
     ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x0694
+    lw x17, 4(x2)                                       ; pc=0x0694
     sleep ; stall RAW                                   ; pc=0x0698
     sleep ; stall RAW                                   ; pc=0x069C
     sleep ; stall RAW                                   ; pc=0x06A0
-    lw x17, 4(x2)                                       ; pc=0x06A4
+    addi x2, x2, 8                                      ; pc=0x06A4
     sleep ; stall RAW                                   ; pc=0x06A8
     sleep ; stall RAW                                   ; pc=0x06AC
     sleep ; stall RAW                                   ; pc=0x06B0
-    addi x2, x2, 8                                      ; pc=0x06B4
+    addiHIGH x1, x0, 0xDEAD                             ; pc=0x06B4
     sleep ; stall RAW                                   ; pc=0x06B8
     sleep ; stall RAW                                   ; pc=0x06BC
     sleep ; stall RAW                                   ; pc=0x06C0
@@ -1386,11 +1386,3 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1450
     jalr x1, 0                                          ; pc=0x1454
     sleep ; nop despues de control                      ; pc=0x1458
-
-    ; final de programa
-    addiHIGH x1, x0, 0xDEAD                             ; pc=0x145C
-    sleep ; stall RAW                                   ; pc=0x1460
-    sleep ; stall RAW                                   ; pc=0x1464
-    sleep ; stall RAW                                   ; pc=0x1468
-    jalr x1, 0                                          ; pc=0x146C
-    sleep ; nop despues de control                      ; pc=0x1470

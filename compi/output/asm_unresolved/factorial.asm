@@ -97,25 +97,17 @@ main:
     sleep ; nop despues de control                      ; pc=0x013C
 .L_codegen_1_main_end:
     ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x0140
+    lw x17, 4(x2)                                       ; pc=0x0140
     sleep ; stall RAW                                   ; pc=0x0144
     sleep ; stall RAW                                   ; pc=0x0148
     sleep ; stall RAW                                   ; pc=0x014C
-    lw x17, 4(x2)                                       ; pc=0x0150
+    addi x2, x2, 24                                     ; pc=0x0150
     sleep ; stall RAW                                   ; pc=0x0154
     sleep ; stall RAW                                   ; pc=0x0158
     sleep ; stall RAW                                   ; pc=0x015C
-    addi x2, x2, 24                                     ; pc=0x0160
+    addiHIGH x1, x0, 0xDEAD                             ; pc=0x0160
     sleep ; stall RAW                                   ; pc=0x0164
     sleep ; stall RAW                                   ; pc=0x0168
     sleep ; stall RAW                                   ; pc=0x016C
     jalr x1, 0                                          ; pc=0x0170
     sleep ; nop despues de control                      ; pc=0x0174
-
-    ; final de programa
-    addiHIGH x1, x0, 0xDEAD                             ; pc=0x0178
-    sleep ; stall RAW                                   ; pc=0x017C
-    sleep ; stall RAW                                   ; pc=0x0180
-    sleep ; stall RAW                                   ; pc=0x0184
-    jalr x1, 0                                          ; pc=0x0188
-    sleep ; nop despues de control                      ; pc=0x018C
