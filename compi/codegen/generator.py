@@ -101,8 +101,7 @@ class AssemblyGenerator(
 
         if not (has_enter_craft_world and has_main):
             self._emit("    ; final de programa")
-            self._emit("    addiHIGH x1, x0, 0xDEAD")
-            self._emit("    jalr x1, 0")
+            self._emit("    freeze")
 
     def _emit_enter_craft_world_preamble(self, program: Program) -> None:
         if "@EnterCraftWorld" not in program.pragmas:
@@ -189,8 +188,8 @@ class AssemblyGenerator(
     def _emit_entry_point_epilogue(self, frame_size: int) -> None:
         self._emit(f"    lw {FP.asm()}, 4({SP.asm()})")
         self._emit_add_immediate(SP.asm(), SP.asm(), frame_size)
-        self._emit("    addiHIGH x1, x0, 0xDEAD")
-        self._emit("    jalr x1, 0")
+        self._emit("    freeze")
+
 
     def _calculate_stack_size(self, function_scope: Scope) -> int:
         max_size = 0

@@ -123,9 +123,4 @@ main:
     sleep ; stall RAW                                   ; pc=0x0154
     sleep ; stall RAW                                   ; pc=0x0158
     sleep ; stall RAW                                   ; pc=0x015C
-    addiHIGH x1, x0, 0xDEAD                             ; pc=0x0160
-    sleep ; stall RAW                                   ; pc=0x0164
-    sleep ; stall RAW                                   ; pc=0x0168
-    sleep ; stall RAW                                   ; pc=0x016C
-    jalr x1, 0                                          ; pc=0x0170
-    sleep ; nop despues de control                      ; pc=0x0174
+    freeze                                              ; pc=0x0160
