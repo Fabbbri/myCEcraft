@@ -35,6 +35,50 @@ python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
 python3 compi/main.py -r -b compi/ejemplos/demo.craft
 ```
 
+## Imports (invoke) expandido
+
+Cuando un archivo contiene `invoke`, el compilador hace una expansion simple
+antes de compilar:
+
+- Crea un nuevo archivo combinado en `compi/expanded/` con sufijo `.expanded.craft`.
+- Inserta el contenido de los modulos importados al inicio del archivo.
+- Elimina los `invoke` del archivo combinado.
+- Reescribe llamadas `summon:alias.func(...)` a `summon:func(...)`.
+- Si el archivo principal tiene `@EnterCraftWorld`, se conserva en el archivo
+  expandido (una sola vez).
+- Soporta imports anidados y evita ciclos (un modulo ya importado no se repite).
+
+Ejemplo:
+
+```craft
+@EnterCraftWorld
+invoke "mod_a" as a;
+
+craft:int main() {
+    return summon:a.suma2(3);
+}
+```
+
+El archivo expandido se genera como:
+
+```
+compi/output/expanded/<archivo>.expanded.craft
+```
+
+## Tabla de simbolos: direccion en STACK
+
+Para variables locales en `STACK`, la tabla muestra la direccion ya calculada
+como offset relativo al `sp` despues del prologo de la funcion. Por ejemplo,
+si en ensamblador se ve:
+
+```riscv
+lw x3, -4(x17) ; x
+```
+
+`x17` es el `fp` (frame pointer) y el prologo hace `addi x17, x2, frame_size`.
+Entonces la direccion efectiva es `sp + (frame_size - 4)`. En la tabla se
+imprime ese valor en hexadecimal (por ejemplo `0x000C`).
+
 
 ## 1. Análisis léxico
 
@@ -195,7 +239,7 @@ compatible con la idea de usar `sp`/stack:
 - etiquetas de saltos: segmento `TEXT`, dirección pendiente
 - parámetros: segmento `STACK`, offsets positivos desde `sp`/frame pointer
 - variables locales: segmento `STACK`, offsets negativos
-- variables globales: segmento `DATA`, desde `0x1000`
+- variables globales: segmento `DATA`, desde `0x8000`
 - variables de bóveda: segmento `VAULT`, offsets desde `v0`
 
 Las direcciones reales de funciones y etiquetas quedan sin resolver porque eso
@@ -274,7 +318,7 @@ Ejemplo de bóveda:
 ```craft
 @EnterCraftWorld
 craft:int main() {
-    enderopen x3, x4;
+    enderopen x3;
     key:chest[ender, 4] = [2332323, 1234, 13234, 124];
     enderlow v2, v0, 0x1234;
     enderhigh v2, v2, 0xABCD;
@@ -294,16 +338,16 @@ Las instrucciones explícitas de bóveda disponibles son:
 
 | Keyword | Ensamblador generado |
 |---|---|
-| `enderopen a, b;` | `portalv a, b, 0` |
-| `enderopen a, b, off;` | `portalv a, b, off` |
+| `enderopen a;` | `portalv a, v0, 0` |
+| `enderopen a, off;` | `portalv a, v0, off` |
 | `enderclose;` | `closev` |
 | `enderload dst, off(base);` | `lwv dst, off(base)` |
 | `enderstore src, off(base);` | `swv src, off(base)` |
 | `enderkey dst, src;` | `changev dst, src` |
 | `enderlow dst, base, imm;` | `addiLOWv dst, base, imm` |
 | `enderhigh dst, base, imm;` | `addiHIGHv dst, base, imm` |
-| `enderPortal(clave);` | carga la clave y emite `portalv` |
-| `enderPortal(clave): ... endchange` | abre un bloque protegido y salta al cierre `endchange` |
+| `enderPortal(clave);` | carga la clave y emite `portalv clave, v0, 0` |
+| `enderPortal(clave): ... endchange` | carga la clave y emite `portalv clave, v0, offset a endchange` |
 | `enderchange(num)` | divide `num` en low/high y emite `changev v0, low, high` + `swv` |
 | `enderclose` | `closev` |
 

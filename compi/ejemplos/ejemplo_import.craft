@@ -1,0 +1,7 @@
+@EnterCraftWorld
+invoke "modulo" as m;
+
+craft:int main() {
+    x:int = summon:m.suma(3, 5);
+    return x;
+}

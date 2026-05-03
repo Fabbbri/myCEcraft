@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import re
 
 from ast_nodes import format_ast
 from lexer import Lexer, LexerError
@@ -10,10 +11,105 @@ from codegen.generator import AssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
 
-DEFAULT_ASM_DIR = Path("compi") / "asm_unresolved"
-DEFAULT_ASM_RESOLVED_DIR = Path("compi") / "asm_resolved"
-DEFAULT_BIN_HEX_DIR = Path("compi") / "bin_output"
+DEFAULT_OUTPUT_DIR = Path("compi") / "output"
+DEFAULT_ASM_DIR = DEFAULT_OUTPUT_DIR / "asm_unresolved"
+DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
+DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
+EXPANDED_OUTPUT_DIR = DEFAULT_OUTPUT_DIR / "expanded"
 
+INVOKE_PATTERN = re.compile(
+    r"^\s*invoke\s+\"([^\"]+)\"\s+as\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*$",
+    re.MULTILINE,
+)
+ENTER_PRAGMA_PATTERN = re.compile(r"^\s*@EnterCraftWorld\b.*(?:\r?\n)?", re.MULTILINE)
+
+
+def _strip_enter_pragma(content: str) -> str:
+    return ENTER_PRAGMA_PATTERN.sub("", content)
+
+
+def _expand_invokes(source_code: str, input_path: Path) -> tuple[str, Path | None]:
+    def resolve_module_path(module_name: str, base_path: Path) -> Path:
+        module_path = Path(module_name)
+        if module_path.suffix == "":
+            module_path = module_path.with_suffix(".craft")
+
+        if not module_path.is_absolute():
+            module_path = (base_path.parent / module_path).resolve()
+
+        return module_path
+
+    def expand_source(
+        content: str,
+        base_path: Path,
+        visited: set[Path],
+        aliases: list[str],
+    ) -> str:
+        matches = list(INVOKE_PATTERN.finditer(content))
+        if not matches:
+            return _strip_enter_pragma(content).rstrip()
+
+        expanded_parts: list[str] = []
+
+        for match in matches:
+            module_name = match.group(1)
+            alias_match = re.search(r"\bas\s+([A-Za-z_][A-Za-z0-9_]*)", match.group(0))
+            if alias_match:
+                aliases.append(alias_match.group(1))
+
+            module_path = resolve_module_path(module_name, base_path)
+
+            if module_path in visited:
+                continue
+
+            if not module_path.is_file():
+                raise FileNotFoundError(
+                    f"no se encontro el archivo importado '{module_path}'"
+                )
+
+            try:
+                module_content = module_path.read_text(encoding="utf-8")
+            except OSError as error:
+                raise OSError(
+                    f"no se pudo leer el archivo importado '{module_path}': {error}"
+                ) from error
+
+            visited.add(module_path)
+            expanded_parts.append(f"// --- import: {module_path} ---")
+            expanded_nested = expand_source(module_content, module_path, visited, aliases)
+            if expanded_nested:
+                expanded_parts.append(expanded_nested)
+            expanded_parts.append("// --- fin import ---")
+            expanded_parts.append("")
+
+        source_without_invokes = INVOKE_PATTERN.sub("", content).rstrip()
+        expanded_parts.append(_strip_enter_pragma(source_without_invokes).rstrip())
+
+        return "\n".join(part for part in expanded_parts if part != "")
+
+    aliases: list[str] = []
+    has_enter = bool(ENTER_PRAGMA_PATTERN.search(source_code))
+    expanded_source = expand_source(source_code, input_path, {input_path.resolve()}, aliases)
+    if expanded_source == _strip_enter_pragma(source_code).rstrip():
+        return source_code, None
+
+    if has_enter:
+        expanded_source = f"@EnterCraftWorld\n{expanded_source}"
+
+    expanded_source = expanded_source.rstrip() + "\n"
+
+    for alias in aliases:
+        expanded_source = re.sub(
+            rf"\bsummon\s*:\s*{re.escape(alias)}\s*\.\s*",
+            "summon:",
+            expanded_source,
+        )
+
+    EXPANDED_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    expanded_path = EXPANDED_OUTPUT_DIR / f"{input_path.stem}.expanded.craft"
+    expanded_path.write_text(expanded_source, encoding="utf-8")
+
+    return expanded_source, expanded_path
 
 def _apply_resolved_text_addresses(symbol_table, labels: dict[str, int]) -> None:
     """
@@ -107,6 +203,16 @@ def main() -> int:
     except OSError as error:
         print(f"Error al leer el archivo '{input_path}': {error}")
         return 2
+    
+    try:
+        source_code, expanded_path = _expand_invokes(source_code, input_path)
+    except (FileNotFoundError, OSError) as error:
+        print(f"Error: {error}")
+        return 2
+
+    if expanded_path is not None:
+        print(f"Archivo con imports expandido: {expanded_path}")
+        input_path = expanded_path
 
     try:
         lexer = Lexer(source_code, filename=str(input_path))

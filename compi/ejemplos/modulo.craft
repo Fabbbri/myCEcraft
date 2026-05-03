@@ -1,0 +1,4 @@
+@EnterCraftWorld
+craft:int suma(a:int, b:int) {
+    return a + b;
+}

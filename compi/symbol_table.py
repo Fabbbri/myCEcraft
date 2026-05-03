@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
+import os
+import re
+
+from registers import FP
 
 
 class SymbolTableError(Exception):
@@ -457,17 +461,105 @@ class SymbolTable:
             f"{indent}Scope(id={scope.id}, name={scope.name!r}, kind={scope.kind.name})"
         )
 
-        for symbol in scope.symbols.values():
-            type_repr = symbol.type.describe() if symbol.type is not None else "None"
-            memory_repr = self._format_memory(symbol.memory_info)
-            lines.append(
-                f"{indent}  - {symbol.name} :: {symbol.kind.name} :: {type_repr} "
-                f"(decl={symbol.decl_file}:{symbol.decl_line}:{symbol.decl_column})"
-                f"{memory_repr}"
-            )
+        if scope.symbols:
+            frame_size = self._find_enclosing_frame_size(scope)
+            rows = [
+                self._format_symbol_row(symbol, frame_size)
+                for symbol in scope.symbols.values()
+            ]
+            header_cells = [
+                "name",
+                "kind",
+                "type",
+                "decl",
+                "seg",
+                "addr",
+                "off",
+                "size",
+                "res",
+            ]
+            widths = self._column_widths([header_cells, *rows])
+            header = self._format_row(header_cells, widths)
+            lines.append(f"{indent}  {header}")
+            lines.append(f"{indent}  {self._format_row(['-' * w for w in widths], widths)}")
+            for row in rows:
+                lines.append(f"{indent}  {self._format_row(row, widths)}")
 
         for child in scope.children:
             self._dump_scope(child, lines)
+
+    def _format_symbol_row(
+        self,
+        symbol: Symbol,
+        frame_size: int | None,
+    ) -> list[str]:
+        type_repr = symbol.type.describe() if symbol.type is not None else "None"
+        decl = f"{self._short_path(symbol.decl_file)}:{symbol.decl_line}:{symbol.decl_column}"
+        memory = symbol.memory_info
+        segment = memory.segment or "-"
+        if memory.segment == "STACK" and memory.offset is not None:
+            if frame_size is not None:
+                address = f"0x{frame_size + memory.offset:04X}"
+            else:
+                base = FP.asm()
+                address = f"{base}{memory.offset:+}"
+        else:
+            address = f"0x{memory.address:04X}" if memory.address is not None else "-"
+
+        offset = f"{memory.offset:+}" if memory.offset is not None else "-"
+        size = str(memory.size_in_bytes) if memory.size_in_bytes is not None else "-"
+        resolved = "yes" if memory.resolved else "no"
+        return [
+            symbol.name,
+            symbol.kind.name,
+            type_repr,
+            decl,
+            segment,
+            address,
+            offset,
+            size,
+            resolved,
+        ]
+
+    def _column_widths(self, rows: list[list[str]]) -> list[int]:
+        widths = [0] * len(rows[0])
+        for row in rows:
+            for index, value in enumerate(row):
+                widths[index] = max(widths[index], len(value))
+        return widths
+
+    def _format_row(self, row: list[str], widths: list[int]) -> str:
+        return "  ".join(value.ljust(widths[index]) for index, value in enumerate(row))
+
+    def _short_path(self, path: str) -> str:
+        if not path:
+            return "<input>"
+        return os.path.basename(path)
+
+    def _find_enclosing_frame_size(self, scope: Scope) -> int | None:
+        current: Scope | None = scope
+        while current is not None:
+            if current.kind == ScopeKind.FUNCTION:
+                max_size = 0
+
+                def visit(node: Scope) -> None:
+                    nonlocal max_size
+                    for symbol in node.symbols.values():
+                        memory = symbol.memory_info
+                        if memory.segment != "STACK":
+                            continue
+                        if memory.offset is None or memory.offset >= 0:
+                            continue
+                        size = memory.size_in_bytes or 0
+                        max_size = max(max_size, abs(memory.offset) + size)
+                    for child in node.children:
+                        visit(child)
+
+                visit(current)
+                aligned = ((max_size + 4 - 1) // 4) * 4
+                return aligned + 8
+            current = current.parent
+        return None
 
     def _format_memory(self, memory: MemoryInfo) -> str:
         if memory.segment is None:
@@ -588,7 +680,7 @@ if __name__ == "__main__":
 
     # Simula una asignacion de memoria para pruebas del backend.
     # Convenciones de ejemplo:
-    # - Variables globales: segmento DATA desde 0x1000.
+    # - Variables globales: segmento DATA desde 0x8000.
     # - Parametros/variables locales: segmento STACK con offsets negativos.
     # - Funciones: segmento TEXT con direccion de entrada.
     size_map = {
@@ -611,7 +703,7 @@ if __name__ == "__main__":
             return type_size(t.element_type) * t.size
         return 0
 
-    next_global_address = 0x1000
+    next_global_address = 0x8000
     next_text_address = 0x2000
 
     for symbol in table.global_scope.symbols.values():

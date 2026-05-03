@@ -1,0 +1,75 @@
+; ==================================================
+; Ensamblador generado para Craft21
+; Fase 4 - versión inicial
+; ==================================================
+
+.text
+
+    ; @EnterCraftWorld
+    portalv x0, x0, .L_codegen_0_enderExit              ; pc=0x0000
+    sleep ; nop despues de control                      ; pc=0x0004
+    lwv v0, 0(v0)                                       ; pc=0x0008
+    sleep ; stall RAW                                   ; pc=0x000C
+    sleep ; stall RAW                                   ; pc=0x0010
+    sleep ; stall RAW                                   ; pc=0x0014
+    closev ; cerrar Secure Mode despues del bootstrap   ; pc=0x0018
+.L_codegen_0_enderExit:
+
+suma:
+    ; prologue
+    addiSigned x2, x2, -8                               ; pc=0x001C
+    sleep ; stall RAW                                   ; pc=0x0020
+    sleep ; stall RAW                                   ; pc=0x0024
+    sleep ; stall RAW                                   ; pc=0x0028
+    sw x1, 0(x2)                                        ; pc=0x002C
+    sw x17, 4(x2)                                       ; pc=0x0030
+    addi x17, x2, 8                                     ; pc=0x0034
+    sleep ; stall RAW                                   ; pc=0x0038
+    sleep ; stall RAW                                   ; pc=0x003C
+    sleep ; stall RAW                                   ; pc=0x0040
+
+    sw x11, 8(x17) ; parámetro a                        ; pc=0x0044
+    sw x12, 12(x17) ; parámetro b                       ; pc=0x0048
+
+    lw x3, 8(x17) ; a                                   ; pc=0x004C
+    sleep ; stall RAW                                   ; pc=0x0050
+    sleep ; stall RAW                                   ; pc=0x0054
+    sleep ; stall RAW                                   ; pc=0x0058
+    lw x4, 12(x17) ; b                                  ; pc=0x005C
+    sleep ; stall RAW                                   ; pc=0x0060
+    sleep ; stall RAW                                   ; pc=0x0064
+    sleep ; stall RAW                                   ; pc=0x0068
+    add x5, x3, x4                                      ; pc=0x006C
+    sleep ; stall RAW                                   ; pc=0x0070
+    sleep ; stall RAW                                   ; pc=0x0074
+    sleep ; stall RAW                                   ; pc=0x0078
+    add x11, x5, x0                                     ; pc=0x007C
+    sleep ; stall RAW                                   ; pc=0x0080
+    sleep ; stall RAW                                   ; pc=0x0084
+    sleep ; stall RAW                                   ; pc=0x0088
+    jal x0, .L_codegen_1_suma_end                       ; pc=0x008C
+    sleep ; nop despues de control                      ; pc=0x0090
+.L_codegen_1_suma_end:
+    ; epilogue
+    lw x1, 0(x2)                                        ; pc=0x0094
+    sleep ; stall RAW                                   ; pc=0x0098
+    sleep ; stall RAW                                   ; pc=0x009C
+    sleep ; stall RAW                                   ; pc=0x00A0
+    lw x17, 4(x2)                                       ; pc=0x00A4
+    sleep ; stall RAW                                   ; pc=0x00A8
+    sleep ; stall RAW                                   ; pc=0x00AC
+    sleep ; stall RAW                                   ; pc=0x00B0
+    addi x2, x2, 8                                      ; pc=0x00B4
+    sleep ; stall RAW                                   ; pc=0x00B8
+    sleep ; stall RAW                                   ; pc=0x00BC
+    sleep ; stall RAW                                   ; pc=0x00C0
+    jalr x1, 0                                          ; pc=0x00C4
+    sleep ; nop despues de control                      ; pc=0x00C8
+
+    ; final de programa
+    addiHIGH x1, x0, 0xDEAD                             ; pc=0x00CC
+    sleep ; stall RAW                                   ; pc=0x00D0
+    sleep ; stall RAW                                   ; pc=0x00D4
+    sleep ; stall RAW                                   ; pc=0x00D8
+    jalr x1, 0                                          ; pc=0x00DC
+    sleep ; nop despues de control                      ; pc=0x00E0

@@ -1,0 +1,6 @@
+@EnterCraftWorld
+invoke "mod_a" as a;
+
+craft:int main() {
+    return summon:a.suma2(3);
+}

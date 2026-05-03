@@ -90,8 +90,18 @@ class AssemblyGenerator(
             if isinstance(declaration, FunctionDeclaration)
         ]
 
+        has_enter_craft_world = "@EnterCraftWorld" in program.pragmas
+        has_main = any(function.name == "main" for function in functions)
+
         for declaration in sorted(functions, key=lambda function: function.name != "main"):
-            self._generate_function(declaration)
+            self._generate_function(
+                declaration,
+                is_entry_point=has_enter_craft_world and declaration.name == "main",
+            )
+
+        if not (has_enter_craft_world and has_main):
+            self._emit("    ; final de programa")
+            self._emit("    freeze")
 
     def _emit_enter_craft_world_preamble(self, program: Program) -> None:
         if "@EnterCraftWorld" not in program.pragmas:
@@ -101,6 +111,7 @@ class AssemblyGenerator(
         self._emit("    ; @EnterCraftWorld")
         self._emit(f"    portalv x0, x0, {end_label}")
         self._emit("    lwv v0, 0(v0)")
+        self._emit("    closev ; cerrar Secure Mode despues del bootstrap")
         self._emit(f"{end_label}:")
         self._emit("")
 
@@ -123,7 +134,12 @@ class AssemblyGenerator(
             self._generate_variable_declaration(declaration)
             self._emit("")
 
-    def _generate_function(self, node: FunctionDeclaration) -> None:
+    def _generate_function(
+        self,
+        node: FunctionDeclaration,
+        *,
+        is_entry_point: bool = False,
+    ) -> None:
         previous_scope = self._current_scope
         function_scope = self._find_child_scope(
             parent=self.symbol_table.global_scope,
@@ -154,14 +170,26 @@ class AssemblyGenerator(
 
         self._emit(f"{self._current_function_end_label}:")
         self._emit(f"    ; epilogue")
-        self._emit(f"    lw {RA.asm()}, 0({SP.asm()})")
-        self._emit(f"    lw {FP.asm()}, 4({SP.asm()})")
-        self._emit_add_immediate(SP.asm(), SP.asm(), frame_size)
-        self._emit(f"    jalr {RA.asm()}, 0")
+        if is_entry_point:
+            self._emit_entry_point_epilogue(frame_size)
+        else:
+            self._emit_normal_epilogue(frame_size)
         self._emit("")
 
         self._current_function_end_label = None
         self._current_scope = previous_scope
+
+    def _emit_normal_epilogue(self, frame_size: int) -> None:
+        self._emit(f"    lw {RA.asm()}, 0({SP.asm()})")
+        self._emit(f"    lw {FP.asm()}, 4({SP.asm()})")
+        self._emit_add_immediate(SP.asm(), SP.asm(), frame_size)
+        self._emit(f"    jalr {RA.asm()}, 0")
+
+    def _emit_entry_point_epilogue(self, frame_size: int) -> None:
+        self._emit(f"    lw {FP.asm()}, 4({SP.asm()})")
+        self._emit_add_immediate(SP.asm(), SP.asm(), frame_size)
+        self._emit("    freeze")
+
 
     def _calculate_stack_size(self, function_scope: Scope) -> int:
         max_size = 0

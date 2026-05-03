@@ -83,7 +83,7 @@ class SemanticAnalyzer:
     """
 
     STACK_ALIGNMENT = 4
-    GLOBAL_DATA_BASE = 0x1000
+    GLOBAL_DATA_BASE = 0x8000
 
     def __init__(self, filename: str = "<input>"):
         self.filename = filename
@@ -745,7 +745,7 @@ class SemanticAnalyzer:
 
     def _analyze_vault_instruction(self, node: VaultInstruction) -> None:
         expected_arity = {
-            "enderopen": {2, 3},
+            "enderopen": {1, 2},
             "enderclose": {0},
             "enderload": {2},
             "enderstore": {2},

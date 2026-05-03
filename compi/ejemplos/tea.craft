@@ -1,0 +1,73 @@
+@EnterCraftWorld
+key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
+plain:chest[uint32, 2] = [0x0, 0x0];
+cipher:chest[uint32, 2] = [0x0, 0x0];
+roundtrip:chest[uint32, 2] = [0x0, 0x0];
+DELTA:uint32 = 0x9e3779b9;
+SUM_INIT:uint32 = 0xc6ef3720;
+
+craft:void tea_encrypt(v:chest[uint32, 2], tea_key:chest[uint32, 4]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = 0;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        sum = sum + DELTA;
+
+        left0:uint32 = v1 <+4 tea_key[0];
+        mid0:uint32 = v1 + sum;
+        right0:uint32 = v1 >+5 tea_key[1];
+        v0 = v0 + (left0 ^ mid0 ^ right0);
+
+        left1:uint32 = v0 <+4 tea_key[2];
+        mid1:uint32 = v0 + sum;
+        right1:uint32 = v0 >+5 tea_key[3];
+        v1 = v1 + (left1 ^ mid1 ^ right1);
+    }
+
+    v[0] = v0;
+    v[1] = v1;
+}
+
+craft:void tea_decrypt(v:chest[uint32, 2], tea_key:chest[uint32, 4]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = SUM_INIT;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        left1:uint32 = v0 <+4 tea_key[2];
+        mid1:uint32 = v0 + sum;
+        right1:uint32 = v0 >+5 tea_key[3];
+        v1 = v1 - (left1 ^ mid1 ^ right1);
+
+        left0:uint32 = v1 <+4 tea_key[0];
+        mid0:uint32 = v1 + sum;
+        right0:uint32 = v1 >+5 tea_key[1];
+        v0 = v0 - (left0 ^ mid0 ^ right0);
+
+        sum = sum - DELTA;
+    }
+
+    v[0] = v0;
+    v[1] = v1;
+}
+
+craft:int main() {
+    cipher[0] = plain[0];
+    cipher[1] = plain[1];
+
+    summon:tea_encrypt(cipher, key);
+
+    roundtrip[0] = cipher[0];
+    roundtrip[1] = cipher[1];
+
+    summon:tea_decrypt(roundtrip, key);
+
+    if (roundtrip[0] == plain[0]) {
+        if (roundtrip[1] == plain[1]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}

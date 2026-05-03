@@ -1,0 +1,129 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 432 bytes
+;   data_offset       = 476
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 108
+
+; Seccion .text
+0x0000: 00200076    ; portalv x0, x0, 28
+0x0004: 00580000    ; sleep
+0x0008: 0008000E    ; lwv v0, 0(v0)
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 00580000    ; sleep
+0x0018: 0000000C    ; closev
+0x001C: FFF08421    ; addiSigned x2, x2, -16
+0x0020: 00580000    ; sleep
+0x0024: 00580000    ; sleep
+0x0028: 00580000    ; sleep
+0x002C: 00004402    ; sw x1, 0(x2)
+0x0030: 00044442    ; sw x17, 4(x2)
+0x0034: 00100511    ; addi x17, x2, 16
+0x0038: 00580000    ; sleep
+0x003C: 00580000    ; sleep
+0x0040: 00580000    ; sleep
+0x0044: 00030031    ; addi x3, x0, 3
+0x0048: 00580000    ; sleep
+0x004C: 00580000    ; sleep
+0x0050: 00580000    ; sleep
+0x0054: 000006B0    ; add x11, x3, x0
+0x0058: 00580000    ; sleep
+0x005C: 00580000    ; sleep
+0x0060: 00580000    ; sleep
+0x0064: 00050031    ; addi x3, x0, 5
+0x0068: 00580000    ; sleep
+0x006C: 00580000    ; sleep
+0x0070: 00580000    ; sleep
+0x0074: 000006C0    ; add x12, x3, x0
+0x0078: 00580000    ; sleep
+0x007C: 00580000    ; sleep
+0x0080: 00580000    ; sleep
+0x0084: 00003E14    ; jal x1, 124
+0x0088: 00580000    ; sleep
+0x008C: 00001630    ; add x3, x11, x0
+0x0090: 00580000    ; sleep
+0x0094: 00580000    ; sleep
+0x0098: 00580000    ; sleep
+0x009C: 0FF0E3C2    ; sw x3, -4(x17)
+0x00A0: 0FFF2232    ; lw x3, -4(x17)
+0x00A4: 00580000    ; sleep
+0x00A8: 00580000    ; sleep
+0x00AC: 00580000    ; sleep
+0x00B0: 000006B0    ; add x11, x3, x0
+0x00B4: 00580000    ; sleep
+0x00B8: 00580000    ; sleep
+0x00BC: 00580000    ; sleep
+0x00C0: 00000404    ; jal x0, 8
+0x00C4: 00580000    ; sleep
+0x00C8: 00090512    ; lw x17, 4(x2)
+0x00CC: 00580000    ; sleep
+0x00D0: 00580000    ; sleep
+0x00D4: 00580000    ; sleep
+0x00D8: 00100421    ; addi x2, x2, 16
+0x00DC: 00580000    ; sleep
+0x00E0: 00580000    ; sleep
+0x00E4: 00580000    ; sleep
+0x00E8: DEAD4011    ; addiHIGH x1, x0, 0xDEAD
+0x00EC: 00580000    ; sleep
+0x00F0: 00580000    ; sleep
+0x00F4: 00580000    ; sleep
+0x00F8: 00080014    ; jalr x1, 0
+0x00FC: 00580000    ; sleep
+0x0100: FFF88421    ; addiSigned x2, x2, -8
+0x0104: 00580000    ; sleep
+0x0108: 00580000    ; sleep
+0x010C: 00580000    ; sleep
+0x0110: 00004402    ; sw x1, 0(x2)
+0x0114: 00044442    ; sw x17, 4(x2)
+0x0118: 00080511    ; addi x17, x2, 8
+0x011C: 00580000    ; sleep
+0x0120: 00580000    ; sleep
+0x0124: 00580000    ; sleep
+0x0128: 0002E282    ; sw x11, 8(x17)
+0x012C: 000322C2    ; sw x12, 12(x17)
+0x0130: 000A2232    ; lw x3, 8(x17)
+0x0134: 00580000    ; sleep
+0x0138: 00580000    ; sleep
+0x013C: 00580000    ; sleep
+0x0140: 000B2242    ; lw x4, 12(x17)
+0x0144: 00580000    ; sleep
+0x0148: 00580000    ; sleep
+0x014C: 00580000    ; sleep
+0x0150: 00010650    ; add x5, x3, x4
+0x0154: 00580000    ; sleep
+0x0158: 00580000    ; sleep
+0x015C: 00580000    ; sleep
+0x0160: 00000AB0    ; add x11, x5, x0
+0x0164: 00580000    ; sleep
+0x0168: 00580000    ; sleep
+0x016C: 00580000    ; sleep
+0x0170: 00000404    ; jal x0, 8
+0x0174: 00580000    ; sleep
+0x0178: 00080412    ; lw x1, 0(x2)
+0x017C: 00580000    ; sleep
+0x0180: 00580000    ; sleep
+0x0184: 00580000    ; sleep
+0x0188: 00090512    ; lw x17, 4(x2)
+0x018C: 00580000    ; sleep
+0x0190: 00580000    ; sleep
+0x0194: 00580000    ; sleep
+0x0198: 00080421    ; addi x2, x2, 8
+0x019C: 00580000    ; sleep
+0x01A0: 00580000    ; sleep
+0x01A4: 00580000    ; sleep
+0x01A8: 00080014    ; jalr x1, 0
+0x01AC: 00580000    ; sleep
+
+; Seccion .data
+; <sin datos globales>

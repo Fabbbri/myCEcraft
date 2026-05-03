@@ -103,7 +103,9 @@ class BinaryResult:
     def data_hex_text(self) -> str:
         if not self.data_items:
             return ""
-        return "\n".join(f"{byte:02X}" for byte in self.data_binary) + "\n"
+        lines = [f"@{self.header.data_base:08X}"]
+        lines.extend(f"{byte:02X}" for byte in self.data_binary)
+        return "\n".join(lines) + "\n"
 
     @property
     def listing_text(self) -> str:
@@ -215,6 +217,14 @@ class BinaryEncoder:
         data_offset = text_offset + text_size
         text_base = instructions[0].pc if instructions else 0
         data_base = data_items[0].address if data_items else 0
+
+        if data_items:
+            text_end = text_base + text_size
+            if text_end > data_base:
+                raise EncodingError(
+                    "colision de segmentos: .text termina en "
+                    f"0x{text_end:08X}, pero .data empieza en 0x{data_base:08X}"
+                )
 
         return ProgramHeader(
             magic=b"MYCE",
@@ -454,7 +464,10 @@ class BinaryEncoder:
         self._expect_operands(mnemonic, operands, 3, line_number)
 
         rs1 = self._register(operands[0], line_number)
-        rs2 = self._register(operands[1], line_number)
+        if mnemonic == "portalv":
+            rs2 = self._portal_register(operands[1], line_number)
+        else:
+            rs2 = self._register(operands[1], line_number)
         offset = self._immediate(operands[2], line_number)
         self._check_aligned(offset, mnemonic, line_number)
         self._check_range(offset, -16384, 16380, mnemonic, line_number)
@@ -571,6 +584,12 @@ class BinaryEncoder:
             return require_vault_register(value).index
         except ValueError as error:
             raise EncodingError(f"linea {line_number}: {error}") from error
+
+    def _portal_register(self, value: str, line_number: int) -> int:
+        try:
+            return require_vault_register(value).index
+        except ValueError:
+            return self._register(value, line_number)
 
     def _immediate(self, value: str, line_number: int) -> int:
         try:
