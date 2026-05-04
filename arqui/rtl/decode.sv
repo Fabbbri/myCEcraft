@@ -78,10 +78,16 @@ imm_extend immExt(
 //                       REGFILE
 // ==========================================================
 
+logic is_jalr;
+logic [4:0] rs1_sel;
+
+assign is_jalr = (instr[3:0] == 4'b0100) && (instr[19] == 1'b1);
+assign rs1_sel = is_jalr ? instr[8:4] : instr[13:9];
+
 regfile RegBank(
     .clk(clk),
     .we_reg(we_regWB),
-    .rs1(instr[13:9]),
+    .rs1(rs1_sel),
     .rs2(instr[18:14]),
     .rd(instrDIN),
     .wd(wd),

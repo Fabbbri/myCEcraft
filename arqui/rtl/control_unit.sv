@@ -51,8 +51,8 @@ assign we_reg       = (opcode == 4'b0000 && func23 == 4'b0101 && func19 == 1'b1)
                     : (opcode == 4'b0010 && func19 == 1'b1) ? 1'b1 // Type LW
                     : (opcode == 4'b0011 && func19 == 1'b0) ? 1'b0 // Type SB
                     : (opcode == 4'b0011 && func19 == 1'b1) ? 1'b1 // Type LB
-                    : (opcode == 4'b0100 && func19 == 1'b0) ? 1'b0 // Type JAL
-                    : (opcode == 4'b0100 && func19 == 1'b1) ? 1'b1 // Type JALR
+                    : (opcode == 4'b0100 && func19 == 1'b0) ? 1'b1 // Type JAL
+                    : (opcode == 4'b0100 && func19 == 1'b1) ? 1'b0 // Type JALR
                     // 0101 no usada
                     : (opcode == 4'b0110) ? 1'b0 // Type B y Logv
                     // 0111 no usada
@@ -166,8 +166,8 @@ assign w_memv   = (opcode == 4'b1110 && func19 == 1'b0) ? 1'b1 // swv
 
 assign result_src   = (opcode == 4'b0010 && func19 == 1'b1) ? 2'b01 // LW
                     : (opcode == 4'b0011 && func19 == 1'b1) ? 2'b01 // LB
-                    : (opcode == 4'b0100 && func19 == 1'b0) ? 2'b10 // jal hace ra = PC+4
-                    : (opcode == 4'b0100 && func19 == 1'b1) ? 2'b00 // jar hace ra=ra+x0
+                    : (opcode == 4'b0100 && func19 == 1'b0) ? 2'b10 // jal usa PC+4
+                    : (opcode == 4'b0100 && func19 == 1'b1) ? 2'b00 // jalr no escribe registro
                     : (opcode == 4'b1010) ? 2'b11 // TEA operations srlv y sllv
                     : 2'b00; // el resto es 00 o no importa
 
@@ -179,7 +179,7 @@ assign alu_src  = (opcode == 4'b0001) ? 2'b11 // Type Imm
                 : (opcode == 4'b0010) ? 2'b11 // Type SW/LW
                 : (opcode == 4'b0011) ? 2'b11 // Type SB/LB
                 : (opcode == 4'b0011 && func19 == 1'b1) ? 2'b00 // CAMBIAR
-                : (opcode == 4'b0100) ? 2'b11 // Type JALR porque hace ra = ra + imm ... JAL no es xx
+                : (opcode == 4'b0100) ? 2'b11 // Type J usa inmediato
                 : (opcode == 4'b0110 && func23 == 4'b0010) ? 2'b10 // Type PortalV
                 : (opcode == 4'b0110) ? 2'b00 // Type BRANCH
                 : (opcode == 4'b1010) ? 2'b01 // Type TEA (RVault)
