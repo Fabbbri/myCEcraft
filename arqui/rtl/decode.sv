@@ -109,11 +109,13 @@ neather_regfile RegVBank(
 //                       OTRAS SEÑALES
 // ==========================================================
 
+/*
 always @(*) begin
     $display("[IMM RAW] instr=%h imm_raw=%h", instr, imm);
     $display("RS1=%0d VALUE=%h", instr[13:9], rd1);
     $display("[INST] instr=%h opcode=%b func19=%b", instr, instr[3:0], instr[19]);
 end
+*/
 
 logic [4:0] rdest;
 assign rdest = instr[8:4];

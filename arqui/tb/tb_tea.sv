@@ -1,14 +1,14 @@
 `timescale 1ns/1ps
 
-module tb_top_tea;
+module tb_tea;
 
     parameter int MAX_CYCLES = 200000;
     parameter int ROM_DEPTH  = 2048;
     parameter int RAM_DEPTH  = 65536;
 
-    localparam ROM_HEX   = "tea.hex";
-    localparam VAULT_HEX = "neather.hex";
-    localparam DATA_HEX  = "tea_data.hex";
+    localparam ROM_HEX   = "programs/tea.hex";
+    localparam VAULT_HEX = "programs/neather.hex";
+    localparam DATA_HEX  = "programs/tea_data.hex";
 
     localparam int KEY_BASE       = 16'h8000;
     localparam int PLAIN_BASE     = 16'h8010;
@@ -165,8 +165,8 @@ module tb_top_tea;
     initial begin
         bit timed_out;
 
-        $dumpfile("sim/waves/tb_top_tea.vcd");
-        $dumpvars(0, tb_top_tea);
+        $dumpfile("sim/waves/tb_tea.vcd");
+        $dumpvars(0, tb_tea);
 
         $display("============================================================");
         $display("         CRAFT21 TEA PROGRAM TESTBENCH");
