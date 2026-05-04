@@ -50,6 +50,44 @@ Incluye aspectos como:
 - Verificación de resultados
 - Prints
 
+#### Testbench general de volcado
+
+`tb_general_dump.sv` sirve para ejecutar cualquier programa y guardar el estado
+final de memoria sin depender de las pruebas de TEA.
+
+Uso con los archivos por defecto (`programs/program.hex`, `programs/data.hex`,
+`programs/neather.hex`):
+
+```bash
+./run.sh run tb_general_dump
+```
+
+Uso con archivos `.hex` especificos:
+
+```bash
+./run.sh run tb_general_dump factorial.hex
+```
+
+Tambien puede pasar los plusargs completos si necesita controlar nombres o
+archivos de RAM:
+
+```bash
+./run.sh run tb_general_dump "+ROM=programs/demo.hex +DATA=programs/data.hex +VAULT=programs/neather.hex +OUT=demo"
+```
+
+Uso con un loader MYCE generado por `load_file.py`:
+
+```bash
+./run.sh run tb_general_dump "+LOADER=programs/mi_programa_loader.hex +OUT=mi_programa"
+```
+
+El volcado queda en:
+
+- `outputs/<OUT>_dram.hex`
+- `outputs/<OUT>_vault.hex`
+- `outputs/<OUT>_rom.hex`
+- `outputs/<OUT>_regs.txt`
+
 Deben contener lo siguiente:
 
 ```SystemVerilog
