@@ -46,12 +46,24 @@ mux31 teaMux (
 // ==========================================================
 
 logic [31:0] pc_target;
+logic [31:0] pc_relative_target;
+logic [31:0] jalr_target;
+logic is_jalr;
 
 sum31b pcTargetSum(
     .in1(immE),
     .in2(pc_actE),
-    .out(pc_target)
+    .out(pc_relative_target)
 );
+
+sum31b jalrTargetSum(
+    .in1(immE),
+    .in2(rd1E),
+    .out(jalr_target)
+);
+
+assign is_jalr = jump && (result_src == 2'b00);
+assign pc_target = is_jalr ? jalr_target : pc_relative_target;
 
 // ==========================================================
 //                       INSTANCIA ALU_SRC MUX31_2
@@ -67,6 +79,15 @@ mux31_2 alu_mux(
     .src(alu_src),
     .out(srcB)
 );
+
+/*
+always @(*) begin
+    if (alu_src == 2'b00 || alu_src == 2'b11) begin
+        $display("[EXEC] alu_src=%b rd1=%h srcB=%h immE=%h result=%h",
+                  alu_src, rd1E, srcB, immE, alu_result);
+    end
+end
+*/
 
 // ==========================================================
 //                       INSTANCIA ALU

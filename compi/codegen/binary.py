@@ -388,7 +388,10 @@ class BinaryEncoder:
         self._expect_operands(mnemonic, operands, 3, line_number)
 
         rd = self._register(operands[0], line_number)
-        rs1 = self._register(operands[1], line_number)
+        if mnemonic == "addi":
+            rs1 = self._portal_register(operands[1], line_number)
+        else:
+            rs1 = self._register(operands[1], line_number)
         immediate = self._immediate(operands[2], line_number)
 
         if mnemonic == "addiSigned":
@@ -521,7 +524,10 @@ class BinaryEncoder:
         self._expect_operands(mnemonic, operands, 3, line_number)
 
         rd = self._vault_register(operands[0], line_number)
-        rs1 = self._vault_register(operands[1], line_number)
+        if mnemonic == "addiHIGHv":
+            rs1 = self._portal_register(operands[1], line_number)
+        else:
+            rs1 = self._vault_register(operands[1], line_number)
         immediate = self._immediate(operands[2], line_number)
         self._check_range(immediate, 0, 0xFFFF, mnemonic, line_number)
 

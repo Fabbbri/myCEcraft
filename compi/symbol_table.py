@@ -726,34 +726,36 @@ if __name__ == "__main__":
         if scope.kind != ScopeKind.FUNCTION:
             continue
 
-        next_param_offset = 8
-        next_local_offset = -4
+        next_local_offset = 0
 
         for symbol in scope.symbols.values():
             if symbol.kind == SymbolKind.PARAMETER:
-                symbol.memory_info.segment = "STACK"
-                symbol.memory_info.address = None
-                symbol.memory_info.offset = next_param_offset
-                symbol.memory_info.size_in_bytes = type_size(symbol.type)
-                symbol.memory_info.resolved = True
-                next_param_offset += symbol.memory_info.size_in_bytes or 0
-            elif symbol.kind == SymbolKind.VARIABLE:
+                size = 4 if isinstance(symbol.type, ChestType) else type_size(symbol.type)
+                next_local_offset -= size
                 symbol.memory_info.segment = "STACK"
                 symbol.memory_info.address = None
                 symbol.memory_info.offset = next_local_offset
-                symbol.memory_info.size_in_bytes = type_size(symbol.type)
+                symbol.memory_info.size_in_bytes = size
                 symbol.memory_info.resolved = True
-                next_local_offset -= symbol.memory_info.size_in_bytes or 0
+            elif symbol.kind == SymbolKind.VARIABLE:
+                size = type_size(symbol.type)
+                next_local_offset -= size
+                symbol.memory_info.segment = "STACK"
+                symbol.memory_info.address = None
+                symbol.memory_info.offset = next_local_offset
+                symbol.memory_info.size_in_bytes = size
+                symbol.memory_info.resolved = True
 
         for child in scope.children:
             for symbol in child.symbols.values():
                 if symbol.kind == SymbolKind.VARIABLE:
+                    size = type_size(symbol.type)
+                    next_local_offset -= size
                     symbol.memory_info.segment = "STACK"
                     symbol.memory_info.address = None
                     symbol.memory_info.offset = next_local_offset
-                    symbol.memory_info.size_in_bytes = type_size(symbol.type)
+                    symbol.memory_info.size_in_bytes = size
                     symbol.memory_info.resolved = True
-                    next_local_offset -= symbol.memory_info.size_in_bytes or 0
 
     print(table.dump())
 

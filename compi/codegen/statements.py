@@ -90,21 +90,6 @@ class StatementsMixin:
         raise CodegenError("statement no soportado por codegen inicial", node)
 
     def _generate_vault_instruction(self, node: VaultInstruction) -> None:
-        mnemonic_map = {
-            "enderopen": "portalv",
-            "enderclose": "closev",
-            "enderload": "lwv",
-            "enderstore": "swv",
-            "enderkey": "changev",
-            "enderlow": "addiLOWv",
-            "enderhigh": "addiHIGHv",
-            "close": "closev",
-        }
-
-        mnemonic = mnemonic_map.get(node.keyword)
-        if mnemonic is None:
-            raise CodegenError(f"instruccion de boveda desconocida: {node.keyword}", node)
-
         operands = list(node.operands)
         if node.keyword == "enderopen":
             if len(operands) not in {1, 2}:
@@ -115,6 +100,37 @@ class StatementsMixin:
             offset = operands[1] if len(operands) == 2 else "0"
             self._emit(f"    portalv {operands[0]}, {V0.asm()}, {offset} ; {node.keyword}")
             return
+
+        if node.keyword == "enderlow":
+            if len(operands) != 3:
+                raise CodegenError(
+                    f"'enderlow' esperaba 3 operandos pero recibio {len(operands)}",
+                    node,
+                )
+            self._emit(f"    addi x1, {operands[1]}, {operands[2]} ; {node.keyword}")
+            return
+
+        if node.keyword == "enderhigh":
+            if len(operands) != 3:
+                raise CodegenError(
+                    f"'enderhigh' esperaba 3 operandos pero recibio {len(operands)}",
+                    node,
+                )
+            self._emit(f"    addiHIGHv {operands[0]}, x1, {operands[2]} ; {node.keyword}")
+            return
+
+        mnemonic_map = {
+            "enderopen": "portalv",
+            "enderclose": "closev",
+            "enderload": "lwv",
+            "enderstore": "swv",
+            "enderkey": "changev",
+            "close": "closev",
+        }
+
+        mnemonic = mnemonic_map.get(node.keyword)
+        if mnemonic is None:
+            raise CodegenError(f"instruccion de boveda desconocida: {node.keyword}", node)
 
         suffix = f" {', '.join(operands)}" if operands else ""
         self._emit(f"    {mnemonic}{suffix} ; {node.keyword}")
@@ -276,8 +292,8 @@ class StatementsMixin:
                 low = value & 0xFFFF
                 high = (value >> 16) & 0xFFFF
 
-                self._emit(f"    addiLOWv v1, v0, {low} ; {symbol.name}[{index}] low")
-                self._emit(f"    addiHIGHv v1, v1, {high} ; {symbol.name}[{index}] high")
+                self._emit(f"    addi x1, v0, {low} ; {symbol.name}[{index}] low")
+                self._emit(f"    addiHIGHv v1, x1, {high} ; {symbol.name}[{index}] high")
                 self._emit(f"    swv v1, {offset}(v0) ; {symbol.name}[{index}]")
                 continue
 

@@ -6,7 +6,7 @@ from ast_nodes import ArrayLiteral, FunctionDeclaration, Program, VariableDeclar
 
 from symbol_table import Scope, ScopeKind, SymbolTable
 
-from registers import FP, RA, SP, TEMP_REGISTERS
+from registers import FP, RA, SP, TEMP_REGISTERS, ZERO
 
 from .calls import CallsMixin
 from .data_section import DataSectionMixin
@@ -49,6 +49,7 @@ class AssemblyGenerator(
     """
 
     WORD_SIZE = 4
+    INITIAL_STACK_POINTER = 0x7FF0
 
     def __init__(self, symbol_table: SymbolTable):
         self.symbol_table = symbol_table
@@ -157,6 +158,8 @@ class AssemblyGenerator(
         frame_size = stack_size + 8
 
         self._emit(f"{node.name}:")
+        if node.name == "main":
+            self._emit_stack_pointer_bootstrap()
         self._emit(f"    ; prologue")
         self._emit_add_immediate(SP.asm(), SP.asm(), -frame_size)
         self._emit(f"    sw {RA.asm()}, 0({SP.asm()})")
@@ -178,6 +181,14 @@ class AssemblyGenerator(
 
         self._current_function_end_label = None
         self._current_scope = previous_scope
+
+    def _emit_stack_pointer_bootstrap(self) -> None:
+        self._emit("    ; inicializar stack pointer")
+        high = (self.INITIAL_STACK_POINTER >> 16) & 0xFFFF
+        low = self.INITIAL_STACK_POINTER & 0xFFFF
+        self._emit(f"    addiHIGH {SP.asm()}, {ZERO.asm()}, {high}")
+        self._emit(f"    addi {SP.asm()}, {SP.asm()}, 0x{low:04X}")
+        self._emit("")
 
     def _emit_normal_epilogue(self, frame_size: int) -> None:
         self._emit(f"    lw {RA.asm()}, 0({SP.asm()})")

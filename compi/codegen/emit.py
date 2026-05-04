@@ -9,6 +9,7 @@ from .errors import CodegenError
 
 class EmitMixin:
     NOP_AFTER_CONTROL_TRANSFER = True
+    CONTROL_TRANSFER_STALL_CYCLES = 2
     NOP_CONTROL_TRANSFER = {
         "beq",
         "bne",
@@ -49,7 +50,8 @@ class EmitMixin:
     def _emit(self, line: str) -> None:
         self.lines.append(line)
         if self.NOP_AFTER_CONTROL_TRANSFER and self._needs_control_transfer_nop(line):
-            self.lines.append("    sleep ; nop despues de control")
+            for _ in range(self.CONTROL_TRANSFER_STALL_CYCLES):
+                self.lines.append("    sleep ; nop despues de control")
         if self.RAW_STALL_CYCLES and self._needs_raw_stall(line):
             for _ in range(self.RAW_STALL_CYCLES):
                 self.lines.append("    sleep ; stall RAW")

@@ -237,8 +237,8 @@ compatible con la idea de usar `sp`/stack:
 
 - funciones: segmento `TEXT`, dirección pendiente
 - etiquetas de saltos: segmento `TEXT`, dirección pendiente
-- parámetros: segmento `STACK`, offsets positivos desde `sp`/frame pointer
-- variables locales: segmento `STACK`, offsets negativos
+- parámetros: segmento `STACK`, offsets negativos desde el frame pointer
+- variables locales: segmento `STACK`, offsets negativos desde el frame pointer
 - variables globales: segmento `DATA`, desde `0x8000`
 - variables de bóveda: segmento `VAULT`, offsets desde `v0`
 

@@ -223,18 +223,18 @@ module tb_control_unit;
         // ── Type J (0100) ─────────────────────────────────────────────────────
         $display("\n[Type J - opcode 0100]");
 
-        // JAL: func19=0 → we_reg=0, jump=1, result_src=10, imm_src2=0, imm_src=00
+        // JAL: func19=0 → we_reg=1, jump=1, result_src=10, imm_src2=0, imm_src=00
         opcode=4'b0100; func23=4'b0000; func19=0; func15=2'b00;
         check("JAL (func19=0)",
-              5'b00000, 0, 1, 0, 2'b00,
+              5'b00000, 1, 1, 0, 2'b00,
               0, 0, 0, 0, 0, 1,
               0, 0, 2'b10, 2'b11,
               0, 0, 0);
 
-        // JALR: func19=1 → we_reg=1, jump=1, result_src=00, imm_src2=1, imm_src=01
+        // JALR: func19=1 → we_reg=0, jump=1, result_src=00, imm_src2=1, imm_src=01
         opcode=4'b0100; func23=4'b0000; func19=1; func15=2'b00;
         check("JALR (func19=1)",
-              5'b00000, 1, 1, 1, 2'b01,
+              5'b00000, 0, 1, 1, 2'b01,
               0, 0, 0, 0, 0, 1,
               0, 0, 2'b00, 2'b11,
               0, 0, 0);

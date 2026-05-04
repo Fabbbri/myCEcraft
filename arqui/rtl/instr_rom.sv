@@ -1,5 +1,5 @@
 module instr_rom #(
-    parameter DEPTH = 256 // Tamaño de la memoria
+    parameter DEPTH = 1024 // Tamaño de la memoria
 )(
     input  logic [31:0] addr,   // Dirección en bytes (PC)
     output logic [31:0] instr   // Instrucción de 32 bits

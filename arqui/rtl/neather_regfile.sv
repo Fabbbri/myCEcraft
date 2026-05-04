@@ -27,7 +27,7 @@ module neather_regfile (
     // ----------------------------------------------------------
 
     always_ff @(posedge clk) begin
-        if (we_regV && rdv != 0) // si WE =1 y rdestino es distinto de 0 (en x0 no se escribe)
+        if (we_regV) // si WE =1 y rdestino es distinto de 0 (en x0 no se escribe)
             regs[rdv] <= wdV;
     end
 

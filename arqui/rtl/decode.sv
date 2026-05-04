@@ -78,10 +78,16 @@ imm_extend immExt(
 //                       REGFILE
 // ==========================================================
 
+logic is_jalr;
+logic [4:0] rs1_sel;
+
+assign is_jalr = (instr[3:0] == 4'b0100) && (instr[19] == 1'b1);
+assign rs1_sel = is_jalr ? instr[8:4] : instr[13:9];
+
 regfile RegBank(
     .clk(clk),
     .we_reg(we_regWB),
-    .rs1(instr[13:9]),
+    .rs1(rs1_sel),
     .rs2(instr[18:14]),
     .rd(instrDIN),
     .wd(wd),
@@ -108,6 +114,14 @@ neather_regfile RegVBank(
 // ==========================================================
 //                       OTRAS SEÑALES
 // ==========================================================
+
+/*
+always @(*) begin
+    $display("[IMM RAW] instr=%h imm_raw=%h", instr, imm);
+    $display("RS1=%0d VALUE=%h", instr[13:9], rd1);
+    $display("[INST] instr=%h opcode=%b func19=%b", instr, instr[3:0], instr[19]);
+end
+*/
 
 logic [4:0] rdest;
 assign rdest = instr[8:4];
