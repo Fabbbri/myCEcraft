@@ -67,12 +67,11 @@ class FunctionFrame:
     """
     Estado de memoria para una funcion.
 
-    Convencion inicial:
-    - parametros: offsets positivos desde sp/fp, empezando en +8
-    - variables locales: offsets negativos, creciendo hacia abajo
+    Convencion:
+    - parametros y variables locales: offsets negativos desde fp, creciendo hacia abajo
+    - parametros chest se guardan como referencia de 1 palabra
     """
 
-    next_param_offset: int = 8
     next_local_offset: int = 0
     next_vault_offset: int = 0
 
@@ -647,13 +646,13 @@ class SemanticAnalyzer:
         if self._current_frame is None:
             return
 
-        size = self._align(self._type_size(symbol.type))
+        size = self._align(self._parameter_slot_size(symbol.type))
+        self._current_frame.next_local_offset -= size
         symbol.memory_info.segment = "STACK"
         symbol.memory_info.address = None
-        symbol.memory_info.offset = self._current_frame.next_param_offset
+        symbol.memory_info.offset = self._current_frame.next_local_offset
         symbol.memory_info.size_in_bytes = size
         symbol.memory_info.resolved = True
-        self._current_frame.next_param_offset += size
 
     def _assign_local_memory(self, symbol: Symbol) -> None:
         if self._current_frame is None:
@@ -693,6 +692,11 @@ class SemanticAnalyzer:
         if isinstance(symbol_type, ChestType):
             return self._type_size(symbol_type.element_type) * symbol_type.size
         return 0
+
+    def _parameter_slot_size(self, symbol_type: Type | None) -> int:
+        if isinstance(symbol_type, ChestType):
+            return 4
+        return self._type_size(symbol_type)
 
     def _align(self, size: int) -> int:
         if size == 0:

@@ -502,19 +502,19 @@ main:
 
 tea_encrypt:
     ; prologue
-    addiSigned x2, x2, -52                              ; pc=0x06D8
+    addiSigned x2, x2, -60                              ; pc=0x06D8
     sleep ; stall RAW                                   ; pc=0x06DC
     sleep ; stall RAW                                   ; pc=0x06E0
     sleep ; stall RAW                                   ; pc=0x06E4
     sw x1, 0(x2)                                        ; pc=0x06E8
     sw x17, 4(x2)                                       ; pc=0x06EC
-    addi x17, x2, 52                                    ; pc=0x06F0
+    addi x17, x2, 60                                    ; pc=0x06F0
     sleep ; stall RAW                                   ; pc=0x06F4
     sleep ; stall RAW                                   ; pc=0x06F8
     sleep ; stall RAW                                   ; pc=0x06FC
 
-    sw x11, 8(x17) ; parámetro v                        ; pc=0x0700
-    sw x12, 16(x17) ; parámetro tea_key                 ; pc=0x0704
+    sw x11, -4(x17) ; parámetro v                       ; pc=0x0700
+    sw x12, -8(x17) ; parámetro tea_key                 ; pc=0x0704
 
     addi x3, x0, 0                                      ; pc=0x0708
     sleep ; stall RAW                                   ; pc=0x070C
@@ -528,7 +528,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x072C
     sleep ; stall RAW                                   ; pc=0x0730
     sleep ; stall RAW                                   ; pc=0x0734
-    lw x5, 8(x17) ; base ref v                          ; pc=0x0738
+    lw x5, -4(x17) ; base ref v                         ; pc=0x0738
     sleep ; stall RAW                                   ; pc=0x073C
     sleep ; stall RAW                                   ; pc=0x0740
     sleep ; stall RAW                                   ; pc=0x0744
@@ -540,7 +540,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x075C
     sleep ; stall RAW                                   ; pc=0x0760
     sleep ; stall RAW                                   ; pc=0x0764
-    sw x4, -4(x17) ; v0                                 ; pc=0x0768
+    sw x4, -12(x17) ; v0                                ; pc=0x0768
     addi x4, x0, 1                                      ; pc=0x076C
     sleep ; stall RAW                                   ; pc=0x0770
     sleep ; stall RAW                                   ; pc=0x0774
@@ -553,7 +553,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0790
     sleep ; stall RAW                                   ; pc=0x0794
     sleep ; stall RAW                                   ; pc=0x0798
-    lw x3, 8(x17) ; base ref v                          ; pc=0x079C
+    lw x3, -4(x17) ; base ref v                         ; pc=0x079C
     sleep ; stall RAW                                   ; pc=0x07A0
     sleep ; stall RAW                                   ; pc=0x07A4
     sleep ; stall RAW                                   ; pc=0x07A8
@@ -565,21 +565,21 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x07C0
     sleep ; stall RAW                                   ; pc=0x07C4
     sleep ; stall RAW                                   ; pc=0x07C8
-    sw x5, -8(x17) ; v1                                 ; pc=0x07CC
+    sw x5, -16(x17) ; v1                                ; pc=0x07CC
     addi x5, x0, 0                                      ; pc=0x07D0
     sleep ; stall RAW                                   ; pc=0x07D4
     sleep ; stall RAW                                   ; pc=0x07D8
     sleep ; stall RAW                                   ; pc=0x07DC
-    sw x5, -12(x17) ; sum                               ; pc=0x07E0
+    sw x5, -20(x17) ; sum                               ; pc=0x07E0
 
     ; for
     addi x5, x0, 0                                      ; pc=0x07E4
     sleep ; stall RAW                                   ; pc=0x07E8
     sleep ; stall RAW                                   ; pc=0x07EC
     sleep ; stall RAW                                   ; pc=0x07F0
-    sw x5, -16(x17) ; i                                 ; pc=0x07F4
+    sw x5, -24(x17) ; i                                 ; pc=0x07F4
 .L0_for_start:
-    lw x5, -16(x17) ; i                                 ; pc=0x07F8
+    lw x5, -24(x17) ; i                                 ; pc=0x07F8
     sleep ; stall RAW                                   ; pc=0x07FC
     sleep ; stall RAW                                   ; pc=0x0800
     sleep ; stall RAW                                   ; pc=0x0804
@@ -589,7 +589,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0814
     bge x5, x3, .L1_for_end                             ; pc=0x0818
     sleep ; nop despues de control                      ; pc=0x081C
-    lw x3, -12(x17) ; sum                               ; pc=0x0820
+    lw x3, -20(x17) ; sum                               ; pc=0x0820
     sleep ; stall RAW                                   ; pc=0x0824
     sleep ; stall RAW                                   ; pc=0x0828
     sleep ; stall RAW                                   ; pc=0x082C
@@ -609,8 +609,8 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0864
     sleep ; stall RAW                                   ; pc=0x0868
     sleep ; stall RAW                                   ; pc=0x086C
-    sw x4, -12(x17) ; sum                               ; pc=0x0870
-    lw x4, -8(x17) ; v1                                 ; pc=0x0874
+    sw x4, -20(x17) ; sum                               ; pc=0x0870
+    lw x4, -16(x17) ; v1                                ; pc=0x0874
     sleep ; stall RAW                                   ; pc=0x0878
     sleep ; stall RAW                                   ; pc=0x087C
     sleep ; stall RAW                                   ; pc=0x0880
@@ -626,7 +626,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x08A8
     sleep ; stall RAW                                   ; pc=0x08AC
     sleep ; stall RAW                                   ; pc=0x08B0
-    lw x6, 16(x17) ; base ref tea_key                   ; pc=0x08B4
+    lw x6, -8(x17) ; base ref tea_key                   ; pc=0x08B4
     sleep ; stall RAW                                   ; pc=0x08B8
     sleep ; stall RAW                                   ; pc=0x08BC
     sleep ; stall RAW                                   ; pc=0x08C0
@@ -650,12 +650,12 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0908
     sleep ; stall RAW                                   ; pc=0x090C
     sleep ; stall RAW                                   ; pc=0x0910
-    sw x6, -20(x17) ; left0                             ; pc=0x0914
-    lw x6, -8(x17) ; v1                                 ; pc=0x0918
+    sw x6, -28(x17) ; left0                             ; pc=0x0914
+    lw x6, -16(x17) ; v1                                ; pc=0x0918
     sleep ; stall RAW                                   ; pc=0x091C
     sleep ; stall RAW                                   ; pc=0x0920
     sleep ; stall RAW                                   ; pc=0x0924
-    lw x3, -12(x17) ; sum                               ; pc=0x0928
+    lw x3, -20(x17) ; sum                               ; pc=0x0928
     sleep ; stall RAW                                   ; pc=0x092C
     sleep ; stall RAW                                   ; pc=0x0930
     sleep ; stall RAW                                   ; pc=0x0934
@@ -663,8 +663,8 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x093C
     sleep ; stall RAW                                   ; pc=0x0940
     sleep ; stall RAW                                   ; pc=0x0944
-    sw x4, -24(x17) ; mid0                              ; pc=0x0948
-    lw x4, -8(x17) ; v1                                 ; pc=0x094C
+    sw x4, -32(x17) ; mid0                              ; pc=0x0948
+    lw x4, -16(x17) ; v1                                ; pc=0x094C
     sleep ; stall RAW                                   ; pc=0x0950
     sleep ; stall RAW                                   ; pc=0x0954
     sleep ; stall RAW                                   ; pc=0x0958
@@ -680,7 +680,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0980
     sleep ; stall RAW                                   ; pc=0x0984
     sleep ; stall RAW                                   ; pc=0x0988
-    lw x5, 16(x17) ; base ref tea_key                   ; pc=0x098C
+    lw x5, -8(x17) ; base ref tea_key                   ; pc=0x098C
     sleep ; stall RAW                                   ; pc=0x0990
     sleep ; stall RAW                                   ; pc=0x0994
     sleep ; stall RAW                                   ; pc=0x0998
@@ -704,16 +704,16 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x09E0
     sleep ; stall RAW                                   ; pc=0x09E4
     sleep ; stall RAW                                   ; pc=0x09E8
-    sw x5, -28(x17) ; right0                            ; pc=0x09EC
-    lw x5, -4(x17) ; v0                                 ; pc=0x09F0
+    sw x5, -36(x17) ; right0                            ; pc=0x09EC
+    lw x5, -12(x17) ; v0                                ; pc=0x09F0
     sleep ; stall RAW                                   ; pc=0x09F4
     sleep ; stall RAW                                   ; pc=0x09F8
     sleep ; stall RAW                                   ; pc=0x09FC
-    lw x6, -20(x17) ; left0                             ; pc=0x0A00
+    lw x6, -28(x17) ; left0                             ; pc=0x0A00
     sleep ; stall RAW                                   ; pc=0x0A04
     sleep ; stall RAW                                   ; pc=0x0A08
     sleep ; stall RAW                                   ; pc=0x0A0C
-    lw x4, -24(x17) ; mid0                              ; pc=0x0A10
+    lw x4, -32(x17) ; mid0                              ; pc=0x0A10
     sleep ; stall RAW                                   ; pc=0x0A14
     sleep ; stall RAW                                   ; pc=0x0A18
     sleep ; stall RAW                                   ; pc=0x0A1C
@@ -721,7 +721,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0A24
     sleep ; stall RAW                                   ; pc=0x0A28
     sleep ; stall RAW                                   ; pc=0x0A2C
-    lw x4, -28(x17) ; right0                            ; pc=0x0A30
+    lw x4, -36(x17) ; right0                            ; pc=0x0A30
     sleep ; stall RAW                                   ; pc=0x0A34
     sleep ; stall RAW                                   ; pc=0x0A38
     sleep ; stall RAW                                   ; pc=0x0A3C
@@ -733,8 +733,8 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0A54
     sleep ; stall RAW                                   ; pc=0x0A58
     sleep ; stall RAW                                   ; pc=0x0A5C
-    sw x4, -4(x17) ; v0                                 ; pc=0x0A60
-    lw x4, -4(x17) ; v0                                 ; pc=0x0A64
+    sw x4, -12(x17) ; v0                                ; pc=0x0A60
+    lw x4, -12(x17) ; v0                                ; pc=0x0A64
     sleep ; stall RAW                                   ; pc=0x0A68
     sleep ; stall RAW                                   ; pc=0x0A6C
     sleep ; stall RAW                                   ; pc=0x0A70
@@ -750,7 +750,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0A98
     sleep ; stall RAW                                   ; pc=0x0A9C
     sleep ; stall RAW                                   ; pc=0x0AA0
-    lw x3, 16(x17) ; base ref tea_key                   ; pc=0x0AA4
+    lw x3, -8(x17) ; base ref tea_key                   ; pc=0x0AA4
     sleep ; stall RAW                                   ; pc=0x0AA8
     sleep ; stall RAW                                   ; pc=0x0AAC
     sleep ; stall RAW                                   ; pc=0x0AB0
@@ -774,12 +774,12 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0AF8
     sleep ; stall RAW                                   ; pc=0x0AFC
     sleep ; stall RAW                                   ; pc=0x0B00
-    sw x3, -32(x17) ; left1                             ; pc=0x0B04
-    lw x3, -4(x17) ; v0                                 ; pc=0x0B08
+    sw x3, -40(x17) ; left1                             ; pc=0x0B04
+    lw x3, -12(x17) ; v0                                ; pc=0x0B08
     sleep ; stall RAW                                   ; pc=0x0B0C
     sleep ; stall RAW                                   ; pc=0x0B10
     sleep ; stall RAW                                   ; pc=0x0B14
-    lw x5, -12(x17) ; sum                               ; pc=0x0B18
+    lw x5, -20(x17) ; sum                               ; pc=0x0B18
     sleep ; stall RAW                                   ; pc=0x0B1C
     sleep ; stall RAW                                   ; pc=0x0B20
     sleep ; stall RAW                                   ; pc=0x0B24
@@ -787,8 +787,8 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0B2C
     sleep ; stall RAW                                   ; pc=0x0B30
     sleep ; stall RAW                                   ; pc=0x0B34
-    sw x4, -36(x17) ; mid1                              ; pc=0x0B38
-    lw x4, -4(x17) ; v0                                 ; pc=0x0B3C
+    sw x4, -44(x17) ; mid1                              ; pc=0x0B38
+    lw x4, -12(x17) ; v0                                ; pc=0x0B3C
     sleep ; stall RAW                                   ; pc=0x0B40
     sleep ; stall RAW                                   ; pc=0x0B44
     sleep ; stall RAW                                   ; pc=0x0B48
@@ -804,7 +804,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0B70
     sleep ; stall RAW                                   ; pc=0x0B74
     sleep ; stall RAW                                   ; pc=0x0B78
-    lw x6, 16(x17) ; base ref tea_key                   ; pc=0x0B7C
+    lw x6, -8(x17) ; base ref tea_key                   ; pc=0x0B7C
     sleep ; stall RAW                                   ; pc=0x0B80
     sleep ; stall RAW                                   ; pc=0x0B84
     sleep ; stall RAW                                   ; pc=0x0B88
@@ -828,16 +828,16 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0BD0
     sleep ; stall RAW                                   ; pc=0x0BD4
     sleep ; stall RAW                                   ; pc=0x0BD8
-    sw x6, -40(x17) ; right1                            ; pc=0x0BDC
-    lw x6, -8(x17) ; v1                                 ; pc=0x0BE0
+    sw x6, -48(x17) ; right1                            ; pc=0x0BDC
+    lw x6, -16(x17) ; v1                                ; pc=0x0BE0
     sleep ; stall RAW                                   ; pc=0x0BE4
     sleep ; stall RAW                                   ; pc=0x0BE8
     sleep ; stall RAW                                   ; pc=0x0BEC
-    lw x3, -32(x17) ; left1                             ; pc=0x0BF0
+    lw x3, -40(x17) ; left1                             ; pc=0x0BF0
     sleep ; stall RAW                                   ; pc=0x0BF4
     sleep ; stall RAW                                   ; pc=0x0BF8
     sleep ; stall RAW                                   ; pc=0x0BFC
-    lw x4, -36(x17) ; mid1                              ; pc=0x0C00
+    lw x4, -44(x17) ; mid1                              ; pc=0x0C00
     sleep ; stall RAW                                   ; pc=0x0C04
     sleep ; stall RAW                                   ; pc=0x0C08
     sleep ; stall RAW                                   ; pc=0x0C0C
@@ -845,7 +845,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0C14
     sleep ; stall RAW                                   ; pc=0x0C18
     sleep ; stall RAW                                   ; pc=0x0C1C
-    lw x4, -40(x17) ; right1                            ; pc=0x0C20
+    lw x4, -48(x17) ; right1                            ; pc=0x0C20
     sleep ; stall RAW                                   ; pc=0x0C24
     sleep ; stall RAW                                   ; pc=0x0C28
     sleep ; stall RAW                                   ; pc=0x0C2C
@@ -857,8 +857,8 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0C44
     sleep ; stall RAW                                   ; pc=0x0C48
     sleep ; stall RAW                                   ; pc=0x0C4C
-    sw x4, -8(x17) ; v1                                 ; pc=0x0C50
-    lw x4, -16(x17) ; i                                 ; pc=0x0C54
+    sw x4, -16(x17) ; v1                                ; pc=0x0C50
+    lw x4, -24(x17) ; i                                 ; pc=0x0C54
     sleep ; stall RAW                                   ; pc=0x0C58
     sleep ; stall RAW                                   ; pc=0x0C5C
     sleep ; stall RAW                                   ; pc=0x0C60
@@ -870,12 +870,12 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0C78
     sleep ; stall RAW                                   ; pc=0x0C7C
     sleep ; stall RAW                                   ; pc=0x0C80
-    sw x6, -16(x17) ; i                                 ; pc=0x0C84
+    sw x6, -24(x17) ; i                                 ; pc=0x0C84
     jal x0, .L0_for_start                               ; pc=0x0C88
     sleep ; nop despues de control                      ; pc=0x0C8C
 .L1_for_end:
 
-    lw x6, -4(x17) ; v0                                 ; pc=0x0C90
+    lw x6, -12(x17) ; v0                                ; pc=0x0C90
     sleep ; stall RAW                                   ; pc=0x0C94
     sleep ; stall RAW                                   ; pc=0x0C98
     sleep ; stall RAW                                   ; pc=0x0C9C
@@ -891,7 +891,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0CC4
     sleep ; stall RAW                                   ; pc=0x0CC8
     sleep ; stall RAW                                   ; pc=0x0CCC
-    lw x5, 8(x17) ; base ref v                          ; pc=0x0CD0
+    lw x5, -4(x17) ; base ref v                         ; pc=0x0CD0
     sleep ; stall RAW                                   ; pc=0x0CD4
     sleep ; stall RAW                                   ; pc=0x0CD8
     sleep ; stall RAW                                   ; pc=0x0CDC
@@ -900,7 +900,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0CE8
     sleep ; stall RAW                                   ; pc=0x0CEC
     sw x6, 0(x5)                                        ; pc=0x0CF0
-    lw x6, -8(x17) ; v1                                 ; pc=0x0CF4
+    lw x6, -16(x17) ; v1                                ; pc=0x0CF4
     sleep ; stall RAW                                   ; pc=0x0CF8
     sleep ; stall RAW                                   ; pc=0x0CFC
     sleep ; stall RAW                                   ; pc=0x0D00
@@ -916,7 +916,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0D28
     sleep ; stall RAW                                   ; pc=0x0D2C
     sleep ; stall RAW                                   ; pc=0x0D30
-    lw x3, 8(x17) ; base ref v                          ; pc=0x0D34
+    lw x3, -4(x17) ; base ref v                         ; pc=0x0D34
     sleep ; stall RAW                                   ; pc=0x0D38
     sleep ; stall RAW                                   ; pc=0x0D3C
     sleep ; stall RAW                                   ; pc=0x0D40
@@ -935,7 +935,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0D6C
     sleep ; stall RAW                                   ; pc=0x0D70
     sleep ; stall RAW                                   ; pc=0x0D74
-    addi x2, x2, 52                                     ; pc=0x0D78
+    addi x2, x2, 60                                     ; pc=0x0D78
     sleep ; stall RAW                                   ; pc=0x0D7C
     sleep ; stall RAW                                   ; pc=0x0D80
     sleep ; stall RAW                                   ; pc=0x0D84
@@ -944,19 +944,19 @@ tea_encrypt:
 
 tea_decrypt:
     ; prologue
-    addiSigned x2, x2, -52                              ; pc=0x0D90
+    addiSigned x2, x2, -60                              ; pc=0x0D90
     sleep ; stall RAW                                   ; pc=0x0D94
     sleep ; stall RAW                                   ; pc=0x0D98
     sleep ; stall RAW                                   ; pc=0x0D9C
     sw x1, 0(x2)                                        ; pc=0x0DA0
     sw x17, 4(x2)                                       ; pc=0x0DA4
-    addi x17, x2, 52                                    ; pc=0x0DA8
+    addi x17, x2, 60                                    ; pc=0x0DA8
     sleep ; stall RAW                                   ; pc=0x0DAC
     sleep ; stall RAW                                   ; pc=0x0DB0
     sleep ; stall RAW                                   ; pc=0x0DB4
 
-    sw x11, 8(x17) ; parámetro v                        ; pc=0x0DB8
-    sw x12, 16(x17) ; parámetro tea_key                 ; pc=0x0DBC
+    sw x11, -4(x17) ; parámetro v                       ; pc=0x0DB8
+    sw x12, -8(x17) ; parámetro tea_key                 ; pc=0x0DBC
 
     addi x6, x0, 0                                      ; pc=0x0DC0
     sleep ; stall RAW                                   ; pc=0x0DC4
@@ -970,7 +970,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0DE4
     sleep ; stall RAW                                   ; pc=0x0DE8
     sleep ; stall RAW                                   ; pc=0x0DEC
-    lw x4, 8(x17) ; base ref v                          ; pc=0x0DF0
+    lw x4, -4(x17) ; base ref v                         ; pc=0x0DF0
     sleep ; stall RAW                                   ; pc=0x0DF4
     sleep ; stall RAW                                   ; pc=0x0DF8
     sleep ; stall RAW                                   ; pc=0x0DFC
@@ -982,7 +982,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0E14
     sleep ; stall RAW                                   ; pc=0x0E18
     sleep ; stall RAW                                   ; pc=0x0E1C
-    sw x3, -4(x17) ; v0                                 ; pc=0x0E20
+    sw x3, -12(x17) ; v0                                ; pc=0x0E20
     addi x3, x0, 1                                      ; pc=0x0E24
     sleep ; stall RAW                                   ; pc=0x0E28
     sleep ; stall RAW                                   ; pc=0x0E2C
@@ -995,7 +995,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0E48
     sleep ; stall RAW                                   ; pc=0x0E4C
     sleep ; stall RAW                                   ; pc=0x0E50
-    lw x6, 8(x17) ; base ref v                          ; pc=0x0E54
+    lw x6, -4(x17) ; base ref v                         ; pc=0x0E54
     sleep ; stall RAW                                   ; pc=0x0E58
     sleep ; stall RAW                                   ; pc=0x0E5C
     sleep ; stall RAW                                   ; pc=0x0E60
@@ -1007,7 +1007,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0E78
     sleep ; stall RAW                                   ; pc=0x0E7C
     sleep ; stall RAW                                   ; pc=0x0E80
-    sw x4, -8(x17) ; v1                                 ; pc=0x0E84
+    sw x4, -16(x17) ; v1                                ; pc=0x0E84
     addiHIGH x6, x0, 0                                  ; pc=0x0E88
     sleep ; stall RAW                                   ; pc=0x0E8C
     sleep ; stall RAW                                   ; pc=0x0E90
@@ -1020,16 +1020,16 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0EAC
     sleep ; stall RAW                                   ; pc=0x0EB0
     sleep ; stall RAW                                   ; pc=0x0EB4
-    sw x4, -12(x17) ; sum                               ; pc=0x0EB8
+    sw x4, -20(x17) ; sum                               ; pc=0x0EB8
 
     ; for
     addi x4, x0, 0                                      ; pc=0x0EBC
     sleep ; stall RAW                                   ; pc=0x0EC0
     sleep ; stall RAW                                   ; pc=0x0EC4
     sleep ; stall RAW                                   ; pc=0x0EC8
-    sw x4, -16(x17) ; i                                 ; pc=0x0ECC
+    sw x4, -24(x17) ; i                                 ; pc=0x0ECC
 .L2_for_start:
-    lw x4, -16(x17) ; i                                 ; pc=0x0ED0
+    lw x4, -24(x17) ; i                                 ; pc=0x0ED0
     sleep ; stall RAW                                   ; pc=0x0ED4
     sleep ; stall RAW                                   ; pc=0x0ED8
     sleep ; stall RAW                                   ; pc=0x0EDC
@@ -1039,7 +1039,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0EEC
     bge x4, x6, .L3_for_end                             ; pc=0x0EF0
     sleep ; nop despues de control                      ; pc=0x0EF4
-    lw x6, -4(x17) ; v0                                 ; pc=0x0EF8
+    lw x6, -12(x17) ; v0                                ; pc=0x0EF8
     sleep ; stall RAW                                   ; pc=0x0EFC
     sleep ; stall RAW                                   ; pc=0x0F00
     sleep ; stall RAW                                   ; pc=0x0F04
@@ -1055,7 +1055,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0F2C
     sleep ; stall RAW                                   ; pc=0x0F30
     sleep ; stall RAW                                   ; pc=0x0F34
-    lw x5, 16(x17) ; base ref tea_key                   ; pc=0x0F38
+    lw x5, -8(x17) ; base ref tea_key                   ; pc=0x0F38
     sleep ; stall RAW                                   ; pc=0x0F3C
     sleep ; stall RAW                                   ; pc=0x0F40
     sleep ; stall RAW                                   ; pc=0x0F44
@@ -1079,12 +1079,12 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0F8C
     sleep ; stall RAW                                   ; pc=0x0F90
     sleep ; stall RAW                                   ; pc=0x0F94
-    sw x5, -20(x17) ; left1                             ; pc=0x0F98
-    lw x5, -4(x17) ; v0                                 ; pc=0x0F9C
+    sw x5, -28(x17) ; left1                             ; pc=0x0F98
+    lw x5, -12(x17) ; v0                                ; pc=0x0F9C
     sleep ; stall RAW                                   ; pc=0x0FA0
     sleep ; stall RAW                                   ; pc=0x0FA4
     sleep ; stall RAW                                   ; pc=0x0FA8
-    lw x3, -12(x17) ; sum                               ; pc=0x0FAC
+    lw x3, -20(x17) ; sum                               ; pc=0x0FAC
     sleep ; stall RAW                                   ; pc=0x0FB0
     sleep ; stall RAW                                   ; pc=0x0FB4
     sleep ; stall RAW                                   ; pc=0x0FB8
@@ -1092,8 +1092,8 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x0FC0
     sleep ; stall RAW                                   ; pc=0x0FC4
     sleep ; stall RAW                                   ; pc=0x0FC8
-    sw x6, -24(x17) ; mid1                              ; pc=0x0FCC
-    lw x6, -4(x17) ; v0                                 ; pc=0x0FD0
+    sw x6, -32(x17) ; mid1                              ; pc=0x0FCC
+    lw x6, -12(x17) ; v0                                ; pc=0x0FD0
     sleep ; stall RAW                                   ; pc=0x0FD4
     sleep ; stall RAW                                   ; pc=0x0FD8
     sleep ; stall RAW                                   ; pc=0x0FDC
@@ -1109,7 +1109,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1004
     sleep ; stall RAW                                   ; pc=0x1008
     sleep ; stall RAW                                   ; pc=0x100C
-    lw x4, 16(x17) ; base ref tea_key                   ; pc=0x1010
+    lw x4, -8(x17) ; base ref tea_key                   ; pc=0x1010
     sleep ; stall RAW                                   ; pc=0x1014
     sleep ; stall RAW                                   ; pc=0x1018
     sleep ; stall RAW                                   ; pc=0x101C
@@ -1133,16 +1133,16 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1064
     sleep ; stall RAW                                   ; pc=0x1068
     sleep ; stall RAW                                   ; pc=0x106C
-    sw x4, -28(x17) ; right1                            ; pc=0x1070
-    lw x4, -8(x17) ; v1                                 ; pc=0x1074
+    sw x4, -36(x17) ; right1                            ; pc=0x1070
+    lw x4, -16(x17) ; v1                                ; pc=0x1074
     sleep ; stall RAW                                   ; pc=0x1078
     sleep ; stall RAW                                   ; pc=0x107C
     sleep ; stall RAW                                   ; pc=0x1080
-    lw x5, -20(x17) ; left1                             ; pc=0x1084
+    lw x5, -28(x17) ; left1                             ; pc=0x1084
     sleep ; stall RAW                                   ; pc=0x1088
     sleep ; stall RAW                                   ; pc=0x108C
     sleep ; stall RAW                                   ; pc=0x1090
-    lw x6, -24(x17) ; mid1                              ; pc=0x1094
+    lw x6, -32(x17) ; mid1                              ; pc=0x1094
     sleep ; stall RAW                                   ; pc=0x1098
     sleep ; stall RAW                                   ; pc=0x109C
     sleep ; stall RAW                                   ; pc=0x10A0
@@ -1150,7 +1150,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x10A8
     sleep ; stall RAW                                   ; pc=0x10AC
     sleep ; stall RAW                                   ; pc=0x10B0
-    lw x6, -28(x17) ; right1                            ; pc=0x10B4
+    lw x6, -36(x17) ; right1                            ; pc=0x10B4
     sleep ; stall RAW                                   ; pc=0x10B8
     sleep ; stall RAW                                   ; pc=0x10BC
     sleep ; stall RAW                                   ; pc=0x10C0
@@ -1162,8 +1162,8 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x10D8
     sleep ; stall RAW                                   ; pc=0x10DC
     sleep ; stall RAW                                   ; pc=0x10E0
-    sw x6, -8(x17) ; v1                                 ; pc=0x10E4
-    lw x6, -8(x17) ; v1                                 ; pc=0x10E8
+    sw x6, -16(x17) ; v1                                ; pc=0x10E4
+    lw x6, -16(x17) ; v1                                ; pc=0x10E8
     sleep ; stall RAW                                   ; pc=0x10EC
     sleep ; stall RAW                                   ; pc=0x10F0
     sleep ; stall RAW                                   ; pc=0x10F4
@@ -1179,7 +1179,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x111C
     sleep ; stall RAW                                   ; pc=0x1120
     sleep ; stall RAW                                   ; pc=0x1124
-    lw x3, 16(x17) ; base ref tea_key                   ; pc=0x1128
+    lw x3, -8(x17) ; base ref tea_key                   ; pc=0x1128
     sleep ; stall RAW                                   ; pc=0x112C
     sleep ; stall RAW                                   ; pc=0x1130
     sleep ; stall RAW                                   ; pc=0x1134
@@ -1203,12 +1203,12 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x117C
     sleep ; stall RAW                                   ; pc=0x1180
     sleep ; stall RAW                                   ; pc=0x1184
-    sw x3, -32(x17) ; left0                             ; pc=0x1188
-    lw x3, -8(x17) ; v1                                 ; pc=0x118C
+    sw x3, -40(x17) ; left0                             ; pc=0x1188
+    lw x3, -16(x17) ; v1                                ; pc=0x118C
     sleep ; stall RAW                                   ; pc=0x1190
     sleep ; stall RAW                                   ; pc=0x1194
     sleep ; stall RAW                                   ; pc=0x1198
-    lw x4, -12(x17) ; sum                               ; pc=0x119C
+    lw x4, -20(x17) ; sum                               ; pc=0x119C
     sleep ; stall RAW                                   ; pc=0x11A0
     sleep ; stall RAW                                   ; pc=0x11A4
     sleep ; stall RAW                                   ; pc=0x11A8
@@ -1216,8 +1216,8 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x11B0
     sleep ; stall RAW                                   ; pc=0x11B4
     sleep ; stall RAW                                   ; pc=0x11B8
-    sw x6, -36(x17) ; mid0                              ; pc=0x11BC
-    lw x6, -8(x17) ; v1                                 ; pc=0x11C0
+    sw x6, -44(x17) ; mid0                              ; pc=0x11BC
+    lw x6, -16(x17) ; v1                                ; pc=0x11C0
     sleep ; stall RAW                                   ; pc=0x11C4
     sleep ; stall RAW                                   ; pc=0x11C8
     sleep ; stall RAW                                   ; pc=0x11CC
@@ -1233,7 +1233,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x11F4
     sleep ; stall RAW                                   ; pc=0x11F8
     sleep ; stall RAW                                   ; pc=0x11FC
-    lw x5, 16(x17) ; base ref tea_key                   ; pc=0x1200
+    lw x5, -8(x17) ; base ref tea_key                   ; pc=0x1200
     sleep ; stall RAW                                   ; pc=0x1204
     sleep ; stall RAW                                   ; pc=0x1208
     sleep ; stall RAW                                   ; pc=0x120C
@@ -1257,16 +1257,16 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1254
     sleep ; stall RAW                                   ; pc=0x1258
     sleep ; stall RAW                                   ; pc=0x125C
-    sw x5, -40(x17) ; right0                            ; pc=0x1260
-    lw x5, -4(x17) ; v0                                 ; pc=0x1264
+    sw x5, -48(x17) ; right0                            ; pc=0x1260
+    lw x5, -12(x17) ; v0                                ; pc=0x1264
     sleep ; stall RAW                                   ; pc=0x1268
     sleep ; stall RAW                                   ; pc=0x126C
     sleep ; stall RAW                                   ; pc=0x1270
-    lw x3, -32(x17) ; left0                             ; pc=0x1274
+    lw x3, -40(x17) ; left0                             ; pc=0x1274
     sleep ; stall RAW                                   ; pc=0x1278
     sleep ; stall RAW                                   ; pc=0x127C
     sleep ; stall RAW                                   ; pc=0x1280
-    lw x6, -36(x17) ; mid0                              ; pc=0x1284
+    lw x6, -44(x17) ; mid0                              ; pc=0x1284
     sleep ; stall RAW                                   ; pc=0x1288
     sleep ; stall RAW                                   ; pc=0x128C
     sleep ; stall RAW                                   ; pc=0x1290
@@ -1274,7 +1274,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1298
     sleep ; stall RAW                                   ; pc=0x129C
     sleep ; stall RAW                                   ; pc=0x12A0
-    lw x6, -40(x17) ; right0                            ; pc=0x12A4
+    lw x6, -48(x17) ; right0                            ; pc=0x12A4
     sleep ; stall RAW                                   ; pc=0x12A8
     sleep ; stall RAW                                   ; pc=0x12AC
     sleep ; stall RAW                                   ; pc=0x12B0
@@ -1286,8 +1286,8 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x12C8
     sleep ; stall RAW                                   ; pc=0x12CC
     sleep ; stall RAW                                   ; pc=0x12D0
-    sw x6, -4(x17) ; v0                                 ; pc=0x12D4
-    lw x6, -12(x17) ; sum                               ; pc=0x12D8
+    sw x6, -12(x17) ; v0                                ; pc=0x12D4
+    lw x6, -20(x17) ; sum                               ; pc=0x12D8
     sleep ; stall RAW                                   ; pc=0x12DC
     sleep ; stall RAW                                   ; pc=0x12E0
     sleep ; stall RAW                                   ; pc=0x12E4
@@ -1307,8 +1307,8 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x131C
     sleep ; stall RAW                                   ; pc=0x1320
     sleep ; stall RAW                                   ; pc=0x1324
-    sw x5, -12(x17) ; sum                               ; pc=0x1328
-    lw x5, -16(x17) ; i                                 ; pc=0x132C
+    sw x5, -20(x17) ; sum                               ; pc=0x1328
+    lw x5, -24(x17) ; i                                 ; pc=0x132C
     sleep ; stall RAW                                   ; pc=0x1330
     sleep ; stall RAW                                   ; pc=0x1334
     sleep ; stall RAW                                   ; pc=0x1338
@@ -1320,12 +1320,12 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1350
     sleep ; stall RAW                                   ; pc=0x1354
     sleep ; stall RAW                                   ; pc=0x1358
-    sw x6, -16(x17) ; i                                 ; pc=0x135C
+    sw x6, -24(x17) ; i                                 ; pc=0x135C
     jal x0, .L2_for_start                               ; pc=0x1360
     sleep ; nop despues de control                      ; pc=0x1364
 .L3_for_end:
 
-    lw x6, -4(x17) ; v0                                 ; pc=0x1368
+    lw x6, -12(x17) ; v0                                ; pc=0x1368
     sleep ; stall RAW                                   ; pc=0x136C
     sleep ; stall RAW                                   ; pc=0x1370
     sleep ; stall RAW                                   ; pc=0x1374
@@ -1341,7 +1341,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x139C
     sleep ; stall RAW                                   ; pc=0x13A0
     sleep ; stall RAW                                   ; pc=0x13A4
-    lw x4, 8(x17) ; base ref v                          ; pc=0x13A8
+    lw x4, -4(x17) ; base ref v                         ; pc=0x13A8
     sleep ; stall RAW                                   ; pc=0x13AC
     sleep ; stall RAW                                   ; pc=0x13B0
     sleep ; stall RAW                                   ; pc=0x13B4
@@ -1350,7 +1350,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x13C0
     sleep ; stall RAW                                   ; pc=0x13C4
     sw x6, 0(x4)                                        ; pc=0x13C8
-    lw x6, -8(x17) ; v1                                 ; pc=0x13CC
+    lw x6, -16(x17) ; v1                                ; pc=0x13CC
     sleep ; stall RAW                                   ; pc=0x13D0
     sleep ; stall RAW                                   ; pc=0x13D4
     sleep ; stall RAW                                   ; pc=0x13D8
@@ -1366,7 +1366,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1400
     sleep ; stall RAW                                   ; pc=0x1404
     sleep ; stall RAW                                   ; pc=0x1408
-    lw x3, 8(x17) ; base ref v                          ; pc=0x140C
+    lw x3, -4(x17) ; base ref v                         ; pc=0x140C
     sleep ; stall RAW                                   ; pc=0x1410
     sleep ; stall RAW                                   ; pc=0x1414
     sleep ; stall RAW                                   ; pc=0x1418
@@ -1385,7 +1385,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x1444
     sleep ; stall RAW                                   ; pc=0x1448
     sleep ; stall RAW                                   ; pc=0x144C
-    addi x2, x2, 52                                     ; pc=0x1450
+    addi x2, x2, 60                                     ; pc=0x1450
     sleep ; stall RAW                                   ; pc=0x1454
     sleep ; stall RAW                                   ; pc=0x1458
     sleep ; stall RAW                                   ; pc=0x145C
