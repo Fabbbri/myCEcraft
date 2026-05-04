@@ -8,6 +8,7 @@ TB_DIR = tb
 SIM_DIR = sim
 BUILD_DIR = $(SIM_DIR)/build
 WAVE_DIR = $(SIM_DIR)/waves
+OUTPUT_DIR = outputs
 
 SRC = $(wildcard $(SRC_DIR)/*.sv)
 
@@ -41,7 +42,7 @@ IVERILOG_FLAGS = -g2012
 all: run
 
 dirs:
-	mkdir -p $(BUILD_DIR) $(WAVE_DIR)
+	mkdir -p $(BUILD_DIR) $(WAVE_DIR) $(OUTPUT_DIR)
 
 compile: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)

@@ -301,14 +301,14 @@ module tb_tea_loader;
     endtask
 
     task automatic dump_result_memories();
-        $writememh("salida.hex", `DRAM);
-        $writememh("salidavault.hex", `NRAM);
-        $writememh("salidacifrada.hex", `DRAM, CIPHER_BASE, CIPHER_BASE + 7);
-        $writememh("salidarecuperada.hex", `DRAM, ROUNDTRIP_BASE, ROUNDTRIP_BASE + 7);
-        $display("[DUMP]  DRAM  -> salida.hex");
-        $display("[DUMP]  VAULT -> salidavault.hex");
-        $display("[DUMP]  CIFR  -> salidacifrada.hex");
-        $display("[DUMP]  RECV  -> salidarecuperada.hex");
+        $writememh("outputs/salida.hex", `DRAM);
+        $writememh("outputs/salidavault.hex", `NRAM);
+        $writememh("outputs/salidacifrada.hex", `DRAM, CIPHER_BASE, CIPHER_BASE + 7);
+        $writememh("outputs/salidarecuperada.hex", `DRAM, ROUNDTRIP_BASE, ROUNDTRIP_BASE + 7);
+        $display("[DUMP]  DRAM  -> outputs/salida.hex");
+        $display("[DUMP]  VAULT -> outputs/salidavault.hex");
+        $display("[DUMP]  CIFR  -> outputs/salidacifrada.hex");
+        $display("[DUMP]  RECV  -> outputs/salidarecuperada.hex");
     endtask
 
     task automatic load_loader_image(output bit load_failed);

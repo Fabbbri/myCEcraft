@@ -221,16 +221,16 @@ module tb_teaimg_loader;
     endtask
 
     task automatic dump_outputs();
-        $writememh("teaimg_salida.hex", `DRAM);
-        $writememh("teaimg_vault.hex", `NRAM);
-        $writememh("teaimg_original.hex", `DRAM, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
-        $writememh("teaimg_cifrada.hex", `DRAM, IMAGE_ENC_BASE, IMAGE_ENC_BASE + IMAGE_BYTES - 1);
-        $writememh("teaimg_descifrada.hex", `DRAM, IMAGE_DEC_BASE, IMAGE_DEC_BASE + IMAGE_BYTES - 1);
-        $display("[DUMP]  DRAM completa       -> teaimg_salida.hex");
-        $display("[DUMP]  Vault completa      -> teaimg_vault.hex");
-        $display("[DUMP]  Imagen original     -> teaimg_original.hex");
-        $display("[DUMP]  Imagen cifrada      -> teaimg_cifrada.hex");
-        $display("[DUMP]  Imagen descifrada   -> teaimg_descifrada.hex");
+        $writememh("outputs/teaimg_salida.hex", `DRAM);
+        $writememh("outputs/teaimg_vault.hex", `NRAM);
+        $writememh("outputs/teaimg_original.hex", `DRAM, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
+        $writememh("outputs/teaimg_cifrada.hex", `DRAM, IMAGE_ENC_BASE, IMAGE_ENC_BASE + IMAGE_BYTES - 1);
+        $writememh("outputs/teaimg_descifrada.hex", `DRAM, IMAGE_DEC_BASE, IMAGE_DEC_BASE + IMAGE_BYTES - 1);
+        $display("[DUMP]  DRAM completa       -> outputs/teaimg_salida.hex");
+        $display("[DUMP]  Vault completa      -> outputs/teaimg_vault.hex");
+        $display("[DUMP]  Imagen original     -> outputs/teaimg_original.hex");
+        $display("[DUMP]  Imagen cifrada      -> outputs/teaimg_cifrada.hex");
+        $display("[DUMP]  Imagen descifrada   -> outputs/teaimg_descifrada.hex");
     endtask
 
     task automatic dump_nonzero_regs();
