@@ -186,7 +186,7 @@ module tb_tea;
         end else begin
             $display("\n  --- Registros clave ---");
             check_reg(11, 32'h00000000, "return");
-            check_reg( 2, 32'h00000000, "sp");
+            check_reg( 2, 32'h00007FF0, "sp");
             check_reg( 0, 32'h00000000, "zero");
 
             $display("\n  --- Vault RAM ---");
