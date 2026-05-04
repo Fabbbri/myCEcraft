@@ -124,6 +124,9 @@ module tb_control_unit;
     //       n_portal, n_reset, n_wreg_src)
 
     initial begin
+        $dumpfile("sim/waves/tb_control_unit.vcd");
+        $dumpvars(0, tb_control_unit);
+
         $display("============================================================");
         $display("          CONTROL UNIT TESTBENCH");
         $display("============================================================");

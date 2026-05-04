@@ -29,6 +29,9 @@ module tb_data_ram;
     endtask
 
     initial begin
+        $dumpfile("sim/waves/tb_data_ram.vcd");
+        $dumpvars(0, tb_data_ram);
+
         clk = 0; we = 0; size = 2'b10; addr = 0; wdata = 0;
         $display("🚀 Iniciando test de Data RAM...");
         #10;
