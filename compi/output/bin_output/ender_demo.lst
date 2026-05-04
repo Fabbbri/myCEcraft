@@ -44,47 +44,47 @@
 0x0064: 00580000    ; sleep
 0x0068: 01200786    ; portalv x3, v0, 224
 0x006C: 00580000    ; sleep
-0x0070: 96A3001F    ; addiLOWv v1, v0, 38563
+0x0070: 96A30011    ; addi x1, v0, 38563
 0x0074: 00580000    ; sleep
 0x0078: 00580000    ; sleep
 0x007C: 00580000    ; sleep
-0x0080: 0023421F    ; addiHIGHv v1, v1, 35
+0x0080: 0023421F    ; addiHIGHv v1, x1, 35
 0x0084: 00580000    ; sleep
 0x0088: 00580000    ; sleep
 0x008C: 00580000    ; sleep
 0x0090: 0000400E    ; swv v1, 0(v0)
-0x0094: 04D2001F    ; addiLOWv v1, v0, 1234
+0x0094: 04D20011    ; addi x1, v0, 1234
 0x0098: 00580000    ; sleep
 0x009C: 00580000    ; sleep
 0x00A0: 00580000    ; sleep
-0x00A4: 0000421F    ; addiHIGHv v1, v1, 0
+0x00A4: 0000421F    ; addiHIGHv v1, x1, 0
 0x00A8: 00580000    ; sleep
 0x00AC: 00580000    ; sleep
 0x00B0: 00580000    ; sleep
 0x00B4: 0000404E    ; swv v1, 4(v0)
-0x00B8: 33B2001F    ; addiLOWv v1, v0, 13234
+0x00B8: 33B20011    ; addi x1, v0, 13234
 0x00BC: 00580000    ; sleep
 0x00C0: 00580000    ; sleep
 0x00C4: 00580000    ; sleep
-0x00C8: 0000421F    ; addiHIGHv v1, v1, 0
+0x00C8: 0000421F    ; addiHIGHv v1, x1, 0
 0x00CC: 00580000    ; sleep
 0x00D0: 00580000    ; sleep
 0x00D4: 00580000    ; sleep
 0x00D8: 0000408E    ; swv v1, 8(v0)
-0x00DC: 007C001F    ; addiLOWv v1, v0, 124
+0x00DC: 007C0011    ; addi x1, v0, 124
 0x00E0: 00580000    ; sleep
 0x00E4: 00580000    ; sleep
 0x00E8: 00580000    ; sleep
-0x00EC: 0000421F    ; addiHIGHv v1, v1, 0
+0x00EC: 0000421F    ; addiHIGHv v1, x1, 0
 0x00F0: 00580000    ; sleep
 0x00F4: 00580000    ; sleep
 0x00F8: 00580000    ; sleep
 0x00FC: 000040CE    ; swv v1, 12(v0)
-0x0100: 1234002F    ; addiLOWv v2, v0, 0x1234
+0x0100: 12340011    ; addi x1, v0, 0x1234
 0x0104: 00580000    ; sleep
 0x0108: 00580000    ; sleep
 0x010C: 00580000    ; sleep
-0x0110: ABCD442F    ; addiHIGHv v2, v2, 0xABCD
+0x0110: ABCD422F    ; addiHIGHv v2, x1, 0xABCD
 0x0114: 00580000    ; sleep
 0x0118: 00580000    ; sleep
 0x011C: 00580000    ; sleep
