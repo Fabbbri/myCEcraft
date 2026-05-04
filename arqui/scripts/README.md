@@ -64,3 +64,9 @@ sistema operativo o al visor a saber con que programa abrirlo.
 
 El dump puede contener directivas `@direccion` y bytes en hexadecimal, como los
 archivos generados por `$writememh` o por `load_file.py`.
+
+Para recuperar imagen de tea
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/teaimg_descifrada.hex --address 0x80D0 --size 96 --output arqui/teaimg_recuperada.png
+```

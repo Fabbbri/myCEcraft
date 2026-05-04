@@ -1,20 +1,19 @@
 `timescale 1ns/1ps
 
-module tb_tea_loader;
+module tb_teaimg_loader;
 
-    parameter int MAX_CYCLES = 200000;
-    parameter int ROM_DEPTH  = 2048;
+    parameter int MAX_CYCLES = 900000;
+    parameter int ROM_DEPTH  = 4096;
     parameter int RAM_DEPTH  = 65536;
 
-    localparam LOADER_HEX = "programs/tea_loader.hex";
+    localparam LOADER_HEX = "programs/teaimg_loader.hex";
     localparam VAULT_HEX  = "programs/neather.hex";
 
-    localparam int KEY_BASE       = 16'h8000;
-    localparam int PLAIN_BASE     = 16'h8010;
-    localparam int CIPHER_BASE    = 16'h8018;
-    localparam int ROUNDTRIP_BASE = 16'h8020;
-    localparam int DELTA_ADDR     = 16'h8028;
-    localparam int SUM_INIT_ADDR  = 16'h802C;
+    localparam int IMAGE_BYTES      = 96;
+    localparam int IMAGE_WORDS      = 24;
+    localparam int IMAGE_ORIG_BASE  = 16'h8010;
+    localparam int IMAGE_ENC_BASE   = 16'h8070;
+    localparam int IMAGE_DEC_BASE   = 16'h80D0;
 
     logic clk   = 0;
     logic reset = 0;
@@ -61,33 +60,27 @@ module tb_tea_loader;
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
         timed_out = 0;
-        cycles    = 0;
+        cycles = 0;
 
         forever begin
             @(posedge clk);
             cycles++;
 
             if (dut.Issue.pc_en === 1'b0) begin
-                $display("[INFO]  FREEZE detectado en PC=%h (ciclo %0d)",
-                          `PC, cycles);
+                $display("[INFO]  FREEZE detectado en PC=%h (ciclo %0d)", `PC, cycles);
                 repeat (5) @(posedge clk);
                 return;
             end
 
             if (cycles >= MAX_CYCLES) begin
-                $display("[ERROR] Timeout tras %0d ciclos - ultimo PC: %h",
-                          MAX_CYCLES, `PC);
+                $display("[ERROR] Timeout tras %0d ciclos - ultimo PC: %h", MAX_CYCLES, `PC);
                 timed_out = 1;
                 return;
             end
         end
     endtask
 
-    task automatic check_reg(
-        input int          idx,
-        input logic [31:0] expected,
-        input string       name
-    );
+    task automatic check_reg(input int idx, input logic [31:0] expected, input string name);
         logic [31:0] got;
         got = `REGS[idx];
         if (got === expected) begin
@@ -95,48 +88,11 @@ module tb_tea_loader;
             $display("  [PASS] %-12s (x%02d) = %h", name, idx, got);
         end else begin
             tests_failed++;
-            $display("  [FAIL] %-12s (x%02d) esperado=%h obtenido=%h",
-                      name, idx, expected, got);
+            $display("  [FAIL] %-12s (x%02d) esperado=%h obtenido=%h", name, idx, expected, got);
         end
     endtask
 
-    task automatic check_dram_word(
-        input int          offset,
-        input logic [31:0] expected,
-        input string       label
-    );
-        logic [31:0] got;
-        got = {`DRAM[offset+3], `DRAM[offset+2],
-               `DRAM[offset+1], `DRAM[offset]};
-        if (got === expected) begin
-            tests_passed++;
-            $display("  [PASS] DRAM[%04h] = %h  (%s)", offset, got, label);
-        end else begin
-            tests_failed++;
-            $display("  [FAIL] DRAM[%04h] esperado=%h obtenido=%h  (%s)",
-                      offset, expected, got, label);
-        end
-    endtask
-
-    task automatic check_nram_word(
-        input int          offset,
-        input logic [31:0] expected,
-        input string       label
-    );
-        logic [31:0] got;
-        got = {`NRAM[offset+3], `NRAM[offset+2],
-               `NRAM[offset+1], `NRAM[offset]};
-        if (got === expected) begin
-            tests_passed++;
-            $display("  [PASS] NRAM[%04h] = %h  (%s)", offset, got, label);
-        end else begin
-            tests_failed++;
-            $display("  [FAIL] NRAM[%04h] esperado=%h obtenido=%h  (%s)",
-                      offset, expected, got, label);
-        end
-    endtask
-
-    task automatic check_loader_header(
+    task automatic check_header(
         input logic [15:0] version,
         input logic [15:0] header_size,
         input logic [31:0] entry_point,
@@ -160,17 +116,15 @@ module tb_tea_loader;
             text_base === 32'h00000000 &&
             data_base === 32'h00008000 &&
             text_size == instruction_count * 4 &&
-            data_size >= 32'd48
+            data_size >= 32'd324
         ) begin
             tests_passed++;
             $display("  [PASS] Header MYCE valido: text=%0d bytes data=%0d bytes",
-                      text_size, data_size);
+                     text_size, data_size);
         end else begin
             tests_failed++;
             $display("  [FAIL] Header MYCE invalido");
-            $display("         magic=%c%c%c%c version=%0d header=%0d entry=%h",
-                     loader_mem[0], loader_mem[1], loader_mem[2], loader_mem[3],
-                     version, header_size, entry_point);
+            $display("         version=%0d header=%0d entry=%h", version, header_size, entry_point);
             $display("         text_offset=%0d text_size=%0d data_offset=%0d data_size=%0d",
                      text_offset, text_size, data_offset, data_size);
             $display("         text_base=%h data_base=%h instr=%0d",
@@ -178,51 +132,78 @@ module tb_tea_loader;
         end
     endtask
 
-    task automatic dump_nonzero_regs();
-        $display("\n  --- Banco de registros no cero ---");
-        for (int i = 0; i < 32; i++) begin
-            if (`REGS[i] !== 32'h0) begin
-                $display("    x%02d = %h", i, `REGS[i]);
+    task automatic check_image_roundtrip();
+        int dec_mismatches;
+        int enc_equal_bytes;
+
+        dec_mismatches = 0;
+        enc_equal_bytes = 0;
+
+        for (int i = 0; i < IMAGE_BYTES; i++) begin
+            int original_loader_offset;
+            original_loader_offset = loader_data_offset + (IMAGE_ORIG_BASE - loader_data_base) + i;
+
+            if (`DRAM[IMAGE_DEC_BASE + i] !== loader_mem[original_loader_offset]) begin
+                if (dec_mismatches < 8) begin
+                    $display(
+                        "  [FAIL] IMG DEC byte[%0d] esperado=%02h obtenido=%02h",
+                        i,
+                        loader_mem[original_loader_offset],
+                        `DRAM[IMAGE_DEC_BASE + i]
+                    );
+                end
+                dec_mismatches++;
+            end
+
+            if (`DRAM[IMAGE_ENC_BASE + i] === loader_mem[original_loader_offset]) begin
+                enc_equal_bytes++;
             end
         end
-            $display("  ----------------------------------");
+
+        if (dec_mismatches == 0) begin
+            tests_passed++;
+            $display("  [PASS] Imagen descifrada == imagen original (%0d bytes)", IMAGE_BYTES);
+        end else begin
+            tests_failed++;
+            $display("  [FAIL] Imagen descifrada difiere en %0d byte(s)", dec_mismatches);
+        end
+
+        if (enc_equal_bytes < IMAGE_BYTES) begin
+            tests_passed++;
+            $display(
+                "  [PASS] Imagen cifrada difiere del original (%0d/%0d bytes iguales)",
+                enc_equal_bytes,
+                IMAGE_BYTES
+            );
+        end else begin
+            tests_failed++;
+            $display("  [FAIL] Imagen cifrada quedo igual al original");
+        end
     endtask
 
-    function automatic bit is_tea_result_byte(input int address);
-        is_tea_result_byte =
-            (address >= CIPHER_BASE && address < CIPHER_BASE + 8) ||
-            (address >= ROUNDTRIP_BASE && address < ROUNDTRIP_BASE + 8);
-    endfunction
-
-    task automatic check_loader_data_against_ram(
-        input int data_offset,
-        input int data_size,
-        input int data_base
-    );
-        int checked;
-        int skipped;
+    task automatic check_loader_unchanged_regions();
         int mismatches;
+        int checked;
 
-        checked = 0;
-        skipped = 0;
         mismatches = 0;
+        checked = 0;
 
-        for (int i = 0; i < data_size; i++) begin
+        for (int i = 0; i < loader_data_size; i++) begin
             int address;
-            address = data_base + i;
+            address = loader_data_base + i;
 
-            if (is_tea_result_byte(address)) begin
-                skipped++;
+            if ((address >= IMAGE_ENC_BASE && address < IMAGE_ENC_BASE + IMAGE_BYTES) ||
+                (address >= IMAGE_DEC_BASE && address < IMAGE_DEC_BASE + IMAGE_BYTES)) begin
                 continue;
             end
 
             checked++;
-            if (`DRAM[address] !== loader_mem[data_offset + i]) begin
+            if (`DRAM[address] !== loader_mem[loader_data_offset + i]) begin
                 if (mismatches < 8) begin
                     $display(
                         "  [FAIL] DATA byte DRAM[%04h] esperado=%02h obtenido=%02h",
                         address,
-                        loader_mem[data_offset + i],
+                        loader_mem[loader_data_offset + i],
                         `DRAM[address]
                     );
                 end
@@ -232,83 +213,34 @@ module tb_tea_loader;
 
         if (mismatches == 0) begin
             tests_passed++;
-            $display(
-                "  [PASS] DATA loader == DRAM resultante en %0d bytes conservados (%0d bytes TEA saltados)",
-                checked,
-                skipped
-            );
+            $display("  [PASS] Regiones no modificadas coinciden con loader (%0d bytes)", checked);
         end else begin
             tests_failed++;
-            $display(
-                "  [FAIL] DATA loader vs DRAM: %0d diferencias en %0d bytes revisados",
-                mismatches,
-                checked
-            );
+            $display("  [FAIL] Regiones no modificadas tienen %0d diferencia(s)", mismatches);
         end
     endtask
 
-    task automatic check_recovered_block_against_loader(
-        input int data_offset,
-        input int data_base
-    );
-        int plain_offset;
-        int cipher_offset;
-        int mismatches;
-        bit cipher_changed;
-
-        plain_offset = data_offset + (PLAIN_BASE - data_base);
-        cipher_offset = data_offset + (CIPHER_BASE - data_base);
-        mismatches = 0;
-        cipher_changed = 0;
-
-        for (int i = 0; i < 8; i++) begin
-            if (`DRAM[ROUNDTRIP_BASE + i] !== loader_mem[plain_offset + i]) begin
-                mismatches++;
-            end
-            if (`DRAM[CIPHER_BASE + i] !== loader_mem[cipher_offset + i]) begin
-                cipher_changed = 1;
-            end
-        end
-
-        if (mismatches == 0) begin
-            tests_passed++;
-            $display(
-                "  [PASS] Imagen/bloque recuperado en DRAM[%04h..%04h] coincide con plain original",
-                ROUNDTRIP_BASE,
-                ROUNDTRIP_BASE + 7
-            );
-        end else begin
-            tests_failed++;
-            $display(
-                "  [FAIL] Bloque recuperado no coincide con plain original: %0d byte(s) distintos",
-                mismatches
-            );
-        end
-
-        if (cipher_changed) begin
-            tests_passed++;
-            $display(
-                "  [PASS] Bloque cifrado en DRAM[%04h..%04h] cambio respecto al loader inicial",
-                CIPHER_BASE,
-                CIPHER_BASE + 7
-            );
-        end else begin
-            tests_failed++;
-            $display(
-                "  [FAIL] Bloque cifrado no cambio respecto al loader inicial"
-            );
-        end
+    task automatic dump_outputs();
+        $writememh("teaimg_salida.hex", `DRAM);
+        $writememh("teaimg_vault.hex", `NRAM);
+        $writememh("teaimg_original.hex", `DRAM, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
+        $writememh("teaimg_cifrada.hex", `DRAM, IMAGE_ENC_BASE, IMAGE_ENC_BASE + IMAGE_BYTES - 1);
+        $writememh("teaimg_descifrada.hex", `DRAM, IMAGE_DEC_BASE, IMAGE_DEC_BASE + IMAGE_BYTES - 1);
+        $display("[DUMP]  DRAM completa       -> teaimg_salida.hex");
+        $display("[DUMP]  Vault completa      -> teaimg_vault.hex");
+        $display("[DUMP]  Imagen original     -> teaimg_original.hex");
+        $display("[DUMP]  Imagen cifrada      -> teaimg_cifrada.hex");
+        $display("[DUMP]  Imagen descifrada   -> teaimg_descifrada.hex");
     endtask
 
-    task automatic dump_result_memories();
-        $writememh("salida.hex", `DRAM);
-        $writememh("salidavault.hex", `NRAM);
-        $writememh("salidacifrada.hex", `DRAM, CIPHER_BASE, CIPHER_BASE + 7);
-        $writememh("salidarecuperada.hex", `DRAM, ROUNDTRIP_BASE, ROUNDTRIP_BASE + 7);
-        $display("[DUMP]  DRAM  -> salida.hex");
-        $display("[DUMP]  VAULT -> salidavault.hex");
-        $display("[DUMP]  CIFR  -> salidacifrada.hex");
-        $display("[DUMP]  RECV  -> salidarecuperada.hex");
+    task automatic dump_nonzero_regs();
+        $display("\n  --- Banco de registros no cero ---");
+        for (int i = 0; i < 32; i++) begin
+            if (`REGS[i] !== 32'h0) begin
+                $display("    x%02d = %h", i, `REGS[i]);
+            end
+        end
+        $display("  ----------------------------------");
     endtask
 
     task automatic load_loader_image(output bit load_failed);
@@ -346,23 +278,23 @@ module tb_tea_loader;
         $readmemh(LOADER_HEX, loader_mem);
         $readmemh(VAULT_HEX, `NRAM);
 
-        version           = read_be16(4);
-        header_size       = read_be16(6);
-        entry_point       = read_be32(8);
-        text_offset       = read_be32(12);
-        text_size         = read_be32(16);
-        data_offset       = read_be32(20);
-        data_size         = read_be32(24);
-        text_base         = read_be32(28);
-        data_base         = read_be32(32);
+        version = read_be16(4);
+        header_size = read_be16(6);
+        entry_point = read_be32(8);
+        text_offset = read_be32(12);
+        text_size = read_be32(16);
+        data_offset = read_be32(20);
+        data_size = read_be32(24);
+        text_base = read_be32(28);
+        data_base = read_be32(32);
         instruction_count = read_be32(36);
-        flags             = read_be32(40);
+        flags = read_be32(40);
 
         loader_data_offset = data_offset;
         loader_data_size = data_size;
         loader_data_base = data_base;
 
-        check_loader_header(
+        check_header(
             version,
             header_size,
             entry_point,
@@ -382,7 +314,7 @@ module tb_tea_loader;
             flags !== 32'h00000000) begin
             tests_failed++;
             load_failed = 1;
-            $display("[ERROR] tea_loader.hex no cabe o tiene flags inesperados");
+            $display("[ERROR] teaimg_loader.hex no cabe o tiene flags inesperados");
             return;
         end
 
@@ -426,15 +358,15 @@ module tb_tea_loader;
         bit timed_out;
         bit load_failed;
 
-        $dumpfile("sim/waves/tb_tea_loader.vcd");
-        $dumpvars(0, tb_tea_loader);
+        $dumpfile("sim/waves/tb_teaimg_loader.vcd");
+        $dumpvars(0, tb_teaimg_loader);
 
         $display("============================================================");
-        $display("      CRAFT21 TEA LOADER IMAGE TESTBENCH");
+        $display("       CRAFT21 TEA IMAGE LOADER TESTBENCH");
         $display("============================================================");
 
         $display("\n============================================================");
-        $display("  TEST: tea.bin convertido por load_file.py a tea_loader.hex");
+        $display("  TEST: teaimg.craft cifra y descifra imagen embebida");
         $display("============================================================");
 
         load_and_reset(load_failed);
@@ -457,43 +389,27 @@ module tb_tea_loader;
             check_reg( 2, 32'h00007FF0, "sp");
             check_reg( 0, 32'h00000000, "zero");
 
-            $display("\n  --- Vault RAM ---");
-            check_nram_word(16'h0000, 32'h00000000, "password bootstrap");
-
-            $display("\n  --- Data RAM: estado inicial conservado ---");
-            check_dram_word(KEY_BASE + 0, 32'h00000000, "key[0]");
-            check_dram_word(KEY_BASE + 4, 32'h00000001, "key[1]");
-            check_dram_word(KEY_BASE + 8, 32'h00000002, "key[2]");
-            check_dram_word(KEY_BASE + 12, 32'h00000003, "key[3]");
-            check_dram_word(PLAIN_BASE + 0, 32'h00000000, "plain[0]");
-            check_dram_word(PLAIN_BASE + 4, 32'h00000000, "plain[1]");
-            check_dram_word(DELTA_ADDR, 32'h9E3779B9, "DELTA");
-            check_dram_word(SUM_INIT_ADDR, 32'hC6EF3720, "SUM_INIT");
-
-            $display("\n  --- Data RAM: resultados TEA ---");
-            check_dram_word(CIPHER_BASE + 0, 32'hFB0EED65, "cipher[0]");
-            check_dram_word(CIPHER_BASE + 4, 32'h3892B421, "cipher[1]");
-            check_dram_word(ROUNDTRIP_BASE + 0, 32'h00000000, "roundtrip[0]");
-            check_dram_word(ROUNDTRIP_BASE + 4, 32'h00000000, "roundtrip[1]");
-
-            $display("\n  --- Comparacion loader vs RAM resultante ---");
-            check_loader_data_against_ram(
-                loader_data_offset,
-                loader_data_size,
-                loader_data_base
-            );
-            check_recovered_block_against_loader(
-                loader_data_offset,
-                loader_data_base
+            $display("\n  --- Verificacion de imagen ---");
+            check_image_roundtrip();
+            check_loader_unchanged_regions();
+            $display(
+                "  [INFO] Original:   DRAM[%04h..%04h]",
+                IMAGE_ORIG_BASE,
+                IMAGE_ORIG_BASE + IMAGE_BYTES - 1
             );
             $display(
-                "  [INFO] Recuperado actual: DRAM[%04h..%04h] (roundtrip, 8 bytes)",
-                ROUNDTRIP_BASE,
-                ROUNDTRIP_BASE + 7
+                "  [INFO] Cifrada:    DRAM[%04h..%04h]",
+                IMAGE_ENC_BASE,
+                IMAGE_ENC_BASE + IMAGE_BYTES - 1
+            );
+            $display(
+                "  [INFO] Descifrada: DRAM[%04h..%04h]",
+                IMAGE_DEC_BASE,
+                IMAGE_DEC_BASE + IMAGE_BYTES - 1
             );
         end
 
-        dump_result_memories();
+        dump_outputs();
 
         $display("\n============================================================");
         $display("  REPORTE FINAL");

@@ -1,0 +1,119 @@
+@EnterCraftWorld
+key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
+
+image_original:chest[uint32, 24] = [
+    0x474E5089, 0x0A1A0A0D, 0x0D000000, 0x52444849,
+    0x04000000, 0x04000000, 0x00000208, 0x09932600,
+    0x00000029, 0x41444927, 0x35DA7854, 0x000981C6,
+    0xB0C20030, 0x9E69E69E, 0x0E6E67E6, 0x02842946,
+    0x30E876EF, 0x70F6FF82, 0x07491273, 0x7513C816,
+    0x28A16D38, 0x00000000, 0x444E4549, 0x826042AE
+];
+
+image_encrypted:chest[uint32, 24] = [
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0
+];
+
+image_decrypted:chest[uint32, 24] = [
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0
+];
+
+block:chest[uint32, 2] = [0x0, 0x0];
+DELTA:uint32 = 0x9e3779b9;
+SUM_INIT:uint32 = 0xc6ef3720;
+IMAGE_WORDS:int = 24;
+
+craft:void tea_encrypt(v:chest[uint32, 2], tea_key:chest[uint32, 4]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = 0;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        sum = sum + DELTA;
+
+        left0:uint32 = v1 <+4 tea_key[0];
+        mid0:uint32 = v1 + sum;
+        right0:uint32 = v1 >+5 tea_key[1];
+        v0 = v0 + (left0 ^ mid0 ^ right0);
+
+        left1:uint32 = v0 <+4 tea_key[2];
+        mid1:uint32 = v0 + sum;
+        right1:uint32 = v0 >+5 tea_key[3];
+        v1 = v1 + (left1 ^ mid1 ^ right1);
+    }
+
+    v[0] = v0;
+    v[1] = v1;
+}
+
+craft:void tea_decrypt(v:chest[uint32, 2], tea_key:chest[uint32, 4]) {
+    v0:uint32 = v[0];
+    v1:uint32 = v[1];
+    sum:uint32 = SUM_INIT;
+
+    for (i:int = 0; i < 32; i = i + 1) {
+        left1:uint32 = v0 <+4 tea_key[2];
+        mid1:uint32 = v0 + sum;
+        right1:uint32 = v0 >+5 tea_key[3];
+        v1 = v1 - (left1 ^ mid1 ^ right1);
+
+        left0:uint32 = v1 <+4 tea_key[0];
+        mid0:uint32 = v1 + sum;
+        right0:uint32 = v1 >+5 tea_key[1];
+        v0 = v0 - (left0 ^ mid0 ^ right0);
+
+        sum = sum - DELTA;
+    }
+
+    v[0] = v0;
+    v[1] = v1;
+}
+
+craft:int main() {
+    for (offset:int = 0; offset < IMAGE_WORDS; offset = offset + 2) {
+        block[0] = image_original[offset];
+        block[1] = image_original[offset + 1];
+
+        summon:tea_encrypt(block, key);
+
+        image_encrypted[offset] = block[0];
+        image_encrypted[offset + 1] = block[1];
+    }
+
+    for (offset2:int = 0; offset2 < IMAGE_WORDS; offset2 = offset2 + 2) {
+        block[0] = image_encrypted[offset2];
+        block[1] = image_encrypted[offset2 + 1];
+
+        summon:tea_decrypt(block, key);
+
+        image_decrypted[offset2] = block[0];
+        image_decrypted[offset2 + 1] = block[1];
+    }
+
+    changed:int = 0;
+    for (check:int = 0; check < IMAGE_WORDS; check = check + 1) {
+        if (image_decrypted[check] != image_original[check]) {
+            return 1;
+        }
+
+        if (image_encrypted[check] != image_original[check]) {
+            changed = 1;
+        }
+    }
+
+    if (changed == 0) {
+        return 2;
+    }
+
+    return 0;
+}
