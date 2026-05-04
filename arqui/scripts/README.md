@@ -65,8 +65,36 @@ sistema operativo o al visor a saber con que programa abrirlo.
 El dump puede contener directivas `@direccion` y bytes en hexadecimal, como los
 archivos generados por `$writememh` o por `load_file.py`.
 
-Para recuperar imagen de tea
+## TEA con imagen cargada por loader
+
+Desde la raiz del repo, prepare todo con una sola orden:
 
 ```powershell
-python arqui/scripts/extract_data.py --memory arqui/teaimg_descifrada.hex --address 0x80D0 --size 96 --output arqui/teaimg_recuperada.png
+python arqui/scripts/prepare_teaimg.py --input TU_IMAGEN.png
+
+Ejemplo:
+ python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/testimg.jpg
 ```
+
+Ese comando ajusta `compi/ejemplos/teaimg.craft`, regenera
+`arqui/tb/teaimg_config.svh`, compila el programa y crea:
+
+- `arqui/programs/teaimg_loader.hex`
+- `arqui/programs/teaimg_input.hex`
+
+Luego ejecute:
+
+```powershell
+./run.sh run tb_teaimg_loader
+```
+
+El script imprime el comando exacto para recuperar la imagen descifrada. La
+forma general es:
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --address DIRECCION_DESCIFRADA --size BYTES_REALES --output arqui/outputs/teaimg_recuperada.png
+```
+
+La direccion descifrada y `BYTES_REALES` dependen del tamano de la imagen. Si
+la imagen no cabe en la RAM con buffers original+cifrado+descifrado, el script
+se detiene antes de modificar los loaders y muestra el maximo permitido.

@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`include "tb/teaimg_config.svh"
 
 module tb_teaimg_loader;
 
@@ -7,14 +8,16 @@ module tb_teaimg_loader;
     parameter int RAM_DEPTH  = 65536;
 
     localparam LOADER_HEX = "programs/teaimg_loader.hex";
+    localparam IMAGE_HEX  = "programs/teaimg_input.hex";
     localparam VAULT_HEX  = "programs/neather.hex";
 
-    localparam int IMAGE_BYTES      = 96;
-    localparam int IMAGE_WORDS      = 24;
+    localparam int IMAGE_BYTES      = `TEAIMG_IMAGE_BYTES;
+    localparam int IMAGE_SOURCE_BYTES = `TEAIMG_SOURCE_BYTES;
+    localparam int IMAGE_WORDS      = `TEAIMG_IMAGE_WORDS;
     localparam int IMAGE_ORIG_BASE  = 16'h8010;
-    localparam int IMAGE_ENC_BASE   = 16'h8070;
-    localparam int IMAGE_DEC_BASE   = 16'h80D0;
-    localparam int BLOCK_BASE       = 16'h8130;
+    localparam int IMAGE_ENC_BASE   = IMAGE_ORIG_BASE + IMAGE_BYTES;
+    localparam int IMAGE_DEC_BASE   = IMAGE_ENC_BASE + IMAGE_BYTES;
+    localparam int BLOCK_BASE       = IMAGE_DEC_BASE + IMAGE_BYTES;
     localparam int BLOCK_BYTES      = 8;
 
     logic clk   = 0;
@@ -118,7 +121,7 @@ module tb_teaimg_loader;
             text_base === 32'h00000000 &&
             data_base === 32'h00008000 &&
             text_size == instruction_count * 4 &&
-            data_size >= 32'd324
+            data_size >= (32'd36 + (IMAGE_BYTES * 3))
         ) begin
             tests_passed++;
             $display("  [PASS] Header MYCE valido: text=%0d bytes data=%0d bytes",
@@ -142,22 +145,19 @@ module tb_teaimg_loader;
         enc_equal_bytes = 0;
 
         for (int i = 0; i < IMAGE_BYTES; i++) begin
-            int original_loader_offset;
-            original_loader_offset = loader_data_offset + (IMAGE_ORIG_BASE - loader_data_base) + i;
-
-            if (`DRAM[IMAGE_DEC_BASE + i] !== loader_mem[original_loader_offset]) begin
+            if (`DRAM[IMAGE_DEC_BASE + i] !== `DRAM[IMAGE_ORIG_BASE + i]) begin
                 if (dec_mismatches < 8) begin
                     $display(
                         "  [FAIL] IMG DEC byte[%0d] esperado=%02h obtenido=%02h",
                         i,
-                        loader_mem[original_loader_offset],
+                        `DRAM[IMAGE_ORIG_BASE + i],
                         `DRAM[IMAGE_DEC_BASE + i]
                     );
                 end
                 dec_mismatches++;
             end
 
-            if (`DRAM[IMAGE_ENC_BASE + i] === loader_mem[original_loader_offset]) begin
+            if (`DRAM[IMAGE_ENC_BASE + i] === `DRAM[IMAGE_ORIG_BASE + i]) begin
                 enc_equal_bytes++;
             end
         end
@@ -194,7 +194,8 @@ module tb_teaimg_loader;
             int address;
             address = loader_data_base + i;
 
-            if ((address >= IMAGE_ENC_BASE && address < IMAGE_ENC_BASE + IMAGE_BYTES) ||
+            if ((address >= IMAGE_ORIG_BASE && address < IMAGE_ORIG_BASE + IMAGE_BYTES) ||
+                (address >= IMAGE_ENC_BASE && address < IMAGE_ENC_BASE + IMAGE_BYTES) ||
                 (address >= IMAGE_DEC_BASE && address < IMAGE_DEC_BASE + IMAGE_BYTES) ||
                 (address >= BLOCK_BASE && address < BLOCK_BASE + BLOCK_BYTES)) begin
                 continue;
@@ -234,6 +235,7 @@ module tb_teaimg_loader;
         $display("[DUMP]  Imagen original     -> outputs/teaimg_original.hex");
         $display("[DUMP]  Imagen cifrada      -> outputs/teaimg_cifrada.hex");
         $display("[DUMP]  Imagen descifrada   -> outputs/teaimg_descifrada.hex");
+        $display("[INFO]  Para extraer bytes reales use size=%0d", IMAGE_SOURCE_BYTES);
     endtask
 
     task automatic dump_nonzero_regs();
@@ -336,7 +338,11 @@ module tb_teaimg_loader;
             `DRAM[data_base + i] = loader_mem[data_offset + i];
         end
 
+        $readmemh(IMAGE_HEX, `DRAM);
+
         $display("[LOAD]  LOADER: %s", LOADER_HEX);
+        $display("[LOAD]  IMAGE : %s -> DRAM[0x%04h..0x%04h]",
+                  IMAGE_HEX, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
         $display("[LOAD]  ROM   : %0d instrucciones desde offset 0x%08h",
                   instruction_count, text_offset);
         $display("[LOAD]  DATA  : %0d bytes hacia DRAM[0x%04h]",
