@@ -25,6 +25,7 @@ VCD = $(WAVE_DIR)/$(TOP).vcd
 
 IVERILOG = iverilog
 VVP = vvp
+VVP_FLAGS ?=
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -48,7 +49,7 @@ compile: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)
 
 run: compile
-	$(VVP) $(OUT)
+	$(VVP) $(VVP_FLAGS) $(OUT)
 
 wave:
 	@if [ ! -f $(VCD) ]; then \

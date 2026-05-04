@@ -367,8 +367,12 @@ module tb_teaimg_loader;
         bit timed_out;
         bit load_failed;
 
-        $dumpfile("sim/waves/tb_teaimg_loader.vcd");
-        $dumpvars(0, tb_teaimg_loader);
+        if ($test$plusargs("waves")) begin
+            $dumpfile("sim/waves/tb_teaimg_loader.vcd");
+            $dumpvars(0, tb_teaimg_loader);
+        end else begin
+            $display("[INFO]  VCD desactivado; use VVP_FLAGS=+waves para generar ondas.");
+        end
 
         $display("============================================================");
         $display("       CRAFT21 TEA IMAGE LOADER TESTBENCH");
