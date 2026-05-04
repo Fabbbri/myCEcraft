@@ -14,6 +14,8 @@ module tb_teaimg_loader;
     localparam int IMAGE_ORIG_BASE  = 16'h8010;
     localparam int IMAGE_ENC_BASE   = 16'h8070;
     localparam int IMAGE_DEC_BASE   = 16'h80D0;
+    localparam int BLOCK_BASE       = 16'h8130;
+    localparam int BLOCK_BYTES      = 8;
 
     logic clk   = 0;
     logic reset = 0;
@@ -193,7 +195,8 @@ module tb_teaimg_loader;
             address = loader_data_base + i;
 
             if ((address >= IMAGE_ENC_BASE && address < IMAGE_ENC_BASE + IMAGE_BYTES) ||
-                (address >= IMAGE_DEC_BASE && address < IMAGE_DEC_BASE + IMAGE_BYTES)) begin
+                (address >= IMAGE_DEC_BASE && address < IMAGE_DEC_BASE + IMAGE_BYTES) ||
+                (address >= BLOCK_BASE && address < BLOCK_BASE + BLOCK_BYTES)) begin
                 continue;
             end
 
