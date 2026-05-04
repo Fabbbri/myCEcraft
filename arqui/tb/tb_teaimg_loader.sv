@@ -3,7 +3,7 @@
 
 module tb_teaimg_loader;
 
-    parameter int MAX_CYCLES = 900000;
+    parameter int MAX_CYCLES = 500000 + (`TEAIMG_IMAGE_WORDS * 12000);
     parameter int ROM_DEPTH  = 4096;
     parameter int RAM_DEPTH  = 65536;
 
