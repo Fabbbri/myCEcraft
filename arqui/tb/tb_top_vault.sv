@@ -142,6 +142,53 @@ module tb_top_vault;
         $dumpfile("sim/waves/tb_vault.vcd");
         $dumpvars(0, tb_top_vault);
 
+        $display("\n[DEBUG] Monitoreo WB + MEM (pipeline real)\n");
+
+        fork
+            begin
+                $display("\n[DEBUG] Monitoreo WB + MEM (pipeline real)\n");
+
+                forever begin
+                    @(posedge clk);
+
+                    // WRITEBACK REGFILE NORMAL
+                    if (dut.WriteBack.we_regOUT) begin
+                        $display("[WB REG] rd=%0d wd=%h",
+                            dut.WriteBack.instrDOUT,
+                            dut.WriteBack.wdOUT);
+                    end
+
+                    // WRITEBACK REGFILE BOVEDA
+                    if (dut.WriteBack.w_regvOUT && dut.WriteBack.neather_modeOUT) begin
+                        $display("[WB VREG] rdv=%0d wdv=%h",
+                            dut.WriteBack.instrDOUT,
+                            dut.WriteBack.wdvOUT);
+                    end
+
+                    // WRITE MEM NORMAL
+                    if (dut.mem.we_mem) begin
+                        $display("[MEM WRITE] addr=%h data=%h",
+                            dut.mem.alu_result,
+                            dut.mem.rd2);
+                    end
+
+                    // WRITE MEM BOVEDA
+                    if (dut.mem.w_memv && dut.mem.neather_mode) begin
+                        $display("[MEM VWRITE] addr=%h data=%h",
+                            dut.mem.alu_result,
+                            dut.mem.rdv2);
+                    end
+
+                    $display("[MEM DEBUG] w_memv=%b we_mem=%b neather_mode=%b addr=%h",
+                                dut.mem.w_memv,
+                                dut.mem.we_mem,
+                                dut.mem.neather_mode,
+                                dut.mem.alu_result
+                            );
+                end
+            end
+        join_none
+
         $display("============================================================");
         $display("         CRAFT21 VAULT TESTBENCH");
         $display("============================================================");
