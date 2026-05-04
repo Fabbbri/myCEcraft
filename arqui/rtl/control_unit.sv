@@ -183,6 +183,7 @@ assign alu_src  = (opcode == 4'b0001) ? 2'b11 // Type Imm
                 : (opcode == 4'b0110) ? 2'b00 // Type BRANCH
                 : (opcode == 4'b1010) ? 2'b01 // Type TEA (RVault)
                 : (opcode == 4'b1110) ? 2'b10 // Type SWv/LWv Vault
+                : (opcode == 4'b1111) ? 2'b11 // Type addiv Vault
                 : 2'b00; // el resto es 00 o no importa
     
 // ========================================================================

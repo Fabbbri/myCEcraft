@@ -28,18 +28,25 @@ module tb_top;
 
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
+        logic [31:0] last_pc;
         timed_out = 0;
         cycles    = 0;
+        last_pc   = 32'hFFFFFFFF;
+
         forever begin
             @(posedge clk);
             cycles++;
-            if (`PC === halt_pc) begin
-                $display("[INFO]  HALT en PC=%h  (ciclo %0d)", `PC, cycles);
+
+            // FREEZE: pc_enable=0 → PC dejó de avanzar
+            if (dut.Issue.pc_en === 1'b0) begin
+                $display("[INFO]  FREEZE detectado en PC=%h (ciclo %0d)", `PC, cycles);
+                repeat (5) @(posedge clk);
                 return;
             end
+
             if (cycles >= MAX_CYCLES) begin
                 $display("[ERROR] Timeout tras %0d ciclos — último PC: %h",
-                          MAX_CYCLES, `PC);
+                        MAX_CYCLES, `PC);
                 timed_out = 1;
                 return;
             end
@@ -113,7 +120,7 @@ module tb_top;
         $dumpvars(0, tb_top);
 
         // TEST 1
-        run_test("while loop x<5, return x=5", "programs/program.hex", 32'h00000110);
+        run_test("while loop x<5, return x=5", "programs/demo.hex", 32'h00000110);
         $display("\n  --- Registros clave ---");
         check_reg(11, 32'h00000005, "x11");
         check_reg( 3, 32'h00000005, "x3");

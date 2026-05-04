@@ -109,6 +109,10 @@ neather_regfile RegVBank(
 //                       OTRAS SEÑALES
 // ==========================================================
 
+always @(*) begin
+    $display("[IMM RAW] instr=%h imm_raw=%h", instr, imm);
+end
+
 logic [4:0] rdest;
 assign rdest = instr[8:4];
 assign instrDOUT = rdest;

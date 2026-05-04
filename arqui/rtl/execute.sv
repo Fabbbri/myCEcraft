@@ -68,6 +68,13 @@ mux31_2 alu_mux(
     .out(srcB)
 );
 
+always @(*) begin
+    if (alu_src == 2'b00 || alu_src == 2'b11) begin
+        $display("[EXEC] alu_src=%b rd1=%h srcB=%h immE=%h result=%h",
+                  alu_src, rd1E, srcB, immE, alu_result);
+    end
+end
+
 // ==========================================================
 //                       INSTANCIA ALU
 // ==========================================================
