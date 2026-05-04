@@ -49,7 +49,7 @@ compile: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)
 
 run: compile
-	$(VVP) $(VVP_FLAGS) $(OUT)
+	$(VVP) $(OUT) $(VVP_FLAGS)
 
 wave:
 	@if [ ! -f $(VCD) ]; then \
