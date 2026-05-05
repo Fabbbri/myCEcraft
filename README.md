@@ -55,6 +55,8 @@ MyCECraft/
 |-- LICENSE
 |-- README.md
 |-- run.sh
+|-- ISA.pdf
+|____________________________
 ```
 
 Modulos importantes en `arqui/rtl/`:
@@ -80,7 +82,11 @@ Testbenches disponibles en `arqui/tb/` incluyen, entre otros:
 - `tb_top_vault.sv`
 - `tb_tea.sv`
 
-### Compilacion y ejecucion con Make
+En `arqui/scripts/` se incluyen varios scripts de python, como la herramienta para cargar cualquier archivo, un script para compresión de imágenes, un script para volcado de memoria y un script para preparar el tb de `teaimg` para su ejecución. Además, se incluye un README que indica como ejecutar correctamente este tipo de testbenches que usa la herramienta. Al final de este `README.md` se indica la ruta a esta guía de uso.
+
+## Compilacion y ejecucion 
+
+### Compilación y ejecución con Make
 
 Desde la carpeta `arqui/`:
 
@@ -189,15 +195,15 @@ cd arqui
 make run TOP=tb_instr_rom
 ```
 
-### Script desde la raiz
+## Ejecución Rápida
 
-El repositorio incluye `run.sh` para invocar el flujo de arquitectura desde la raiz:
+El repositorio incluye `run.sh` para invocar el flujo de arquitectura desde la raiz de forma mucho más eficiente:
 
 ```bash
 chmod +x run.sh
-./run.sh list
-./run.sh run tb_alu
-./run.sh wave tb_alu
+./run.sh list # para ver algunos de los tb disponibles 
+./run.sh run <tb_nombre>
+./run.sh wave <tb_nombre>
 ./run.sh all
 ./run.sh clean
 ```
@@ -329,7 +335,26 @@ El compilador tiene implementadas estas fases:
 - Resolucion de referencias: calcula direcciones de labels y offsets de salto.
 - Generacion binaria: produce imagen `.bin`, instrucciones `.hex`, datos `.data.hex` y listado `.lst`.
 
+---
+
+## Resumen: Guía de Uso y documentación
+
+A continuación, se facilita la ruta a los README.md más importantes del repositorio:
+
+### Guía de Uso
+
+- [`./arqui/scripts/README.md`](./arqui/scripts/README.md): Para testbenches que requieran script (por ejemplo, TEA)
+
+- [`./arqui/README.md`](./arqui/README.md): Para testbenches generales que no requieran script (por ejemplo, factorial)
 
 
+### Documentación
 
+- [`./arqui/docs/isa.md`](./arqui/docs/isa.md): ISA de la arquitectura Craft21
+
+- [`./arqui/docs/microarchitecture.md`](./arqui/docs/microarchitecture.md): Micro arquitectura diseñada e implementada de Craft21
+
+- [`./arqui/docs/microarch.png`](./arqui/docs/microarch.png): Diagrama de bloques de la organización y microarquitectura de Craft21
+
+- [`./arqui/docs/simulation.md`](./arqui/docs/simulation.md): Resumen de implementación de la simulación de la arquitectura Craft21
 
