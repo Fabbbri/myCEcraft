@@ -8,12 +8,21 @@
 ;   header_size       = 44 bytes
 ;   entry_point       = 0x00000000
 ;   text_offset       = 44
+<<<<<<< HEAD
 ;   text_size         = 584 bytes
 ;   data_offset       = 628
 ;   data_size         = 0 bytes
 ;   text_base         = 0x00000000
 ;   data_base         = 0x00000000
 ;   instruction_count = 146
+=======
+;   text_size         = 636 bytes
+;   data_offset       = 680
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 159
+>>>>>>> origin/feature/arqui/tea
 
 ; Seccion .text
 0x0000: 00200086    ; portalv x0, x0, 32
@@ -103,7 +112,11 @@
 0x0150: 00580000    ; sleep
 0x0154: 00580000    ; sleep
 0x0158: 00580000    ; sleep
+<<<<<<< HEAD
 0x015C: 00005804    ; jal x0, 176
+=======
+0x015C: 00007204    ; jal x0, 228
+>>>>>>> origin/feature/arqui/tea
 0x0160: 00580000    ; sleep
 0x0164: 00580000    ; sleep
 0x0168: 00000604    ; jal x0, 12
@@ -129,6 +142,7 @@
 0x01B8: 00580000    ; sleep
 0x01BC: 00580000    ; sleep
 0x01C0: 00580000    ; sleep
+<<<<<<< HEAD
 0x01C4: 0FF79014    ; jal x1, -224
 0x01C8: 00580000    ; sleep
 0x01CC: 00580000    ; sleep
@@ -162,6 +176,54 @@
 0x023C: 00080014    ; jalr x1, 0
 0x0240: 00580000    ; sleep
 0x0244: 00580000    ; sleep
+=======
+0x01C4: FFFC8421    ; addiSigned x2, x2, -4
+0x01C8: 00580000    ; sleep
+0x01CC: 00580000    ; sleep
+0x01D0: 00580000    ; sleep
+0x01D4: 00010402    ; sw x4, 0(x2)
+0x01D8: 0FF78614    ; jal x1, -244
+0x01DC: 00580000    ; sleep
+0x01E0: 00580000    ; sleep
+0x01E4: 00080442    ; lw x4, 0(x2)
+0x01E8: 00580000    ; sleep
+0x01EC: 00580000    ; sleep
+0x01F0: 00580000    ; sleep
+0x01F4: 00040421    ; addi x2, x2, 4
+0x01F8: 00580000    ; sleep
+0x01FC: 00580000    ; sleep
+0x0200: 00580000    ; sleep
+0x0204: 00001660    ; add x6, x11, x0
+0x0208: 00580000    ; sleep
+0x020C: 00580000    ; sleep
+0x0210: 00580000    ; sleep
+0x0214: 00498850    ; mul x5, x4, x6
+0x0218: 00580000    ; sleep
+0x021C: 00580000    ; sleep
+0x0220: 00580000    ; sleep
+0x0224: 00000AB0    ; add x11, x5, x0
+0x0228: 00580000    ; sleep
+0x022C: 00580000    ; sleep
+0x0230: 00580000    ; sleep
+0x0234: 00000604    ; jal x0, 12
+0x0238: 00580000    ; sleep
+0x023C: 00580000    ; sleep
+0x0240: 00080412    ; lw x1, 0(x2)
+0x0244: 00580000    ; sleep
+0x0248: 00580000    ; sleep
+0x024C: 00580000    ; sleep
+0x0250: 00090512    ; lw x17, 4(x2)
+0x0254: 00580000    ; sleep
+0x0258: 00580000    ; sleep
+0x025C: 00580000    ; sleep
+0x0260: 00100421    ; addi x2, x2, 16
+0x0264: 00580000    ; sleep
+0x0268: 00580000    ; sleep
+0x026C: 00580000    ; sleep
+0x0270: 00080014    ; jalr x1, 0
+0x0274: 00580000    ; sleep
+0x0278: 00580000    ; sleep
+>>>>>>> origin/feature/arqui/tea
 
 ; Seccion .data
 ; <sin datos globales>

@@ -1,0 +1,12 @@
+@EnterCraftWorld
+invoke "factorial" as f;
+
+craft:int main() {
+    a:int = 2;
+    b:int = 3;
+
+    r1:int = summon:f.factorial(a + b);
+    r2:int = summon:f.factorial(a + 1);
+
+    return r1 + r2;
+}

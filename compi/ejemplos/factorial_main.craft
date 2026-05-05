@@ -1,0 +1,6 @@
+@EnterCraftWorld
+invoke "factorial" as f;
+
+craft:int main() {
+    return summon:f.factorial(5);
+}

@@ -64,3 +64,111 @@ sistema operativo o al visor a saber con que programa abrirlo.
 
 El dump puede contener directivas `@direccion` y bytes en hexadecimal, como los
 archivos generados por `$writememh` o por `load_file.py`.
+
+## TEA con imagen cargada por loader
+
+Desde la raiz del repo, prepare todo con una sola orden:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --input TU_IMAGEN.png
+
+Ejemplo:
+ python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/testimg.jpg
+```
+
+Ese comando ajusta `compi/ejemplos/teaimg.craft`, regenera
+`arqui/tb/teaimg_config.svh`, compila el programa y crea:
+
+- `arqui/programs/teaimg_loader.hex`
+- `arqui/programs/teaimg_input.hex`
+
+Luego ejecute:
+
+```powershell
+./run.sh run tb_teaimg_loader
+```
+
+El script imprime el comando exacto para recuperar la imagen descifrada. La
+forma general es:
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --address DIRECCION_DESCIFRADA --size BYTES_REALES --output arqui/outputs/teaimg_recuperada.png
+```
+
+La direccion descifrada y `BYTES_REALES` dependen del tamano de la imagen. Si
+la imagen no cabe en la RAM con buffers original+cifrado+descifrado, el script
+se detiene antes de modificar los loaders y muestra el maximo permitido.
+
+## Imagenes grandes
+
+El flujo actual de TEA guarda tres copias del archivo en RAM: original, cifrada
+y descifrada. Por eso, con la RAM actual, la entrada debe pesar alrededor de
+10 KB o menos.
+
+Si una imagen pesa mas, `prepare_teaimg.py` intenta reducirla automaticamente
+antes de generar los loaders:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/foto.jpg
+./run.sh run tb_teaimg_loader
+```
+
+La imagen reducida queda guardada en:
+
+```text
+arqui/outputs/prepared_inputs/
+```
+
+Si quiere reducir una imagen manualmente, tambien puede usar:
+
+```powershell
+python arqui/scripts/compress_image.py --input arqui/scripts/examples/foto.jpg --output arqui/scripts/examples/foto_small.jpg --max-bytes 10240
+```
+
+La utilidad reduce resolucion y calidad hasta que el archivo de salida quede
+por debajo del limite indicado. Para imagenes JPG suele funcionar mejor que
+comprimir con ZIP/GZIP, porque JPG ya es un formato comprimido.
+
+## TEA con archivos .txt o .bin
+
+Aunque el flujo se llama `teaimg`, los scripts trabajan con bytes crudos. Por
+eso tambien se puede usar un archivo de texto o un binario como entrada para el
+algoritmo TEA.
+
+Hay que distinguir dos partes:
+
+- `load_file.py` no cifra ni descifra; solo convierte cualquier archivo a bytes
+  en formato `$readmemh`.
+- `prepare_teaimg.py` prepara el programa y los datos para que `tb_teaimg_loader`
+  ejecute el algoritmo TEA sobre esos bytes.
+
+Ejemplo con un archivo de texto:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/mensaje.txt
+./run.sh run tb_teaimg_loader
+```
+
+El comando anterior carga los bytes de `mensaje.txt`, ejecuta TEA sobre ellos y
+genera el dump de salida. Para recuperar el texto descifrado, use el comando que
+imprime `prepare_teaimg.py`, cambiando la extension del archivo de salida:
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --address DIRECCION_DESCIFRADA --size BYTES_REALES --output arqui/outputs/mensaje_recuperado.txt
+```
+
+Ejemplo con un binario:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/manual.bin
+./run.sh run tb_teaimg_loader
+```
+
+Y para extraerlo:
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --address DIRECCION_DESCIFRADA --size BYTES_REALES --output arqui/outputs/manual_recuperado.bin
+```
+
+La extension de salida no cambia los datos extraidos; solo ayuda al sistema
+operativo a abrirlos con el programa correcto.

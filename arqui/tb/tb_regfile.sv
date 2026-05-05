@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module regfile_tb;
+module tb_regfile;
 
     // Señales
     logic clk;
@@ -31,8 +31,8 @@ module regfile_tb;
     endtask
 
     initial begin
-        $dumpfile("sim/waves/regfile_tb.vcd");
-        $dumpvars(0, regfile_tb);
+        $dumpfile("sim/waves/tb_regfile.vcd");
+        $dumpvars(0, tb_regfile);
 
         // Inicialización
         clk = 0;

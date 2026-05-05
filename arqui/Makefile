@@ -8,6 +8,7 @@ TB_DIR = tb
 SIM_DIR = sim
 BUILD_DIR = $(SIM_DIR)/build
 WAVE_DIR = $(SIM_DIR)/waves
+OUTPUT_DIR = outputs
 
 SRC = $(wildcard $(SRC_DIR)/*.sv)
 
@@ -24,6 +25,7 @@ VCD = $(WAVE_DIR)/$(TOP).vcd
 
 IVERILOG = iverilog
 VVP = vvp
+VVP_FLAGS ?=
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -41,13 +43,13 @@ IVERILOG_FLAGS = -g2012
 all: run
 
 dirs:
-	mkdir -p $(BUILD_DIR) $(WAVE_DIR)
+	mkdir -p $(BUILD_DIR) $(WAVE_DIR) $(OUTPUT_DIR)
 
 compile: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)
 
 run: compile
-	$(VVP) $(OUT)
+	$(VVP) $(OUT) $(VVP_FLAGS)
 
 wave:
 	@if [ ! -f $(VCD) ]; then \
