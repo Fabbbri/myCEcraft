@@ -1,4 +1,5 @@
 @EnterCraftWorld
+// --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\factorial.craft ---
 craft:int factorial(n:int) {
     resultado:int = 1;
     i:int = 1;
@@ -9,4 +10,9 @@ craft:int factorial(n:int) {
     }
 
     return resultado;
+}
+// --- fin import ---
+
+craft:int main() {
+    return summon:factorial(5);
 }

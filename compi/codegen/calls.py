@@ -4,7 +4,7 @@ from ast_nodes import CallExpression, FunctionDeclaration, Identifier
 
 from symbol_table import ChestType, PrimitiveName, PrimitiveType
 
-from registers import ARG_REGISTERS, FP, RA, ZERO
+from registers import ARG_REGISTERS, FP, RA, SP, ZERO
 
 from .errors import CodegenError
 
@@ -38,7 +38,9 @@ class CallsMixin:
         else:
             function_label = node.name
 
+        spilled_temps = self._spill_live_temporaries()
         self._emit(f"    jal {RA.asm()}, {function_label}")
+        self._restore_live_temporaries(spilled_temps)
 
         if self._call_returns_void(node):
             raise CodegenError(
@@ -78,7 +80,9 @@ class CallsMixin:
         else:
             function_label = node.name
 
+        spilled_temps = self._spill_live_temporaries()
         self._emit(f"    jal {RA.asm()}, {function_label}")
+        self._restore_live_temporaries(spilled_temps)
 
     def _store_incoming_arguments(self, node: FunctionDeclaration) -> None:
         for index, parameter in enumerate(node.parameters):
@@ -114,3 +118,24 @@ class CallsMixin:
             isinstance(symbol.type, PrimitiveType)
             and symbol.type.name == PrimitiveName.VOID
         )
+
+    def _spill_live_temporaries(self) -> list[str]:
+        live_temps = list(self._used_temps)
+        if not live_temps:
+            return []
+
+        bytes_needed = len(live_temps) * self.WORD_SIZE
+        self._emit(f"    ; guardar temporales vivos antes de llamada")
+        self._emit_add_immediate(SP.asm(), SP.asm(), -bytes_needed)
+        for index, temp in enumerate(live_temps):
+            self._emit(f"    sw {temp}, {index * self.WORD_SIZE}({SP.asm()})")
+        return live_temps
+
+    def _restore_live_temporaries(self, live_temps: list[str]) -> None:
+        if not live_temps:
+            return
+
+        for index, temp in enumerate(live_temps):
+            self._emit(f"    lw {temp}, {index * self.WORD_SIZE}({SP.asm()})")
+        self._emit_add_immediate(SP.asm(), SP.asm(), len(live_temps) * self.WORD_SIZE)
+        self._emit(f"    ; restaurar temporales vivos despues de llamada")

@@ -10,17 +10,17 @@
 ;   fact = 0x00E4
 ;   .L0_if_else = 0x0174
 ;   .L1_if_end = 0x0174
-;   .L_codegen_2_fact_end = 0x020C
+;   .L_codegen_2_fact_end = 0x0240
 
 ; Referencias resueltas
 ;   pc=0x0000 portalv -> .L_codegen_0_enderExit (addr=0x0020, offset=32)
 ;   pc=0x0088 jal -> fact (addr=0x00E4, offset=92)
 ;   pc=0x00B4 jal -> .L_codegen_1_main_end (addr=0x00C0, offset=12)
 ;   pc=0x0130 blt -> .L0_if_else (addr=0x0174, offset=68)
-;   pc=0x015C jal -> .L_codegen_2_fact_end (addr=0x020C, offset=176)
+;   pc=0x015C jal -> .L_codegen_2_fact_end (addr=0x0240, offset=228)
 ;   pc=0x0168 jal -> .L1_if_end (addr=0x0174, offset=12)
-;   pc=0x01C4 jal -> fact (addr=0x00E4, offset=-224)
-;   pc=0x0200 jal -> .L_codegen_2_fact_end (addr=0x020C, offset=12)
+;   pc=0x01D8 jal -> fact (addr=0x00E4, offset=-244)
+;   pc=0x0234 jal -> .L_codegen_2_fact_end (addr=0x0240, offset=12)
 
 ; ==================================================
 ; Ensamblador generado para Craft21
@@ -133,7 +133,7 @@ fact:
     sleep ; stall RAW                                   ; pc=0x0150
     sleep ; stall RAW                                   ; pc=0x0154
     sleep ; stall RAW                                   ; pc=0x0158
-    jal x0, 176                                         ; pc=0x015C ; target=.L_codegen_2_fact_end ; addr=0x020C
+    jal x0, 228                                         ; pc=0x015C ; target=.L_codegen_2_fact_end ; addr=0x0240
     sleep ; nop despues de control                      ; pc=0x0160
     sleep ; nop despues de control                      ; pc=0x0164
     jal x0, 12                                          ; pc=0x0168 ; target=.L1_if_end ; addr=0x0174
@@ -162,38 +162,53 @@ fact:
     sleep ; stall RAW                                   ; pc=0x01B8
     sleep ; stall RAW                                   ; pc=0x01BC
     sleep ; stall RAW                                   ; pc=0x01C0
-    jal x1, -224                                         ; pc=0x01C4 ; target=fact ; addr=0x00E4
-    sleep ; nop despues de control                      ; pc=0x01C8
-    sleep ; nop despues de control                      ; pc=0x01CC
-    add x6, x11, x0                                     ; pc=0x01D0
-    sleep ; stall RAW                                   ; pc=0x01D4
-    sleep ; stall RAW                                   ; pc=0x01D8
-    sleep ; stall RAW                                   ; pc=0x01DC
-    mul x5, x4, x6                                      ; pc=0x01E0
-    sleep ; stall RAW                                   ; pc=0x01E4
+    ; guardar temporales vivos antes de llamada
+    addiSigned x2, x2, -4                               ; pc=0x01C4
+    sleep ; stall RAW                                   ; pc=0x01C8
+    sleep ; stall RAW                                   ; pc=0x01CC
+    sleep ; stall RAW                                   ; pc=0x01D0
+    sw x4, 0(x2)                                        ; pc=0x01D4
+    jal x1, -244                                         ; pc=0x01D8 ; target=fact ; addr=0x00E4
+    sleep ; nop despues de control                      ; pc=0x01DC
+    sleep ; nop despues de control                      ; pc=0x01E0
+    lw x4, 0(x2)                                        ; pc=0x01E4
     sleep ; stall RAW                                   ; pc=0x01E8
     sleep ; stall RAW                                   ; pc=0x01EC
-    add x11, x5, x0                                     ; pc=0x01F0
-    sleep ; stall RAW                                   ; pc=0x01F4
+    sleep ; stall RAW                                   ; pc=0x01F0
+    addi x2, x2, 4                                      ; pc=0x01F4
     sleep ; stall RAW                                   ; pc=0x01F8
     sleep ; stall RAW                                   ; pc=0x01FC
-    jal x0, 12                                          ; pc=0x0200 ; target=.L_codegen_2_fact_end ; addr=0x020C
-    sleep ; nop despues de control                      ; pc=0x0204
-    sleep ; nop despues de control                      ; pc=0x0208
+    sleep ; stall RAW                                   ; pc=0x0200
+    ; restaurar temporales vivos despues de llamada
+    add x6, x11, x0                                     ; pc=0x0204
+    sleep ; stall RAW                                   ; pc=0x0208
+    sleep ; stall RAW                                   ; pc=0x020C
+    sleep ; stall RAW                                   ; pc=0x0210
+    mul x5, x4, x6                                      ; pc=0x0214
+    sleep ; stall RAW                                   ; pc=0x0218
+    sleep ; stall RAW                                   ; pc=0x021C
+    sleep ; stall RAW                                   ; pc=0x0220
+    add x11, x5, x0                                     ; pc=0x0224
+    sleep ; stall RAW                                   ; pc=0x0228
+    sleep ; stall RAW                                   ; pc=0x022C
+    sleep ; stall RAW                                   ; pc=0x0230
+    jal x0, 12                                          ; pc=0x0234 ; target=.L_codegen_2_fact_end ; addr=0x0240
+    sleep ; nop despues de control                      ; pc=0x0238
+    sleep ; nop despues de control                      ; pc=0x023C
 .L_codegen_2_fact_end:
     ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x020C
-    sleep ; stall RAW                                   ; pc=0x0210
-    sleep ; stall RAW                                   ; pc=0x0214
-    sleep ; stall RAW                                   ; pc=0x0218
-    lw x17, 4(x2)                                       ; pc=0x021C
-    sleep ; stall RAW                                   ; pc=0x0220
-    sleep ; stall RAW                                   ; pc=0x0224
-    sleep ; stall RAW                                   ; pc=0x0228
-    addi x2, x2, 16                                     ; pc=0x022C
-    sleep ; stall RAW                                   ; pc=0x0230
-    sleep ; stall RAW                                   ; pc=0x0234
-    sleep ; stall RAW                                   ; pc=0x0238
-    jalr x1, 0                                          ; pc=0x023C
-    sleep ; nop despues de control                      ; pc=0x0240
-    sleep ; nop despues de control                      ; pc=0x0244
+    lw x1, 0(x2)                                        ; pc=0x0240
+    sleep ; stall RAW                                   ; pc=0x0244
+    sleep ; stall RAW                                   ; pc=0x0248
+    sleep ; stall RAW                                   ; pc=0x024C
+    lw x17, 4(x2)                                       ; pc=0x0250
+    sleep ; stall RAW                                   ; pc=0x0254
+    sleep ; stall RAW                                   ; pc=0x0258
+    sleep ; stall RAW                                   ; pc=0x025C
+    addi x2, x2, 16                                     ; pc=0x0260
+    sleep ; stall RAW                                   ; pc=0x0264
+    sleep ; stall RAW                                   ; pc=0x0268
+    sleep ; stall RAW                                   ; pc=0x026C
+    jalr x1, 0                                          ; pc=0x0270
+    sleep ; nop despues de control                      ; pc=0x0274
+    sleep ; nop despues de control                      ; pc=0x0278

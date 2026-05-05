@@ -8,12 +8,12 @@
 ;   header_size       = 44 bytes
 ;   entry_point       = 0x00000000
 ;   text_offset       = 44
-;   text_size         = 636 bytes
-;   data_offset       = 680
+;   text_size         = 576 bytes
+;   data_offset       = 620
 ;   data_size         = 0 bytes
 ;   text_base         = 0x00000000
 ;   data_base         = 0x00000000
-;   instruction_count = 159
+;   instruction_count = 144
 
 ; Seccion .text
 0x0000: 00200086    ; portalv x0, x0, 32
@@ -73,108 +73,93 @@
 0x00D8: 00580000    ; sleep
 0x00DC: 00580000    ; sleep
 0x00E0: 00600000    ; freeze
-0x00E4: FFF08421    ; addiSigned x2, x2, -16
+0x00E4: FFE88421    ; addiSigned x2, x2, -24
 0x00E8: 00580000    ; sleep
 0x00EC: 00580000    ; sleep
 0x00F0: 00580000    ; sleep
 0x00F4: 00004402    ; sw x1, 0(x2)
 0x00F8: 00044442    ; sw x17, 4(x2)
-0x00FC: 00100511    ; addi x17, x2, 16
+0x00FC: 00180511    ; addi x17, x2, 24
 0x0100: 00580000    ; sleep
 0x0104: 00580000    ; sleep
 0x0108: 00580000    ; sleep
 0x010C: 0FF2E3C2    ; sw x11, -4(x17)
-0x0110: 0FFF2232    ; lw x3, -4(x17)
+0x0110: 00010031    ; addi x3, x0, 1
 0x0114: 00580000    ; sleep
 0x0118: 00580000    ; sleep
 0x011C: 00580000    ; sleep
-0x0120: 00010041    ; addi x4, x0, 1
-0x0124: 00580000    ; sleep
+0x0120: 0FF0E382    ; sw x3, -8(x17)
+0x0124: 00010031    ; addi x3, x0, 1
 0x0128: 00580000    ; sleep
 0x012C: 00580000    ; sleep
-0x0130: 0010C916    ; blt x4, x3, 68
-0x0134: 00580000    ; sleep
-0x0138: 00580000    ; sleep
-0x013C: 00010041    ; addi x4, x0, 1
+0x0130: 00580000    ; sleep
+0x0134: 0FF0E342    ; sw x3, -12(x17)
+0x0138: 0FFD2232    ; lw x3, -12(x17)
+0x013C: 00580000    ; sleep
 0x0140: 00580000    ; sleep
 0x0144: 00580000    ; sleep
-0x0148: 00580000    ; sleep
-0x014C: 000008B0    ; add x11, x4, x0
+0x0148: 0FFF2242    ; lw x4, -4(x17)
+0x014C: 00580000    ; sleep
 0x0150: 00580000    ; sleep
 0x0154: 00580000    ; sleep
-0x0158: 00580000    ; sleep
-0x015C: 00007204    ; jal x0, 228
+0x0158: 0110C806    ; blt x4, x3, 128
+0x015C: 00580000    ; sleep
 0x0160: 00580000    ; sleep
-0x0164: 00580000    ; sleep
-0x0168: 00000604    ; jal x0, 12
+0x0164: 0FFE2242    ; lw x4, -8(x17)
+0x0168: 00580000    ; sleep
 0x016C: 00580000    ; sleep
 0x0170: 00580000    ; sleep
-0x0174: 0FFF2242    ; lw x4, -4(x17)
+0x0174: 0FFD2232    ; lw x3, -12(x17)
 0x0178: 00580000    ; sleep
 0x017C: 00580000    ; sleep
 0x0180: 00580000    ; sleep
-0x0184: 0FFF2232    ; lw x3, -4(x17)
+0x0184: 0048C850    ; mul x5, x4, x3
 0x0188: 00580000    ; sleep
 0x018C: 00580000    ; sleep
 0x0190: 00580000    ; sleep
-0x0194: 00010051    ; addi x5, x0, 1
-0x0198: 00580000    ; sleep
+0x0194: 0FF16382    ; sw x5, -8(x17)
+0x0198: 0FFD2252    ; lw x5, -12(x17)
 0x019C: 00580000    ; sleep
 0x01A0: 00580000    ; sleep
-0x01A4: 00094660    ; sub x6, x3, x5
-0x01A8: 00580000    ; sleep
+0x01A4: 00580000    ; sleep
+0x01A8: 00010031    ; addi x3, x0, 1
 0x01AC: 00580000    ; sleep
 0x01B0: 00580000    ; sleep
-0x01B4: 00000CB0    ; add x11, x6, x0
-0x01B8: 00580000    ; sleep
+0x01B4: 00580000    ; sleep
+0x01B8: 0000CA40    ; add x4, x5, x3
 0x01BC: 00580000    ; sleep
 0x01C0: 00580000    ; sleep
-0x01C4: FFFC8421    ; addiSigned x2, x2, -4
-0x01C8: 00580000    ; sleep
-0x01CC: 00580000    ; sleep
+0x01C4: 00580000    ; sleep
+0x01C8: 0FF12342    ; sw x4, -12(x17)
+0x01CC: 0FF7B604    ; jal x0, -148
 0x01D0: 00580000    ; sleep
-0x01D4: 00010402    ; sw x4, 0(x2)
-0x01D8: 0FF78614    ; jal x1, -244
+0x01D4: 00580000    ; sleep
+0x01D8: 0FFE2242    ; lw x4, -8(x17)
 0x01DC: 00580000    ; sleep
 0x01E0: 00580000    ; sleep
-0x01E4: 00080442    ; lw x4, 0(x2)
-0x01E8: 00580000    ; sleep
+0x01E4: 00580000    ; sleep
+0x01E8: 000008B0    ; add x11, x4, x0
 0x01EC: 00580000    ; sleep
 0x01F0: 00580000    ; sleep
-0x01F4: 00040421    ; addi x2, x2, 4
-0x01F8: 00580000    ; sleep
+0x01F4: 00580000    ; sleep
+0x01F8: 00000604    ; jal x0, 12
 0x01FC: 00580000    ; sleep
 0x0200: 00580000    ; sleep
-0x0204: 00001660    ; add x6, x11, x0
+0x0204: 00080412    ; lw x1, 0(x2)
 0x0208: 00580000    ; sleep
 0x020C: 00580000    ; sleep
 0x0210: 00580000    ; sleep
-0x0214: 00498850    ; mul x5, x4, x6
+0x0214: 00090512    ; lw x17, 4(x2)
 0x0218: 00580000    ; sleep
 0x021C: 00580000    ; sleep
 0x0220: 00580000    ; sleep
-0x0224: 00000AB0    ; add x11, x5, x0
+0x0224: 00180421    ; addi x2, x2, 24
 0x0228: 00580000    ; sleep
 0x022C: 00580000    ; sleep
 0x0230: 00580000    ; sleep
-0x0234: 00000604    ; jal x0, 12
+0x0234: 00080014    ; jalr x1, 0
 0x0238: 00580000    ; sleep
 0x023C: 00580000    ; sleep
-0x0240: 00080412    ; lw x1, 0(x2)
-0x0244: 00580000    ; sleep
-0x0248: 00580000    ; sleep
-0x024C: 00580000    ; sleep
-0x0250: 00090512    ; lw x17, 4(x2)
-0x0254: 00580000    ; sleep
-0x0258: 00580000    ; sleep
-0x025C: 00580000    ; sleep
-0x0260: 00100421    ; addi x2, x2, 16
-0x0264: 00580000    ; sleep
-0x0268: 00580000    ; sleep
-0x026C: 00580000    ; sleep
-0x0270: 00080014    ; jalr x1, 0
-0x0274: 00580000    ; sleep
-0x0278: 00580000    ; sleep
 
 ; Seccion .data
 ; <sin datos globales>
