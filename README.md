@@ -32,17 +32,29 @@ En Debian/Ubuntu:
 sudo apt install -y iverilog gtkwave make
 ```
 
-### Estructura del codigo
+### Estructura del repositorio
 
 ```text
-arqui/
-|-- rtl/        # Modulos SystemVerilog sintetizables
-|-- tb/         # Testbenches de los modulos y del procesador
-|-- programs/   # Archivos .hex usados por las memorias de simulacion
-|-- scripts/    # Scripts auxiliares
-|-- sim/        # Salidas generadas: .vvp y .vcd
-|-- Makefile    # Flujo de compilacion y simulacion
-|-- README.md   # Documentacion especifica de arquitectura
+MyCECraft/
+|--arqui/
+|------ docs/       # Documentación técnica requerida de ISA
+|------ outputs/    # Conjunto de archivos para comprobación de testbench
+|------ programs/   # Archivos .hex usados por las memorias de simulacion
+|------ rtl/        # Modulos SystemVerilog sintetizables
+|------ scripts/    # Scripts auxiliares como la herramienta para archivos requerida
+|------ sim/        # Salidas generadas: .vvp y .vcd
+|------ tb/         # Testbenches de los modulos y del procesador
+|------ Makefile    # Flujo de compilacion y simulacion
+|------ README.md   # Documentacion especifica de arquitectura
+|--compi/
+|------ codegen/    # generación de código 
+|------ ejemplos/   # archivos .craft
+|------ outputs/    # Archivos .hex, .asm, .bin, etc. generador por el compilador
+|------ # archivos .py varios del compilador
+|-- gitignore
+|-- LICENSE
+|-- README.md
+|-- run.sh
 ```
 
 Modulos importantes en `arqui/rtl/`:
