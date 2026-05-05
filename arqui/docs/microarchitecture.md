@@ -208,7 +208,7 @@ complejidad de las interconexiones dentro de `top.sv`.
 9. `mem_wb_pipe.sv` registra los posibles resultados.
 10. `writeback.sv` escribe registros y retroalimenta el siguiente PC.
 
-## Justificacion de diseno
+## Justificacion de diseño
 
 | Decision | Justificacion |
 | --- | --- |

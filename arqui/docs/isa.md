@@ -33,17 +33,17 @@ cifrado como TEA.
 - Orden de bytes en seccion `.data`: los datos del compilador se emiten en
   little endian para `.word`, `.half` y `.byte`.
 
-## Tipos y tamanos de datos
+## Tipos y tamaños de datos
 
-| Tipo | Tamano | Instrucciones | Uso |
+| Tipo | Tamaño | Instrucciones | Uso |
 | --- | --- | --- | --- |
 | Byte | 8 bits | `lb`, `sb` | Caracteres, buffers y datos compactos. |
-| Half | 16 bits | Directiva `.half` | Datos en memoria generados por el ensamblador/binario. |
+| Half | 16 bits | Directiva `.half` | Datos en memoria generados por el ensamblador/binario. (NO SE IMPLEMENTA ESTE TIPO DE DATO EN INSTRUCCIONES) |
 | Word | 32 bits | ALU, `lw`, `sw`, `lwv`, `swv` | Enteros, direcciones, llaves y bloques TEA. |
 | Inmediato I | 16 bits | `addi`, `addiHIGH`, `addiSigned`, `addiLOWv`, `addiHIGHv` | Constantes y construccion de valores de 32 bits. |
 | Offset S/VS | 13 bits con signo | `lw`, `sw`, `lb`, `sb`, `lwv`, `swv` | Acceso base + desplazamiento. |
-| Offset B | 15 bits codificados con alineamiento a 4 | `beq`, `bne`, `blt`, `bge`, `portalv` | Saltos condicionales relativos al PC. |
-| Offset J | 20 bits codificados con alineamiento a 4 | `jal`, `jalr` | Saltos y llamadas. |
+| Offset B | 15 bits codificados con alineamiento a 4 (13 bits reales) | `beq`, `bne`, `blt`, `bge`, `portalv` | Saltos condicionales relativos al PC. |
+| Offset J | 20 bits codificados con alineamiento a 4 (18 bits reales) | `jal`, `jalr` | Saltos y llamadas. |
 
 ## Registros disponibles
 
@@ -84,7 +84,7 @@ de Secure Mode.
 | Branch relativo | `op rs1, rs2, off` | `beq x3, x4, -16` | Cambia el PC si se cumple la condicion. |
 | Jump relativo | `jal rd, off` | `jal x1, 32` | Escribe retorno en `rd` y salta. |
 | Jump indirecto | `jalr rd, off` | `jalr x1, 0` | Usa el formato J con funcion de retorno indirecto. |
-| Vault base + offset | `op vreg, off(vbase)` | `lwv v1, 0(v0)` | Acceso a memoria Vault en Secure Mode. |
+| Vault base + offset | `op reg, off(base)` | `lwv v1, 0(x0)` o `swv v1, 0(x0)`| Acceso a memoria Vault en Secure Mode. |
 | Portal Vault | `portalv pass, rv, off` | `portalv x3, v0, 128` | Autentica y activa Secure Mode si la comparacion es valida. |
 
 Los offsets de branch y jump deben estar alineados a 4 bytes. El compilador

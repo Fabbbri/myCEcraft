@@ -1,4 +1,4 @@
-# Modelado del software y simulacion
+# Modelado del software y simulación
 
 La simulacion de Craft21 modela el procesador completo en SystemVerilog y lo
 ejecuta con Icarus Verilog. El objetivo es validar que los programas generados
@@ -43,6 +43,13 @@ Luego `run` ejecuta:
 ```bash
 vvp sim/build/<TOP>.vvp
 ```
+
+### Modo rápido de ejecución
+
+Existe una forma rápida de ejecutar simulaciones usando el `run.sh`. Estos comandos se explican a basto en los siguientes README.md:
+
+- [`/arqui/README.md`](/arqui/README.md) : Para testbenches generales
+- [`/arqui/scripts/README.md`](/arqui/scripts/README.md) : Para testbenches que usen algún script (TEA)
 
 ## Modelo de simulacion del procesador
 
@@ -158,7 +165,7 @@ ROM indexa con `addr[31:2]`.
 En inicializacion, la ROM se llena con una instruccion tipo NOP y luego carga:
 
 ```systemverilog
-$readmemh("programs/program.hex", memory);
+$readmemh("programs/<programa>.hex", memory);
 ```
 
 En testbenches de integracion, el programa puede reemplazarse directamente con
@@ -276,6 +283,13 @@ $readmemh("programs/tea_data.hex", `DRAM);
 ```
 
 Luego verifica llaves, texto plano, texto cifrado y roundtrip esperado.
+
+## Testbenches Generalizados
+
+Vuelve a hacerse notar que la forma más efectiva de comprobar cualquier programa es manualmente utilizando:
+
+- [`/arqui/README.md`](/arqui/README.md) : Para testbenches generales
+- [`/arqui/scripts/README.md`](/arqui/scripts/README.md) : Para testbenches que usen algún script (TEA)
 
 ## Interaccion con la herramienta de carga de archivos
 
