@@ -2526,7 +2526,6 @@ image_original: ; addr=0x8010
     .word 0
     .word 0
     .word 0
-image_encrypted: ; addr=0xA760
     .word 0
     .word 0
     .word 0
@@ -2653,6 +2652,7 @@ image_encrypted: ; addr=0xA760
     .word 0
     .word 0
     .word 0
+image_encrypted: ; addr=0xA958
     .word 0
     .word 0
     .word 0
@@ -5043,7 +5043,6 @@ image_encrypted: ; addr=0xA760
     .word 0
     .word 0
     .word 0
-image_decrypted: ; addr=0xCEB0
     .word 0
     .word 0
     .word 0
@@ -5296,6 +5295,7 @@ image_decrypted: ; addr=0xCEB0
     .word 0
     .word 0
     .word 0
+image_decrypted: ; addr=0xD2A0
     .word 0
     .word 0
     .word 0
@@ -7560,15 +7560,393 @@ image_decrypted: ; addr=0xCEB0
     .word 0
     .word 0
     .word 0
-block: ; addr=0xF600
     .word 0
     .word 0
-DELTA: ; addr=0xF608
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+block: ; addr=0xFBE8
+    .word 0
+    .word 0
+DELTA: ; addr=0xFBF0
     .word 0x9E3779B9
-SUM_INIT: ; addr=0xF60C
+SUM_INIT: ; addr=0xFBF4
     .word 0xC6EF3720
-IMAGE_WORDS: ; addr=0xF610
-    .word 0x9D4
+IMAGE_WORDS: ; addr=0xFBF8
+    .word 0xA52
 
 .text
 
@@ -7622,7 +8000,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0090
     sleep ; stall RAW                                   ; pc=0x0094
     sleep ; stall RAW                                   ; pc=0x0098
-    addi x5, x5, 62992                                  ; pc=0x009C
+    addi x5, x5, 64504                                  ; pc=0x009C
     sleep ; stall RAW                                   ; pc=0x00A0
     sleep ; stall RAW                                   ; pc=0x00A4
     sleep ; stall RAW                                   ; pc=0x00A8
@@ -7678,7 +8056,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x016C
     sleep ; stall RAW                                   ; pc=0x0170
     sleep ; stall RAW                                   ; pc=0x0174
-    addi x6, x6, 62976                                  ; pc=0x0178
+    addi x6, x6, 64488                                  ; pc=0x0178
     sleep ; stall RAW                                   ; pc=0x017C
     sleep ; stall RAW                                   ; pc=0x0180
     sleep ; stall RAW                                   ; pc=0x0184
@@ -7741,7 +8119,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0260
     sleep ; stall RAW                                   ; pc=0x0264
     sleep ; stall RAW                                   ; pc=0x0268
-    addi x5, x5, 62976                                  ; pc=0x026C
+    addi x5, x5, 64488                                  ; pc=0x026C
     sleep ; stall RAW                                   ; pc=0x0270
     sleep ; stall RAW                                   ; pc=0x0274
     sleep ; stall RAW                                   ; pc=0x0278
@@ -7755,7 +8133,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0294
     sleep ; stall RAW                                   ; pc=0x0298
     sleep ; stall RAW                                   ; pc=0x029C
-    addi x6, x6, 62976                                  ; pc=0x02A0
+    addi x6, x6, 64488                                  ; pc=0x02A0
     sleep ; stall RAW                                   ; pc=0x02A4
     sleep ; stall RAW                                   ; pc=0x02A8
     sleep ; stall RAW                                   ; pc=0x02AC
@@ -7796,7 +8174,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0330
     sleep ; stall RAW                                   ; pc=0x0334
     sleep ; stall RAW                                   ; pc=0x0338
-    addi x4, x4, 62976                                  ; pc=0x033C
+    addi x4, x4, 64488                                  ; pc=0x033C
     sleep ; stall RAW                                   ; pc=0x0340
     sleep ; stall RAW                                   ; pc=0x0344
     sleep ; stall RAW                                   ; pc=0x0348
@@ -7825,7 +8203,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x03A0
     sleep ; stall RAW                                   ; pc=0x03A4
     sleep ; stall RAW                                   ; pc=0x03A8
-    addi x3, x3, 42848                                  ; pc=0x03AC
+    addi x3, x3, 43352                                  ; pc=0x03AC
     sleep ; stall RAW                                   ; pc=0x03B0
     sleep ; stall RAW                                   ; pc=0x03B4
     sleep ; stall RAW                                   ; pc=0x03B8
@@ -7851,7 +8229,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0404
     sleep ; stall RAW                                   ; pc=0x0408
     sleep ; stall RAW                                   ; pc=0x040C
-    addi x6, x6, 62976                                  ; pc=0x0410
+    addi x6, x6, 64488                                  ; pc=0x0410
     sleep ; stall RAW                                   ; pc=0x0414
     sleep ; stall RAW                                   ; pc=0x0418
     sleep ; stall RAW                                   ; pc=0x041C
@@ -7888,7 +8266,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0494
     sleep ; stall RAW                                   ; pc=0x0498
     sleep ; stall RAW                                   ; pc=0x049C
-    addi x6, x6, 42848                                  ; pc=0x04A0
+    addi x6, x6, 43352                                  ; pc=0x04A0
     sleep ; stall RAW                                   ; pc=0x04A4
     sleep ; stall RAW                                   ; pc=0x04A8
     sleep ; stall RAW                                   ; pc=0x04AC
@@ -7932,7 +8310,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x052C
     sleep ; stall RAW                                   ; pc=0x0530
     sleep ; stall RAW                                   ; pc=0x0534
-    addi x3, x3, 62992                                  ; pc=0x0538
+    addi x3, x3, 64504                                  ; pc=0x0538
     sleep ; stall RAW                                   ; pc=0x053C
     sleep ; stall RAW                                   ; pc=0x0540
     sleep ; stall RAW                                   ; pc=0x0544
@@ -7959,7 +8337,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0598
     sleep ; stall RAW                                   ; pc=0x059C
     sleep ; stall RAW                                   ; pc=0x05A0
-    addi x3, x3, 42848                                  ; pc=0x05A4
+    addi x3, x3, 43352                                  ; pc=0x05A4
     sleep ; stall RAW                                   ; pc=0x05A8
     sleep ; stall RAW                                   ; pc=0x05AC
     sleep ; stall RAW                                   ; pc=0x05B0
@@ -7988,7 +8366,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0608
     sleep ; stall RAW                                   ; pc=0x060C
     sleep ; stall RAW                                   ; pc=0x0610
-    addi x4, x4, 62976                                  ; pc=0x0614
+    addi x4, x4, 64488                                  ; pc=0x0614
     sleep ; stall RAW                                   ; pc=0x0618
     sleep ; stall RAW                                   ; pc=0x061C
     sleep ; stall RAW                                   ; pc=0x0620
@@ -8022,7 +8400,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x068C
     sleep ; stall RAW                                   ; pc=0x0690
     sleep ; stall RAW                                   ; pc=0x0694
-    addi x5, x5, 42848                                  ; pc=0x0698
+    addi x5, x5, 43352                                  ; pc=0x0698
     sleep ; stall RAW                                   ; pc=0x069C
     sleep ; stall RAW                                   ; pc=0x06A0
     sleep ; stall RAW                                   ; pc=0x06A4
@@ -8051,7 +8429,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x06FC
     sleep ; stall RAW                                   ; pc=0x0700
     sleep ; stall RAW                                   ; pc=0x0704
-    addi x3, x3, 62976                                  ; pc=0x0708
+    addi x3, x3, 64488                                  ; pc=0x0708
     sleep ; stall RAW                                   ; pc=0x070C
     sleep ; stall RAW                                   ; pc=0x0710
     sleep ; stall RAW                                   ; pc=0x0714
@@ -8065,7 +8443,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0730
     sleep ; stall RAW                                   ; pc=0x0734
     sleep ; stall RAW                                   ; pc=0x0738
-    addi x4, x4, 62976                                  ; pc=0x073C
+    addi x4, x4, 64488                                  ; pc=0x073C
     sleep ; stall RAW                                   ; pc=0x0740
     sleep ; stall RAW                                   ; pc=0x0744
     sleep ; stall RAW                                   ; pc=0x0748
@@ -8106,7 +8484,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x07CC
     sleep ; stall RAW                                   ; pc=0x07D0
     sleep ; stall RAW                                   ; pc=0x07D4
-    addi x6, x6, 62976                                  ; pc=0x07D8
+    addi x6, x6, 64488                                  ; pc=0x07D8
     sleep ; stall RAW                                   ; pc=0x07DC
     sleep ; stall RAW                                   ; pc=0x07E0
     sleep ; stall RAW                                   ; pc=0x07E4
@@ -8135,7 +8513,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x083C
     sleep ; stall RAW                                   ; pc=0x0840
     sleep ; stall RAW                                   ; pc=0x0844
-    addi x5, x5, 52912                                  ; pc=0x0848
+    addi x5, x5, 53920                                  ; pc=0x0848
     sleep ; stall RAW                                   ; pc=0x084C
     sleep ; stall RAW                                   ; pc=0x0850
     sleep ; stall RAW                                   ; pc=0x0854
@@ -8161,7 +8539,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x08A0
     sleep ; stall RAW                                   ; pc=0x08A4
     sleep ; stall RAW                                   ; pc=0x08A8
-    addi x4, x4, 62976                                  ; pc=0x08AC
+    addi x4, x4, 64488                                  ; pc=0x08AC
     sleep ; stall RAW                                   ; pc=0x08B0
     sleep ; stall RAW                                   ; pc=0x08B4
     sleep ; stall RAW                                   ; pc=0x08B8
@@ -8198,7 +8576,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0930
     sleep ; stall RAW                                   ; pc=0x0934
     sleep ; stall RAW                                   ; pc=0x0938
-    addi x4, x4, 52912                                  ; pc=0x093C
+    addi x4, x4, 53920                                  ; pc=0x093C
     sleep ; stall RAW                                   ; pc=0x0940
     sleep ; stall RAW                                   ; pc=0x0944
     sleep ; stall RAW                                   ; pc=0x0948
@@ -8247,7 +8625,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x09DC
     sleep ; stall RAW                                   ; pc=0x09E0
     sleep ; stall RAW                                   ; pc=0x09E4
-    addi x5, x5, 62992                                  ; pc=0x09E8
+    addi x5, x5, 64504                                  ; pc=0x09E8
     sleep ; stall RAW                                   ; pc=0x09EC
     sleep ; stall RAW                                   ; pc=0x09F0
     sleep ; stall RAW                                   ; pc=0x09F4
@@ -8276,7 +8654,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0A48
     sleep ; stall RAW                                   ; pc=0x0A4C
     sleep ; stall RAW                                   ; pc=0x0A50
-    addi x5, x5, 52912                                  ; pc=0x0A54
+    addi x5, x5, 53920                                  ; pc=0x0A54
     sleep ; stall RAW                                   ; pc=0x0A58
     sleep ; stall RAW                                   ; pc=0x0A5C
     sleep ; stall RAW                                   ; pc=0x0A60
@@ -8356,7 +8734,7 @@ main:
     sleep ; stall RAW                                   ; pc=0x0B6C
     sleep ; stall RAW                                   ; pc=0x0B70
     sleep ; stall RAW                                   ; pc=0x0B74
-    addi x6, x6, 42848                                  ; pc=0x0B78
+    addi x6, x6, 43352                                  ; pc=0x0B78
     sleep ; stall RAW                                   ; pc=0x0B7C
     sleep ; stall RAW                                   ; pc=0x0B80
     sleep ; stall RAW                                   ; pc=0x0B84
@@ -8581,7 +8959,7 @@ tea_encrypt:
     sleep ; stall RAW                                   ; pc=0x0E98
     sleep ; stall RAW                                   ; pc=0x0E9C
     sleep ; stall RAW                                   ; pc=0x0EA0
-    addi x5, x5, 62984                                  ; pc=0x0EA4
+    addi x5, x5, 64496                                  ; pc=0x0EA4
     sleep ; stall RAW                                   ; pc=0x0EA8
     sleep ; stall RAW                                   ; pc=0x0EAC
     sleep ; stall RAW                                   ; pc=0x0EB0
@@ -8998,7 +9376,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x14F8
     sleep ; stall RAW                                   ; pc=0x14FC
     sleep ; stall RAW                                   ; pc=0x1500
-    addi x6, x6, 62988                                  ; pc=0x1504
+    addi x6, x6, 64500                                  ; pc=0x1504
     sleep ; stall RAW                                   ; pc=0x1508
     sleep ; stall RAW                                   ; pc=0x150C
     sleep ; stall RAW                                   ; pc=0x1510
@@ -9282,7 +9660,7 @@ tea_decrypt:
     sleep ; stall RAW                                   ; pc=0x195C
     sleep ; stall RAW                                   ; pc=0x1960
     sleep ; stall RAW                                   ; pc=0x1964
-    addi x4, x4, 62984                                  ; pc=0x1968
+    addi x4, x4, 64496                                  ; pc=0x1968
     sleep ; stall RAW                                   ; pc=0x196C
     sleep ; stall RAW                                   ; pc=0x1970
     sleep ; stall RAW                                   ; pc=0x1974

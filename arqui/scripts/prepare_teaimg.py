@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import mimetypes
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,8 @@ DATA_BASE = 0x8000
 IMAGE_BASE = 0x8010
 KEY_BYTES = 16
 TAIL_BYTES = 20  # block[2] + DELTA + SUM_INIT + IMAGE_WORDS
+AUTO_IMAGE_MAX_SIDE = 512
+AUTO_IMAGE_MIN_SIDE = 32
 
 
 def align_up(value: int, alignment: int) -> int:
@@ -167,11 +170,82 @@ def run(command: list[str], cwd: Path) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
 
+def is_image_path(path: Path) -> bool:
+    mime_type, _ = mimetypes.guess_type(path.name)
+    return bool(mime_type and mime_type.startswith("image/"))
+
+
+def save_image_candidate(image, output_path: Path, quality: int) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    suffix = output_path.suffix.lower()
+    if suffix in {".jpg", ".jpeg"}:
+        if image.mode not in {"RGB", "L"}:
+            image = image.convert("RGB")
+        image.save(output_path, "JPEG", quality=quality, optimize=True)
+        return
+
+    if suffix == ".png":
+        image.save(output_path, "PNG", optimize=True)
+        return
+
+    if image.mode not in {"RGB", "L"}:
+        image = image.convert("RGB")
+    image.save(output_path, "JPEG", quality=quality, optimize=True)
+
+
+def auto_fit_image(input_path: Path, output_path: Path, max_bytes: int) -> Path:
+    try:
+        from PIL import Image
+    except ImportError:
+        raise RuntimeError(
+            "la imagen no cabe y falta Pillow para reducirla automaticamente; "
+            "instale con: python -m pip install pillow"
+        )
+
+    with Image.open(input_path) as source:
+        source.load()
+        side = min(AUTO_IMAGE_MAX_SIDE, max(source.size))
+        best_size: int | None = None
+
+        while side >= AUTO_IMAGE_MIN_SIDE:
+            candidate = source.copy()
+            candidate.thumbnail((side, side))
+
+            qualities = [95, 85, 75, 65, 55, 45, 35, 25]
+            if output_path.suffix.lower() == ".png":
+                qualities = [95]
+
+            for quality in qualities:
+                save_image_candidate(candidate, output_path, quality)
+                current_size = output_path.stat().st_size
+                best_size = current_size
+
+                if align_up(current_size, 8) <= max_bytes:
+                    print("[AUTO] Imagen reducida para que quepa en RAM:")
+                    print(f"       original : {input_path} ({input_path.stat().st_size} bytes)")
+                    print(f"       reducida : {output_path} ({current_size} bytes)")
+                    print(f"       resolucion final: {candidate.size[0]}x{candidate.size[1]}")
+                    return output_path
+
+            side = int(side * 0.85)
+
+    raise RuntimeError(
+        "no se pudo reducir la imagen hasta el tamano permitido; "
+        f"mejor intento: {best_size} bytes, maximo: {max_bytes} bytes"
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Configura teaimg.craft y sus loaders para una imagen concreta."
     )
     parser.add_argument("--input", "-i", required=True, help="imagen a cifrar")
+    parser.add_argument(
+        "--no-auto-compress",
+        action="store_true",
+        help="si la imagen no cabe, fallar en vez de reducirla automaticamente",
+    )
     parser.add_argument(
         "--skip-build",
         action="store_true",
@@ -197,17 +271,47 @@ def main() -> int:
     maximum = max_image_bytes()
 
     if padded_bytes > maximum:
+        if is_image_path(input_path) and not args.no_auto_compress:
+            suffix = input_path.suffix.lower()
+            output_suffix = suffix if suffix in {".jpg", ".jpeg", ".png"} else ".jpg"
+            fitted_path = (
+                repo_root
+                / "arqui"
+                / "outputs"
+                / "prepared_inputs"
+                / f"{input_path.stem}_teaimg_fit{output_suffix}"
+            )
+            try:
+                input_path = auto_fit_image(input_path, fitted_path, maximum)
+            except RuntimeError as error:
+                print(f"Error: {error}", file=sys.stderr)
+                return 1
+
+            source_bytes = input_path.stat().st_size
+            padded_bytes = align_up(source_bytes, 8)
+            words = padded_bytes // 4
+        else:
+            print(
+                "Error: la imagen/archivo no cabe con buffers original+cifrado+descifrado.",
+                file=sys.stderr,
+            )
+            print(f"  bytes entrada       : {source_bytes}", file=sys.stderr)
+            print(f"  bytes con padding   : {padded_bytes}", file=sys.stderr)
+            print(f"  maximo actual       : {maximum}", file=sys.stderr)
+            print(
+                "Use una entrada mas pequena, aumente la RAM o use una imagen que pueda recomprimirse.",
+                file=sys.stderr,
+            )
+            return 1
+
+    if padded_bytes > maximum:
         print(
-            "Error: la imagen no cabe con buffers original+cifrado+descifrado.",
+            "Error: la imagen/archivo no cabe con buffers original+cifrado+descifrado.",
             file=sys.stderr,
         )
-        print(f"  bytes imagen        : {source_bytes}", file=sys.stderr)
+        print(f"  bytes entrada       : {source_bytes}", file=sys.stderr)
         print(f"  bytes con padding   : {padded_bytes}", file=sys.stderr)
         print(f"  maximo actual       : {maximum}", file=sys.stderr)
-        print(
-            "Use una imagen mas pequena, aumente la RAM o cambie a un flujo in-place.",
-            file=sys.stderr,
-        )
         return 1
 
     craft_path = repo_root / "compi" / "ejemplos" / "teaimg.craft"
@@ -215,7 +319,10 @@ def main() -> int:
     craft_path.write_text(teaimg_source(words), encoding="ascii", newline="\n")
     write_config(config_path, source_bytes, padded_bytes, words)
 
-    print(f"Imagen: {input_path}")
+    output_suffix = input_path.suffix if input_path.suffix else ".bin"
+    recovered_output = f"arqui/outputs/teaimg_recuperada{output_suffix}"
+
+    print(f"Entrada usada: {input_path}")
     print(f"Bytes reales: {source_bytes}")
     print(f"Bytes TEA/padding: {padded_bytes}")
     print(f"IMAGE_WORDS: {words}")
@@ -266,13 +373,13 @@ def main() -> int:
 
     print("\nSiguiente paso:")
     print("  ./run.sh run tb_teaimg_loader")
-    print("\nExtraer imagen descifrada:")
+    print("\nExtraer datos descifrados:")
     print(
         "  python arqui/scripts/extract_data.py "
         "--memory arqui/outputs/teaimg_salida.hex "
         f"--address 0x{IMAGE_BASE + padded_bytes * 2:04X} "
         f"--size {source_bytes} "
-        "--output arqui/outputs/teaimg_recuperada.png"
+        f"--output {recovered_output}"
     )
     return 0
 

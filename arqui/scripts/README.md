@@ -99,6 +99,36 @@ La direccion descifrada y `BYTES_REALES` dependen del tamano de la imagen. Si
 la imagen no cabe en la RAM con buffers original+cifrado+descifrado, el script
 se detiene antes de modificar los loaders y muestra el maximo permitido.
 
+## Imagenes grandes
+
+El flujo actual de TEA guarda tres copias del archivo en RAM: original, cifrada
+y descifrada. Por eso, con la RAM actual, la entrada debe pesar alrededor de
+10 KB o menos.
+
+Si una imagen pesa mas, `prepare_teaimg.py` intenta reducirla automaticamente
+antes de generar los loaders:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --input arqui/scripts/examples/foto.jpg
+./run.sh run tb_teaimg_loader
+```
+
+La imagen reducida queda guardada en:
+
+```text
+arqui/outputs/prepared_inputs/
+```
+
+Si quiere reducir una imagen manualmente, tambien puede usar:
+
+```powershell
+python arqui/scripts/compress_image.py --input arqui/scripts/examples/foto.jpg --output arqui/scripts/examples/foto_small.jpg --max-bytes 10240
+```
+
+La utilidad reduce resolucion y calidad hasta que el archivo de salida quede
+por debajo del limite indicado. Para imagenes JPG suele funcionar mejor que
+comprimir con ZIP/GZIP, porque JPG ya es un formato comprimido.
+
 ## TEA con archivos .txt o .bin
 
 Aunque el flujo se llama `teaimg`, los scripts trabajan con bytes crudos. Por
