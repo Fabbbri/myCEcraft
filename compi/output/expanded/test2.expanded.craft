@@ -1,0 +1,20 @@
+@EnterCraftWorld
+// --- import: C:\Users\snipe\OneDrive\Desktop\myCEcraft\compi\Defensa\maximo_lista.craft ---
+
+craft:int maximo_lista(lista:chest[int, 7], largo:int) {
+    maximo:int = lista[0];
+
+    for (i:int = 0; i < largo; i = i + 1) {
+        if (lista[i] > maximo) {
+            maximo = lista[i];
+        }
+    }
+
+    return maximo;
+}
+// --- fin import ---
+
+craft:int main() {
+    lista:chest[int, 7] = [3, 4, 5, 24, 5, 65, 46];
+    return summon:maximo_lista(lista, 7);
+}

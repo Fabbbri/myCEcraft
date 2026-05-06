@@ -1,5 +1,18 @@
 @EnterCraftWorld
-invoke "maximo_lista" as ml;
+// --- import: C:\Users\snipe\OneDrive\Desktop\myCEcraft\compi\Defensa\maximo_lista.craft ---
+
+craft:int maximo_lista(lista:chest[int, 7], largo:int) {
+    maximo:int = lista[0];
+
+    for (i:int = 0; i < largo; i = i + 1) {
+        if (lista[i] > maximo) {
+            maximo = lista[i];
+        }
+    }
+
+    return maximo;
+}
+// --- fin import ---
 
 suma:int = 0;
 multiplicacion:int = 1;
@@ -9,7 +22,7 @@ craft:int sumeMayores(lista:chest[int, 5], salida:chest[int, 2]) {
     valorMaximo:int = 0;
 
     while (suma < 100) {
-        valorMaximo = summon:ml.maximo_lista(lista, 5);
+        valorMaximo = summon:maximo_lista(lista, 5);
 
         if (valorMaximo / 2 == 5) {
             valorMaximo = valorMaximo * 2;
