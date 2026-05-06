@@ -7,22 +7,33 @@ resultado:chest[int, 2] = [0, 0];
 
 craft:int sumeMayores(lista:chest[int, 5], salida:chest[int, 2]) {
     valorMaximo:int = 0;
+    seguir:int = 0;
+    esDiez:int = 0;
+    esGrande:int = 0;
 
-    while (suma < 100) {
+    seguir = suma < 100;
+
+    while (seguir + 0) {
         valorMaximo = summon:ml.maximo_lista(lista, 5);
 
-        if (valorMaximo / 2 == 5) {
+        esDiez = valorMaximo / 2 == 5;
+
+        if (esDiez + 0) {
             valorMaximo = valorMaximo * 2;
         }
 
         suma = suma + valorMaximo;
         multiplicacion = multiplicacion * valorMaximo;
 
-        if (multiplicacion > 500) {
+        esGrande = multiplicacion > 500;
+
+        if (esGrande + 0) {
             multiplicacion = 10;
         } else {
             multiplicacion = multiplicacion - 10;
         }
+
+        seguir = suma < 100;
     }
 
     salida[0] = suma;
