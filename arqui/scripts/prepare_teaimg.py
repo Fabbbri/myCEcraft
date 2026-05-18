@@ -166,7 +166,7 @@ craft:int main() {{
 def teaimg_decrypt_source(words: int) -> str:
     zeros = zero_initializer(words)
     return f"""@EnterCraftWorld
-key:chest[uint32, 4] = [0xdeadcafe, 0xdeadcafe, 0xdeadcafe, 0xdeadcafe];
+key:chest[uint32, 4] = [0xfaceb00c, 0xbabef00d, 0xabadcafe, 0x0ddc0ded];
 
 image_data:chest[uint32, {words}] = [
 {zeros}
