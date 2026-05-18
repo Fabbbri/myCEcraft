@@ -172,3 +172,82 @@ python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --
 
 La extension de salida no cambia los datos extraidos; solo ayuda al sistema
 operativo a abrirlos con el programa correcto.
+
+## Solo descifrar archivos .enc
+
+Si el archivo ya esta cifrado con TEA, use el modo `decrypt`. En ese modo
+`prepare_teaimg.py` no cifra primero: carga el `.enc` en RAM, lo descifra en el
+mismo buffer y deja el resultado listo para extraer desde `0x8010`.
+
+Ejemplo:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --decrypt --input arqui/scripts/examples/warfoxes_1k.txt.enc
+./run.sh run tb_teaimg_loader
+```
+
+El script imprime el comando exacto de extraccion. Para el ejemplo anterior se
+vera con esta forma:
+
+```powershell
+python arqui/scripts/extract_data.py --memory arqui/outputs/teaimg_salida.hex --address 0x8010 --size 1024 --output arqui/outputs/warfoxes_1k_descifrado.txt
+```
+
+Tambien sirve con imagenes cifradas que quepan en la RAM:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --decrypt --input arqui/scripts/examples/priv.png.enc
+./run.sh run tb_teaimg_loader
+```
+
+Si el archivo original no tenia un tamano multiplo de 8, el `.enc` puede incluir
+padding al final. Como el `.enc` no guarda metadatos del tamano original, puede
+indicar manualmente cuantos bytes reales quiere extraer:
+
+```powershell
+python arqui/scripts/prepare_teaimg.py --decrypt --input arqui/scripts/examples/priv.png.enc --output-size BYTES_ORIGINALES
+```
+
+Con la RAM actual, el modo `decrypt` acepta aproximadamente 32 KB de entrada
+cifrada. Archivos `.enc` mas grandes necesitan aumentar la RAM o partirse en
+bloques.
+
+## Descifrar .enc grandes por bloques
+
+Para archivos que no caben completos en RAM, use `decrypt_teaimg_chunks.py`.
+Ese script parte el `.enc` en bloques que si caben, prepara cada bloque con
+`prepare_teaimg.py --decrypt`, corre `tb_teaimg_loader`, extrae el bloque
+descifrado y concatena todo en un archivo final.
+
+Ejemplo:
+
+```powershell
+python arqui/scripts/decrypt_teaimg_chunks.py --input arqui/scripts/examples/M2.jpg.enc --output arqui/outputs/M2_descifrado.jpg
+```
+
+Y para el video:
+
+```powershell
+python arqui/scripts/decrypt_teaimg_chunks.py --input arqui/scripts/examples/cattttz.mp4.enc --output arqui/outputs/cattttz_descifrado.mp4
+```
+
+Si el archivo original tenia padding al final, indique el tamano real del
+archivo original para que el resultado quede recortado correctamente:
+
+```powershell
+python arqui/scripts/decrypt_teaimg_chunks.py --input arqui/scripts/examples/M2.jpg.enc --output arqui/outputs/M2_descifrado.jpg --output-size BYTES_ORIGINALES
+```
+
+El tamano de bloque por defecto usa el maximo actual del modo decrypt. Si quiere
+usar bloques mas pequenos:
+
+```powershell
+python arqui/scripts/decrypt_teaimg_chunks.py --input arqui/scripts/examples/M2.jpg.enc --chunk-size 16384
+```
+
+Si su entorno no puede ejecutar `./run.sh run tb_teaimg_loader` automaticamente,
+puede dar un comando explicito. El comando se ejecuta desde la raiz del repo:
+
+```powershell
+python arqui/scripts/decrypt_teaimg_chunks.py --input arqui/scripts/examples/M2.jpg.enc --sim-command "bash run.sh run tb_teaimg_loader"
+```

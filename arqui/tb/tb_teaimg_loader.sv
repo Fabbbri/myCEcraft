@@ -1,6 +1,14 @@
 `timescale 1ns/1ps
 `include "tb/teaimg_config.svh"
 
+`ifndef TEAIMG_BUFFER_COUNT
+`define TEAIMG_BUFFER_COUNT 3
+`endif
+
+`ifndef TEAIMG_DECRYPT_ONLY
+`define TEAIMG_DECRYPT_ONLY 0
+`endif
+
 module tb_teaimg_loader;
 
     parameter int MAX_CYCLES = 500000 + (`TEAIMG_IMAGE_WORDS * 12000);
@@ -14,10 +22,13 @@ module tb_teaimg_loader;
     localparam int IMAGE_BYTES      = `TEAIMG_IMAGE_BYTES;
     localparam int IMAGE_SOURCE_BYTES = `TEAIMG_SOURCE_BYTES;
     localparam int IMAGE_WORDS      = `TEAIMG_IMAGE_WORDS;
+    localparam int IMAGE_BUFFER_COUNT = `TEAIMG_BUFFER_COUNT;
+    localparam bit DECRYPT_ONLY     = (`TEAIMG_DECRYPT_ONLY != 0);
     localparam int IMAGE_ORIG_BASE  = 16'h8010;
     localparam int IMAGE_ENC_BASE   = IMAGE_ORIG_BASE + IMAGE_BYTES;
     localparam int IMAGE_DEC_BASE   = IMAGE_ENC_BASE + IMAGE_BYTES;
-    localparam int BLOCK_BASE       = IMAGE_DEC_BASE + IMAGE_BYTES;
+    localparam int IMAGE_OUTPUT_BASE = DECRYPT_ONLY ? IMAGE_ORIG_BASE : IMAGE_DEC_BASE;
+    localparam int BLOCK_BASE       = IMAGE_ORIG_BASE + (IMAGE_BYTES * IMAGE_BUFFER_COUNT);
     localparam int BLOCK_BYTES      = 8;
 
     logic clk   = 0;
@@ -121,7 +132,7 @@ module tb_teaimg_loader;
             text_base === 32'h00000000 &&
             data_base === 32'h00008000 &&
             text_size == instruction_count * 4 &&
-            data_size >= (32'd36 + (IMAGE_BYTES * 3))
+            data_size >= (32'd36 + (IMAGE_BYTES * IMAGE_BUFFER_COUNT))
         ) begin
             tests_passed++;
             $display("  [PASS] Header MYCE valido: text=%0d bytes data=%0d bytes",
@@ -194,9 +205,8 @@ module tb_teaimg_loader;
             int address;
             address = loader_data_base + i;
 
-            if ((address >= IMAGE_ORIG_BASE && address < IMAGE_ORIG_BASE + IMAGE_BYTES) ||
-                (address >= IMAGE_ENC_BASE && address < IMAGE_ENC_BASE + IMAGE_BYTES) ||
-                (address >= IMAGE_DEC_BASE && address < IMAGE_DEC_BASE + IMAGE_BYTES) ||
+            if ((address >= IMAGE_ORIG_BASE &&
+                 address < IMAGE_ORIG_BASE + (IMAGE_BYTES * IMAGE_BUFFER_COUNT)) ||
                 (address >= BLOCK_BASE && address < BLOCK_BASE + BLOCK_BYTES)) begin
                 continue;
             end
@@ -227,14 +237,18 @@ module tb_teaimg_loader;
     task automatic dump_outputs();
         $writememh("outputs/teaimg_salida.hex", `DRAM);
         $writememh("outputs/teaimg_vault.hex", `NRAM);
-        $writememh("outputs/teaimg_original.hex", `DRAM, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
-        $writememh("outputs/teaimg_cifrada.hex", `DRAM, IMAGE_ENC_BASE, IMAGE_ENC_BASE + IMAGE_BYTES - 1);
-        $writememh("outputs/teaimg_descifrada.hex", `DRAM, IMAGE_DEC_BASE, IMAGE_DEC_BASE + IMAGE_BYTES - 1);
+        $writememh("outputs/teaimg_descifrada.hex", `DRAM, IMAGE_OUTPUT_BASE, IMAGE_OUTPUT_BASE + IMAGE_BYTES - 1);
+        if (!DECRYPT_ONLY) begin
+            $writememh("outputs/teaimg_original.hex", `DRAM, IMAGE_ORIG_BASE, IMAGE_ORIG_BASE + IMAGE_BYTES - 1);
+            $writememh("outputs/teaimg_cifrada.hex", `DRAM, IMAGE_ENC_BASE, IMAGE_ENC_BASE + IMAGE_BYTES - 1);
+        end
         $display("[DUMP]  DRAM completa       -> outputs/teaimg_salida.hex");
         $display("[DUMP]  Vault completa      -> outputs/teaimg_vault.hex");
-        $display("[DUMP]  Imagen original     -> outputs/teaimg_original.hex");
-        $display("[DUMP]  Imagen cifrada      -> outputs/teaimg_cifrada.hex");
-        $display("[DUMP]  Imagen descifrada   -> outputs/teaimg_descifrada.hex");
+        if (!DECRYPT_ONLY) begin
+            $display("[DUMP]  Imagen original     -> outputs/teaimg_original.hex");
+            $display("[DUMP]  Imagen cifrada      -> outputs/teaimg_cifrada.hex");
+        end
+        $display("[DUMP]  Datos descifrados   -> outputs/teaimg_descifrada.hex");
         $display("[INFO]  Para extraer bytes reales use size=%0d", IMAGE_SOURCE_BYTES);
     endtask
 
@@ -379,7 +393,11 @@ module tb_teaimg_loader;
         $display("============================================================");
 
         $display("\n============================================================");
-        $display("  TEST: teaimg.craft cifra y descifra imagen embebida");
+        if (DECRYPT_ONLY) begin
+            $display("  TEST: teaimg.craft descifra archivo cifrado");
+        end else begin
+            $display("  TEST: teaimg.craft cifra y descifra imagen embebida");
+        end
         $display("============================================================");
 
         load_and_reset(load_failed);
@@ -403,22 +421,29 @@ module tb_teaimg_loader;
             check_reg( 0, 32'h00000000, "zero");
 
             $display("\n  --- Verificacion de imagen ---");
-            check_image_roundtrip();
+            if (DECRYPT_ONLY) begin
+                tests_passed++;
+                $display("  [PASS] Modo decrypt-only finalizo sin error de programa");
+            end else begin
+                check_image_roundtrip();
+            end
             check_loader_unchanged_regions();
             $display(
-                "  [INFO] Original:   DRAM[%04h..%04h]",
+                "  [INFO] Entrada:    DRAM[%04h..%04h]",
                 IMAGE_ORIG_BASE,
                 IMAGE_ORIG_BASE + IMAGE_BYTES - 1
             );
+            if (!DECRYPT_ONLY) begin
+                $display(
+                    "  [INFO] Cifrada:    DRAM[%04h..%04h]",
+                    IMAGE_ENC_BASE,
+                    IMAGE_ENC_BASE + IMAGE_BYTES - 1
+                );
+            end
             $display(
-                "  [INFO] Cifrada:    DRAM[%04h..%04h]",
-                IMAGE_ENC_BASE,
-                IMAGE_ENC_BASE + IMAGE_BYTES - 1
-            );
-            $display(
-                "  [INFO] Descifrada: DRAM[%04h..%04h]",
-                IMAGE_DEC_BASE,
-                IMAGE_DEC_BASE + IMAGE_BYTES - 1
+                "  [INFO] Salida:     DRAM[%04h..%04h]",
+                IMAGE_OUTPUT_BASE,
+                IMAGE_OUTPUT_BASE + IMAGE_BYTES - 1
             );
         end
 
