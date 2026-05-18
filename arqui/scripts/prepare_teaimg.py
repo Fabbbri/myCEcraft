@@ -44,7 +44,7 @@ def zero_initializer(words: int) -> str:
 def teaimg_source(words: int) -> str:
     zeros = zero_initializer(words)
     return f"""@EnterCraftWorld
-key:chest[uint32, 4] = [0x0, 0x1, 0x2, 0x3];
+key:chest[uint32, 4] = [0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef];
 
 image_original:chest[uint32, {words}] = [
 {zeros}
