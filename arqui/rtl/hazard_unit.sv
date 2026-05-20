@@ -7,9 +7,8 @@ module hazard_unit(
     output logic [1:0] forwardA, forwardB,
     output logic stallIF, stallD,
     output logic flushD, flushE
-
-    // 11 señales de entrada, 6 señales de salida
 );
+// 11 señales de entrada, 6 señales de salida
 
 // ========================================================================
 //                          FORWARDING

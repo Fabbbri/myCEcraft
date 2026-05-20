@@ -7,7 +7,12 @@ module execute(
     input logic [1:0] alu_src,
     input logic we_reg, neather_mode, w_regv,
     input logic [31:0] rd1E, rd2E, immE, pc_actE, pc_plus4E, rdv2E,
-    input logic [4:0] instrD,
+    input logic [4:0] instrD, rs1EIN, rs2EIN,
+
+    // Hazard Unit
+    input logic [1:0] forwardA, forwardB,
+    // forward
+    input logic [31:0] ex_mem, mem_wb,
 
     output logic pc_srcEx, z_OUT, neather_portalOUT,
     output logic [1:0] result_srcOUT, 
@@ -16,7 +21,11 @@ module execute(
 
     output logic [31:0] alu_result, rd2OUT, rdv2OUT, pc_plus4OUT,
     output logic [31:0] pc_targetOUT,
-    output logic [4:0] instrDOUT
+    output logic [4:0] instrDOUT, instrDOUT_hz, rs1EOUT, rs2EOUT,
+
+    // Hazard Unit
+    output logic result_src_0
+
 );
 
 // ==========================================================
@@ -66,13 +75,47 @@ assign is_jalr = jump && (result_src == 2'b00);
 assign pc_target = is_jalr ? jalr_target : pc_relative_target;
 
 // ==========================================================
+//                       INSTANCIA FORWARD A MUX
+// ==========================================================
+
+logic [31:0] srcA;
+logic [31:0] not_used;
+assign not_used = 31'b0;
+
+mux31_2 alu_mux(
+    .in1(ex_mem),
+    .in2(mem_wb),
+    .in3(rd1E),
+    .in4(not_used),
+    .src(forwardA),
+    .out(srcA)
+);
+
+// ==========================================================
+//                       INSTANCIA FORWARD B MUX
+// ==========================================================
+
+logic [31:0] srcB_hz;
+logic [31:0] not_used;
+assign not_used = 31'b0;
+
+mux31_2 alu_mux(
+    .in1(ex_mem),
+    .in2(mem_wb),
+    .in3(rd2E),
+    .in4(not_used),
+    .src(forwardB),
+    .out(srcB_hz)
+);
+
+// ==========================================================
 //                       INSTANCIA ALU_SRC MUX31_2
 // ==========================================================
 
 logic [31:0] srcB;
 
 mux31_2 alu_mux(
-    .in1(rd2E),
+    .in1(srcB_hz),
     .in2(tea01),
     .in3(rdv2E),
     .in4(immE),
@@ -98,7 +141,7 @@ logic z_aux;
 logic n_aux;
 
 alu ALU(
-    .srcA(rd1E),
+    .srcA(srcA),
     .srcB(srcB),
     .alu_control(alu_control),
     .alu_result(alu_result),
@@ -174,6 +217,14 @@ assign instrDOUT = instrD;
 assign pc_plus4OUT = pc_plus4E;
 
 assign pc_targetOUT = pc_target;
+
+// Hazard Unit 5 salidas
+// pcSrcEx en top
+assign rs1EOUT = rs1EIN;
+assign rs2EOUT = rs2EIN;
+
+assign instrDOUT_hz = instrD;
+assign result_src_0 = result_src[0];
 
 
 endmodule

@@ -13,7 +13,9 @@ module writeback(
     output logic [31:0] wdOUT, wdvOUT,
 
     output logic [31:0] new_addr,
-    output logic [4:0] instrDOUT
+    output logic [4:0] instrDOUT, instrWbOUT_hz,
+
+    output logic we_reg_wb_hz
 );
 
 // ==========================================================
@@ -49,7 +51,7 @@ mux31_2 resultSRC_mux(
     .in3(pc_plus4),
     .in4(teaSum11),
     .src(result_src),
-    .out(wdOUT)
+    .out(wdOUT) // MEM/WB forwarding
 );
 
 // ==========================================================
@@ -71,5 +73,11 @@ assign instrDOUT = instrD;
 assign we_regOUT = we_reg;
 assign w_regvOUT = w_regv;
 assign neather_modeOUT = neather_mode;
+
+// Hazard Unit
+assign instrWbOUT_hz = instrD;
+assign we_reg_wb_hz = we_reg
+
+// mem_wb = wdOUT
 
 endmodule

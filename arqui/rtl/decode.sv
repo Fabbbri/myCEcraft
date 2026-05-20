@@ -12,7 +12,10 @@ module decode(
     output logic [4:0] alu_control, instrDOUT,
     output logic neather_modeOUT,
     output logic we_reg, w_regv,
-    output logic [31:0] rd1, rd2, imm, pc_actOUT, pc_plus4OUT, rdv2
+    output logic [31:0] rd1, rd2, imm, pc_actOUT, pc_plus4OUT, rdv2,
+
+    // Hazard Unit 
+    output logic [4:0] rs1DE, rs2DE
 );
 
 // ==========================================================
@@ -81,6 +84,7 @@ imm_extend immExt(
 logic is_jalr;
 logic [4:0] rs1_sel;
 
+// si es jalr seleccionar rd en vez de rs1
 assign is_jalr = (instr[3:0] == 4'b0100) && (instr[19] == 1'b1);
 assign rs1_sel = is_jalr ? instr[8:4] : instr[13:9];
 
@@ -130,5 +134,8 @@ assign instrDOUT = rdest;
 
 assign pc_plus4OUT = pc_plus4;
 assign pc_actOUT = pc_act;
+
+assign rs1DE = rs1_sel;
+assign rs2DE = instr[18:14];
 
 endmodule

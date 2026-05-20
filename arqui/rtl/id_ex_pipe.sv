@@ -8,7 +8,10 @@ module id_ex_pipe (
     input logic [4:0] alu_control,
     input logic we_reg, neather_mode, w_regv,
     input logic [31:0] rd1, rd2, imm, pc_act, pcplus4, rdv2, 
-    input logic [4:0] instrD, 
+    input logic [4:0] instrD, rs1DIN, rsD2IN,
+
+    // Hazard Unit
+    input logic flushE,
 
     output  logic jumpOUT, bltOUT, bgeOUT, bneOUT, beqOUT, 
     output logic [1:0] result_srcOUT, alu_srcOUT,
@@ -16,11 +19,11 @@ module id_ex_pipe (
     output logic [4:0] alu_controlOUT,
     output logic we_regOUT, neather_modeOUT, w_regvOUT,
     output logic [31:0] rd1OUT, rd2OUT, immOUT, pc_actOUT, pcplus4OUT, rdv2OUT, 
-    output logic [4:0] instrDOUT
+    output logic [4:0] instrDOUT, rs1DOUT, rs2DOUT
 );
 
 always_ff @(posedge clk or posedge reset) begin
-    if (reset) begin
+    if (reset || flushE) begin // si es reset o flushE, se inserta un nop
         jumpOUT              <= 1'b0;
         bltOUT               <= 1'b0;
         bgeOUT               <= 1'b0;
@@ -44,6 +47,8 @@ always_ff @(posedge clk or posedge reset) begin
         pcplus4OUT           <= 32'b0;
         rdv2OUT              <= 32'b0;
         instrDOUT            <= 5'b0;
+        rs1DOUT                <= 5'b0;
+        rs2DOUT               <= 5'b0;
     end else begin
         jumpOUT              <= jump;
         bltOUT               <= blt;
@@ -68,6 +73,8 @@ always_ff @(posedge clk or posedge reset) begin
         pcplus4OUT           <= pcplus4;
         rdv2OUT              <= rdv2;
         instrDOUT            <= instrD;
+        rs1DOUT              <= rs1DIN;
+        rs2DOUT              <= rs1DIN;
     end
 end
 

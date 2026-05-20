@@ -64,6 +64,30 @@ logic [31:0] newpc, wdWB, wdvWB;
 logic        we_regWB_fb, neather_modeWB_fb, w_regvWB_fb;
 logic [4:0]  instrDWB_fb;
 
+// Hazard Unit Salidas
+logic stallIF;
+logic stallD, flushD, flushE;
+
+logic [4:0] rs1DEX, rs2DEX;// intermedio
+
+logic [1:0] forwardA, forwardB;
+
+
+// forward de ex y mem
+logic [31:0] ex_mem; // entrada execute, salida mem y wb
+// wdWB = mem_wb;
+
+//entradas de Hazard
+//pc_srcEX ya existe
+logic [4:0] rs1DE, rs2DE; // entrada de ID_EX y de Hazard
+logic [4:0] rs1EX, rs2EX, rdEX;
+logic [4:0] rdMEM;
+logic we_reg_mem;
+logic result_src_0;
+
+logic [4:0] rdWB;
+logic we_reg_wb;
+
 // ==========================================================
 //                       ISSUE
 // ==========================================================
@@ -71,6 +95,7 @@ logic [4:0]  instrDWB_fb;
 issue Issue(
     .clk(clk),
     .reset(reset),
+    .stallIF(stallIF),
 
     .new_addr(newpc),
 
@@ -90,6 +115,9 @@ if_id_pipe if_id(
     .instr_in(instrF),
     .pc_in(pc4F),
     .addr_in(pcF),
+
+    .stallD(stallD),
+    .flushD(flushD),
 
     .instr_out(instrDE),
     .pc_out(pc4DE),
@@ -137,7 +165,10 @@ decode Decode(
     .imm(immDE), 
     .pc_actOUT(pcDEOUT), 
     .pc_plus4OUT(pc4DEOUT), 
-    .rdv2(rdv2DE)  
+    .rdv2(rdv2DE),
+
+    .rs1DE(rs1DE),
+    .rs2DE(rs2DE) 
 );
 
 // ==========================================================
@@ -172,6 +203,11 @@ id_ex_pipe id_ex(
     .pcplus4(pc4DEOUT), 
     .rdv2(rdv2DE),
 
+    .rs1DIN(rs1DE),
+    .rs2DIN(rs2DE),
+
+    .flushE(flushE),
+
     .jumpOUT(jumpEX), 
     .bltOUT(bltEX), 
     .bgeOUT(bgeEX), 
@@ -194,7 +230,10 @@ id_ex_pipe id_ex(
     .pc_actOUT(pc_actEX), 
     .pcplus4OUT(pcplus4EX), 
     .rdv2OUT(rdv2EX), 
-    .instrDOUT(instrDEX)
+    .instrDOUT(instrDEX),
+
+    .rs1DOUT(rs1DEX),
+    .rs2DOUT(rs2DEX)
 );
 
 // ==========================================================
@@ -228,7 +267,15 @@ execute Exec(
     .rdv2E(rdv2EX),
     .instrD(instrDEX),
 
-    .pc_srcEx(pc_srcEX), 
+    .rs1EIN(rs1DEX),
+    .rs2EIN(rs2DEX),
+    .forwardA(forwardA),
+    .forwardB(forwardB),
+
+    .ex_mem(ex_mem),
+    .mem_wb(wdWB),
+
+    .pc_srcEx(pc_srcEX), // va a la Hazard Unit
     .z_OUT(zEX), 
     .neather_portalOUT(neather_portalEX_out),
     .result_srcOUT(result_srcEX_out),
@@ -245,7 +292,13 @@ execute Exec(
     .rdv2OUT(rdv2EX_out), 
     .pc_plus4OUT(pcplus4EX_out),
     .pc_targetOUT(pc_targetEX),
-    .instrDOUT(instrDEX_out)
+    .instrDOUT(instrDEX_out),
+
+    .instrDOUT_hz(rdEX),
+    .rs1EOUT(rs1EX),
+    .rs2EOUT(rs2EX),
+
+    .result_src_0(result_src_0)
 );
 
 // ==========================================================
@@ -308,7 +361,11 @@ memory mem(
     .alu_resultOUT(alu_resultMEM_out), 
     .pc_plus4OUT(pcPlus4MEM_out),
     .rdataPass0v(rdataPass0vMEM),
-    .instrDOUT(instrDMEM_out)
+    .instrDOUT(instrDMEM_out),
+
+    .instrMOUT_hz(rdMEM),
+    .we_reg_MEM_hz(we_reg_mem),
+    .ex_mem(ex_mem)
 );
 
 // ==========================================================
@@ -371,11 +428,14 @@ writeback WriteBack(
     .neather_modeOUT(neather_modeWB_fb), 
     .w_regvOUT(w_regvWB_fb),
     
-    .wdOUT(wdWB), 
+    .wdOUT(wdWB), // mem_wb
     .wdvOUT(wdvWB),
 
     .new_addr(newpc),
-    .instrDOUT(instrDWB_fb)
+    .instrDOUT(instrDWB_fb),
+
+    .instrWbOUT_hz(rdWB),
+    .we_reg_wb_hz(we_reg_wb)
 );
 
 // ==========================================================
@@ -398,5 +458,30 @@ writeback WriteBack(
 // ==========================================================
 
 // ya está incluido dentro de Issue
+
+// ==========================================================
+//                       HAZARD UNIT
+// ==========================================================
+
+hazard_unit HazardUnit(
+    .rs1DE(rs1DE),
+    .rs1EX(rs1EX),
+    .rs2DE(rs2DE), 
+    .rs2EX(rs2EX),
+    .rdEX(rdEX),
+    .rdMEM(rdMEM), 
+    .rdWB(rdWB),
+    .result_src_0(result_src_0), 
+    .pc_src_exOUT(pc_srcEX), 
+    .we_reg_mem(we_reg_mem), 
+    .we_reg_wb(we_reg_wb),
+
+    .forwardA(forwardA), 
+    .forwardB(forwardB),
+    .stallIF(stallIF),
+    .stallD(stallD),
+    .flushD(flushD),
+    .flushE(fluishE)
+);
 
 endmodule
