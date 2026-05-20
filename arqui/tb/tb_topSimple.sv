@@ -3,7 +3,7 @@
 module tb_topSimple;
 
     parameter int          MAX_CYCLES = 5000;
-    parameter logic [31:0] HALT_PC    = 32'h00000110;
+    parameter logic [31:0] HALT_PC    = 32'h00000104;
 
     logic clk   = 0;
     logic reset = 0;
@@ -23,6 +23,15 @@ module tb_topSimple;
         @(negedge clk);
         reset = 0;
         $display("[RESET] Reset liberado en t=%0t ns", $time);
+
+        @(posedge clk); #1;
+        $display("[DEBUG] pcF=%h instrF=%h newpc=%h stallIF=%b flushD=%b flushE=%b",
+            dut.pcF,
+            dut.instrF,
+            dut.newpc,
+            dut.stallIF,
+            dut.flushD,
+            dut.flushE);
     endtask
 
     // =========================================================
@@ -40,8 +49,7 @@ module tb_topSimple;
             // ── DEBUG: muestra solo las iteraciones del loop ──
             // Ciclos 250-350: primera iteración del loop
             // Ciclos 1700+:   últimas iteraciones antes del halt
-            if ((cycles >= 250 && cycles <= 350) ||
-                (cycles >= 1700)) begin
+            if ((cycles >= 1 && cycles <= 30) ) begin
                 $display("c=%0d PC=%h | EX: rd1=%h rd2=%h bge=%b pc_src=%b | WB: rd=%0d wd=%h we=%b | x3=%h x4=%h x17=%h",
                     cycles,
                     `PC,
@@ -49,6 +57,25 @@ module tb_topSimple;
                     dut.bgeEX, dut.pc_srcEX,
                     dut.instrDWB, dut.wdWB, dut.we_regWB,
                     `REGS[3], `REGS[4], `REGS[17]);
+            end
+
+            if (cycles >= 20 && cycles <= 32) begin
+                $display("c=%0d PC=%h | WB: rd=%0d wd=%h we=%b result_src=%b | alu=%h rMem=%h pc4=%h",
+                    cycles, `PC,
+                    dut.instrDWB, dut.wdWB, dut.we_regWB,
+                    dut.result_srcWB,
+                    dut.alu_resultWB,
+                    dut.rMemDataWB,
+                    dut.pc_plus4WB);
+            end
+
+            if (cycles >= 1 && cycles <= 32 ||
+                `PC >= 32'h000000F0) begin
+                $display("c=%0d PC=%h | bge=%b blt=%b beq=%b bne=%b pc_src=%b | x3=%h x4=%h",
+                    cycles, `PC,
+                    dut.bgeEX, dut.bltEX, dut.beqEX, dut.bneEX,
+                    dut.pc_srcEX,
+                    `REGS[3], `REGS[4]);
             end
 
             if (`PC === HALT_PC) begin
@@ -118,7 +145,7 @@ module tb_topSimple;
         $display("============================================================");
 
         $dumpfile("sim/waves/tb_top.vcd");
-        $dumpvars(0, tb_top);
+        $dumpvars(0, tb_topSimple);
 
         run_test("while loop x<5, return x=5");
 

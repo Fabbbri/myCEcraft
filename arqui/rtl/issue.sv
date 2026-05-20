@@ -1,5 +1,5 @@
 module issue(
-    input logic clk, reset, stallIF // hazard
+    input logic clk, reset, stallIF, // hazard
     input logic [31:0] new_addr,
 
     output logic [31:0] addr, pc_plus4F, instr

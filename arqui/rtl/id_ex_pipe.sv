@@ -8,7 +8,7 @@ module id_ex_pipe (
     input logic [4:0] alu_control,
     input logic we_reg, neather_mode, w_regv,
     input logic [31:0] rd1, rd2, imm, pc_act, pcplus4, rdv2, 
-    input logic [4:0] instrD, rs1DIN, rsD2IN,
+    input logic [4:0] instrD, rs1DIN, rs2DIN,
 
     // Hazard Unit
     input logic flushE,
@@ -74,7 +74,7 @@ always_ff @(posedge clk or posedge reset) begin
         rdv2OUT              <= rdv2;
         instrDOUT            <= instrD;
         rs1DOUT              <= rs1DIN;
-        rs2DOUT              <= rs1DIN;
+        rs2DOUT              <= rs2DIN;
     end
 end
 

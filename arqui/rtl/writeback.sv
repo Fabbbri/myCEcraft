@@ -76,7 +76,7 @@ assign neather_modeOUT = neather_mode;
 
 // Hazard Unit
 assign instrWbOUT_hz = instrD;
-assign we_reg_wb_hz = we_reg
+assign we_reg_wb_hz = we_reg;
 
 // mem_wb = wdOUT
 

@@ -74,7 +74,7 @@ logic [1:0] forwardA, forwardB;
 
 
 // forward de ex y mem
-logic [31:0] ex_mem; // entrada execute, salida mem y wb
+logic [31:0] ex_mem_hz; // entrada execute, salida mem y wb
 // wdWB = mem_wb;
 
 //entradas de Hazard
@@ -272,7 +272,7 @@ execute Exec(
     .forwardA(forwardA),
     .forwardB(forwardB),
 
-    .ex_mem(ex_mem),
+    .ex_mem(ex_mem_hz),
     .mem_wb(wdWB),
 
     .pc_srcEx(pc_srcEX), // va a la Hazard Unit
@@ -365,7 +365,7 @@ memory mem(
 
     .instrMOUT_hz(rdMEM),
     .we_reg_MEM_hz(we_reg_mem),
-    .ex_mem(ex_mem)
+    .ex_mem(ex_mem_hz)
 );
 
 // ==========================================================
@@ -481,7 +481,7 @@ hazard_unit HazardUnit(
     .stallIF(stallIF),
     .stallD(stallD),
     .flushD(flushD),
-    .flushE(fluishE)
+    .flushE(flushE)
 );
 
 endmodule

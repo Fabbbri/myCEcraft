@@ -82,10 +82,10 @@ logic [31:0] srcA;
 logic [31:0] not_used;
 assign not_used = 31'b0;
 
-mux31_2 alu_mux(
-    .in1(ex_mem),
+mux31_2 fwa_mux(
+    .in1(rd1E),
     .in2(mem_wb),
-    .in3(rd1E),
+    .in3(ex_mem),
     .in4(not_used),
     .src(forwardA),
     .out(srcA)
@@ -96,13 +96,11 @@ mux31_2 alu_mux(
 // ==========================================================
 
 logic [31:0] srcB_hz;
-logic [31:0] not_used;
-assign not_used = 31'b0;
 
-mux31_2 alu_mux(
-    .in1(ex_mem),
+mux31_2 fwb_mux(
+    .in1(rd2E),
     .in2(mem_wb),
-    .in3(rd2E),
+    .in3(ex_mem),
     .in4(not_used),
     .src(forwardB),
     .out(srcB_hz)
@@ -225,6 +223,5 @@ assign rs2EOUT = rs2EIN;
 
 assign instrDOUT_hz = instrD;
 assign result_src_0 = result_src[0];
-
 
 endmodule
