@@ -9,7 +9,7 @@ module hazard_unit(
     output logic flushD, flushE
 
     // 11 señales de entrada, 6 señales de salida
-)
+);
 
 // ========================================================================
 //                          FORWARDING
@@ -45,7 +45,7 @@ assign stall = result_src_0 && // indica que es un load
 // Si los 3 no se cumplen a la vez, entonces no es un RAW o bien es un ALU-ALU
 
 assign stallIF = stall;
-assign stallDE = stall;
+assign stallD = stall;
 
 // ========================================================================
 //                          FLUSH
