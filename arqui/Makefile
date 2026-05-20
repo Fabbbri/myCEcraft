@@ -72,3 +72,5 @@ clean:
 print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
+
+.PHONY: all dirs compile run wave run-all clean print

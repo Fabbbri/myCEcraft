@@ -12,7 +12,13 @@ module memory(
     output logic neather_wreg_srcOUT, we_regOUT, neather_modeOUT, w_regvOUT,
     output logic [31:0] rMemData, rvMemData, alu_resultOUT, pc_plus4OUT,
     output logic [31:0] rdataPass0v,
-    output logic [4:0] instrDOUT
+    output logic [4:0] instrDOUT, instrMOUT_hz, 
+    output logic we_reg_MEM_hz, // hazard unit
+
+    // forward
+    output logic [31:0] ex_mem
+
+
 );
 
 // ==========================================================
@@ -74,6 +80,11 @@ assign w_regvOUT = w_regv;
 assign alu_resultOUT = alu_result;
 assign pc_plus4OUT = pc_plus4;
 assign instrDOUT = instrD;
+
+// Hazard Unit
+assign instrMOUT_hz = instrD;
+assign we_reg_MEM_hz = we_reg;
+assign ex_mem = alu_result;
 
 
 endmodule

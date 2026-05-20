@@ -1,5 +1,5 @@
 module issue(
-    input logic clk, reset,
+    input logic clk, reset, stallIF, // hazard
     input logic [31:0] new_addr,
 
     output logic [31:0] addr, pc_plus4F, instr
@@ -17,7 +17,8 @@ pc pc_reg(
     .pc_enable(pc_en),
     .reset(reset),
     .new_addr(new_addr),
-    .addr(addr_aux)
+    .addr(addr_aux),
+    .stallIF(stallIF)
 );
 
 // ==========================================================
