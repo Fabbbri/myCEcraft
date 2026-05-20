@@ -375,6 +375,52 @@ QTabBar::tab:selected {
     width: 0;
 }
 
+#CompletionPopup {
+    background: #252526;
+    border: 1px solid #3C3C3C;
+    border-radius: 4px;
+    padding: 4px;
+    outline: none;
+    color: #CCCCCC;
+    font-size: 12px;
+}
+
+#CompletionPopup::item {
+    padding: 6px 8px;
+    border-radius: 3px;
+    color: #CCCCCC;
+}
+
+#CompletionPopup::item:selected {
+    background: #37373D;
+    color: #FFFFFF;
+}
+
+#CompletionPopup QScrollBar:vertical {
+    background: transparent;
+    width: 7px;
+    margin: 3px 0 3px 0;
+}
+
+#CompletionPopup QScrollBar::handle:vertical {
+    background: #424242;
+    border-radius: 3px;
+    min-height: 24px;
+}
+
+#CompletionPopup QScrollBar::handle:vertical:hover {
+    background: #5A5A5A;
+}
+
+#CompletionPopup QScrollBar::add-line:vertical,
+#CompletionPopup QScrollBar::sub-line:vertical,
+#CompletionPopup QScrollBar::add-page:vertical,
+#CompletionPopup QScrollBar::sub-page:vertical {
+    background: transparent;
+    border: none;
+    height: 0;
+}
+
 #StatusBar {
     background: #252526;
     border: 1px solid #3C3C3C;

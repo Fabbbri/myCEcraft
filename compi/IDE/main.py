@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from compiler_runner import CompilerRunner
+from ll1_syntax import Diagnostic, LL1SyntaxService
 from theme import APP_QSS
 from workspace import Workspace
 
@@ -177,8 +178,12 @@ class CraftHighlighter(QSyntaxHighlighter):
 
 
 class CodeEditor(QPlainTextEdit):
+    completion_requested = Signal()
+    INDENT = "    "
+
     def __init__(self) -> None:
         super().__init__()
+        self.auto_fix_on_enter = None
         self.line_number_area = LineNumberArea(self)
         self.highlighter = CraftHighlighter(self.document())
 
@@ -189,7 +194,78 @@ class CodeEditor(QPlainTextEdit):
         self.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.setFont(QFont("Cascadia Mono", 11))
         self.document().setDocumentMargin(14)
+        self.setTabStopDistance(self.fontMetrics().horizontalAdvance(" ") * len(self.INDENT))
         self.update_line_number_area_width()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Space and event.modifiers() & Qt.ControlModifier:
+            self.completion_requested.emit()
+            event.accept()
+            return
+        if event.key() == Qt.Key_Tab:
+            self._indent_selection()
+            event.accept()
+            return
+        if event.key() == Qt.Key_Backtab:
+            self._unindent_selection()
+            event.accept()
+            return
+        if event.key() in {Qt.Key_Return, Qt.Key_Enter}:
+            if self.auto_fix_on_enter is not None and self.auto_fix_on_enter(self):
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+    def _selected_block_range(self) -> tuple[int, int]:
+        cursor = self.textCursor()
+        start = cursor.selectionStart()
+        end = cursor.selectionEnd()
+        document = self.document()
+        start_block = document.findBlock(start).blockNumber()
+        end_block = document.findBlock(end).blockNumber()
+
+        end_at_block_start = end == document.findBlock(end).position()
+        if cursor.hasSelection() and end_at_block_start and end_block > start_block:
+            end_block -= 1
+
+        return start_block, end_block
+
+    def _indent_selection(self) -> None:
+        cursor = self.textCursor()
+        if not cursor.hasSelection():
+            cursor.insertText(self.INDENT)
+            return
+
+        start_block, end_block = self._selected_block_range()
+        cursor.beginEditBlock()
+        for block_number in range(start_block, end_block + 1):
+            block = self.document().findBlockByNumber(block_number)
+            line_cursor = QTextCursor(block)
+            line_cursor.insertText(self.INDENT)
+        cursor.endEditBlock()
+
+    def _unindent_selection(self) -> None:
+        cursor = self.textCursor()
+        start_block, end_block = self._selected_block_range()
+
+        cursor.beginEditBlock()
+        for block_number in range(start_block, end_block + 1):
+            block = self.document().findBlockByNumber(block_number)
+            text = block.text()
+            remove_count = 0
+            if text.startswith("\t"):
+                remove_count = 1
+            else:
+                remove_count = len(text) - len(text.lstrip(" "))
+                remove_count = min(remove_count, len(self.INDENT))
+
+            if remove_count == 0:
+                continue
+
+            line_cursor = QTextCursor(block)
+            line_cursor.setPosition(block.position() + remove_count, QTextCursor.KeepAnchor)
+            line_cursor.removeSelectedText()
+        cursor.endEditBlock()
 
     def line_number_area_width(self) -> int:
         digits = len(str(max(1, self.blockCount())))
@@ -276,8 +352,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.workspace = Workspace(REPO_ROOT)
         self.compiler = CompilerRunner(REPO_ROOT)
+        self.syntax_service = LL1SyntaxService()
         self.open_editors: dict[Path, CodeEditor] = {}
         self.editor_paths: dict[CodeEditor, Path] = {}
+        self.editor_diagnostics: dict[CodeEditor, list[Diagnostic]] = {}
         self._loading_editor = False
 
         self.setWindowTitle(APP_TITLE)
@@ -300,6 +378,16 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(self._build_status_bar())
 
         self.setCentralWidget(root)
+        self._build_completion_popup()
+
+    def _build_completion_popup(self) -> None:
+        self.completion_popup = QListWidget(self)
+        self.completion_popup.setObjectName("CompletionPopup")
+        self.completion_popup.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+        self.completion_popup.setFocusPolicy(Qt.StrongFocus)
+        self.completion_popup.itemClicked.connect(self._insert_completion_from_item)
+        self.completion_popup.itemActivated.connect(self._insert_completion_from_item)
+        self.completion_popup.hide()
 
     def _build_top_bar(self) -> QWidget:
         bar = QFrame()
@@ -478,7 +566,11 @@ class MainWindow(QMainWindow):
 
     def _build_editor(self) -> CodeEditor:
         editor = CodeEditor()
-        editor.textChanged.connect(lambda current=editor: self._mark_editor_dirty(current))
+        editor.auto_fix_on_enter = self._auto_fix_on_enter
+        editor.textChanged.connect(lambda current=editor: self._handle_editor_text_changed(current))
+        editor.completion_requested.connect(
+            lambda current=editor: self.show_completion_popup(current)
+        )
         return editor
 
     def _build_output_panel(self, placeholder: str) -> QTextEdit:
@@ -610,6 +702,7 @@ class MainWindow(QMainWindow):
         self.editor_tabs.setCurrentIndex(index)
         self._select_file_in_sidebar(path)
         self._set_state(f"Abierto {path.name}")
+        self._validate_editor(editor)
 
     def save_current_file(self) -> None:
         editor = self.current_editor()
@@ -661,6 +754,7 @@ class MainWindow(QMainWindow):
         path = self.editor_paths.pop(widget, None)
         if path is not None:
             self.open_editors.pop(path, None)
+        self.editor_diagnostics.pop(widget, None)
 
         self.editor_tabs.removeTab(index)
         widget.deleteLater()
@@ -693,6 +787,146 @@ class MainWindow(QMainWindow):
     def show_artifacts_tab(self) -> None:
         self.output_tabs.setCurrentWidget(self.artifacts_panel)
 
+    def show_completion_popup(self, editor: CodeEditor) -> None:
+        cursor = editor.textCursor()
+        suggestions = self.syntax_service.complete(editor.toPlainText(), cursor.position())
+
+        if not suggestions:
+            self._set_state("Sin sugerencias disponibles")
+            return
+
+        self.completion_popup.clear()
+        for suggestion in suggestions:
+            item = QListWidgetItem(suggestion.label, self.completion_popup)
+            item.setData(Qt.UserRole, suggestion.insert_text)
+
+        self.completion_popup.setCurrentRow(0)
+        self.completion_popup.setFixedWidth(240)
+        visible_rows = min(8, self.completion_popup.count())
+        row_height = max(24, self.completion_popup.sizeHintForRow(0))
+        self.completion_popup.setFixedHeight((visible_rows * row_height) + 8)
+
+        cursor_rect = editor.cursorRect()
+        global_pos = editor.mapToGlobal(cursor_rect.bottomLeft())
+        self.completion_popup.move(global_pos)
+        self.completion_popup.show()
+        self.completion_popup.raise_()
+        self.completion_popup.setFocus()
+
+    def _insert_completion_from_item(self, item: QListWidgetItem) -> None:
+        editor = self.current_editor()
+        if editor is None:
+            return
+
+        insert_text = item.data(Qt.UserRole)
+        if not insert_text:
+            return
+
+        cursor = editor.textCursor()
+        word_cursor = QTextCursor(cursor)
+        word_cursor.select(QTextCursor.WordUnderCursor)
+        current_word = word_cursor.selectedText()
+
+        if current_word and insert_text.startswith(current_word):
+            cursor = word_cursor
+
+        cursor.insertText(insert_text)
+        editor.setTextCursor(cursor)
+        self.completion_popup.hide()
+        editor.setFocus()
+
+    def _auto_fix_on_enter(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        suggestions = self.syntax_service.complete(editor.toPlainText(), cursor.position())
+        fix = self._first_structural_fix(suggestions)
+        if fix is None:
+            return False
+
+        if fix == "}" and not self._should_auto_insert_closing_brace(editor):
+            return False
+
+        if fix == ";":
+            indent = self._current_line_indent(editor)
+            cursor.insertText(fix + "\n" + indent)
+        elif fix == "}":
+            indent = self._closing_brace_indent(editor)
+            block_start = cursor.block().position()
+            cursor.setPosition(block_start, QTextCursor.KeepAnchor)
+            cursor.insertText(indent + fix)
+        else:
+            cursor.insertText(fix)
+
+        editor.setTextCursor(cursor)
+        self._set_state(f"Correccion automatica: {fix}")
+        return True
+
+    def _first_structural_fix(self, suggestions) -> str | None:
+        allowed = {";", "}", ")", "]", ":"}
+        for suggestion in suggestions:
+            if suggestion.insert_text in allowed:
+                return suggestion.insert_text
+        return None
+
+    def _should_auto_insert_closing_brace(self, editor: CodeEditor) -> bool:
+        if not self._cursor_at_line_start(editor):
+            return False
+
+        source = editor.toPlainText()
+        cursor_position = editor.textCursor().position()
+        opening_offset = self._find_unclosed_opening(source, cursor_position, "{", "}")
+        if opening_offset is None:
+            return False
+
+        previous_line = self._previous_non_empty_line(editor)
+        if previous_line is None:
+            return False
+        if previous_line.rstrip().endswith("}"):
+            return False
+
+        current_indent = len(self._current_line_indent(editor))
+        opening_indent = self._line_indent_at_offset(source, opening_offset)
+        return current_indent <= opening_indent + len(CodeEditor.INDENT)
+
+    def _previous_non_empty_line(self, editor: CodeEditor) -> str | None:
+        block = editor.textCursor().block().previous()
+        while block.isValid():
+            text = block.text()
+            if text.strip():
+                return text
+            block = block.previous()
+        return None
+
+    def _current_line_indent(self, editor: CodeEditor) -> str:
+        text = editor.textCursor().block().text()
+        return text[: len(text) - len(text.lstrip(" "))]
+
+    def _cursor_at_line_start(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        return cursor.positionInBlock() == 0 or cursor.block().text()[: cursor.positionInBlock()].strip() == ""
+
+    def _closing_brace_indent(self, editor: CodeEditor) -> str:
+        source = editor.toPlainText()
+        opening_offset = self._find_unclosed_opening(
+            source,
+            editor.textCursor().position(),
+            "{",
+            "}",
+        )
+        if opening_offset is not None:
+            return " " * self._line_indent_at_offset(source, opening_offset)
+
+        current_indent = self._current_line_indent(editor)
+        if len(current_indent) >= len(CodeEditor.INDENT):
+            return current_indent[: -len(CodeEditor.INDENT)]
+        return ""
+
+    def _line_indent_at_offset(self, source: str, offset: int) -> int:
+        line_start = source.rfind("\n", 0, offset) + 1
+        indent = 0
+        while line_start + indent < len(source) and source[line_start + indent] == " ":
+            indent += 1
+        return indent
+
     def _handle_current_tab_changed(self, _index: int) -> None:
         editor = self.current_editor()
         if editor is None:
@@ -704,6 +938,14 @@ class MainWindow(QMainWindow):
             self._select_file_in_sidebar(path)
             self._set_state(path.name)
         self._update_cursor_position()
+        diagnostics = self.editor_diagnostics.get(editor, [])
+        if diagnostics:
+            _, suggestions = self.syntax_service.analyze(editor.toPlainText())
+            self.status_problems.setText(f"{len(diagnostics)} problema")
+            self._show_syntax_problems(diagnostics, suggestions)
+        elif self.problems_panel.toPlainText().startswith("LL(1):"):
+            self.status_problems.setText("0 problemas")
+            self.problems_panel.setPlainText("No hay errores ni advertencias.")
 
     def _select_file_in_sidebar(self, path: Path) -> None:
         resolved = str(path.resolve())
@@ -714,10 +956,179 @@ class MainWindow(QMainWindow):
                 self.file_list.setCurrentRow(row)
                 return
 
-    def _mark_editor_dirty(self, editor: CodeEditor) -> None:
+    def _handle_editor_text_changed(self, editor: CodeEditor) -> None:
         if self._loading_editor:
             return
         self._update_tab_title(editor)
+        self._validate_editor(editor)
+
+    def _validate_editor(self, editor: CodeEditor) -> None:
+        diagnostics, suggestions = self.syntax_service.analyze(editor.toPlainText())
+        self.editor_diagnostics[editor] = diagnostics
+        self._apply_diagnostics(editor, diagnostics)
+
+        if editor is not self.current_editor():
+            return
+
+        if diagnostics:
+            self.status_problems.setText(f"{len(diagnostics)} problema")
+            self._show_syntax_problems(diagnostics, suggestions)
+        else:
+            self.status_problems.setText("0 problemas")
+            if self.problems_panel.toPlainText().startswith("LL(1):"):
+                self.problems_panel.setPlainText("No hay errores ni advertencias.")
+
+    def _apply_diagnostics(self, editor: CodeEditor, diagnostics: list[Diagnostic]) -> None:
+        selections = []
+        for diagnostic in diagnostics[:8]:
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor = self._cursor_for_diagnostic(editor, diagnostic)
+            text_format = QTextCharFormat()
+            text_format.setForeground(QColor("#F14C4C"))
+            text_format.setUnderlineColor(QColor("#F14C4C"))
+            text_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+            text_format.setToolTip(diagnostic.message)
+            selection.format = text_format
+            selections.append(selection)
+
+        editor.setExtraSelections(selections)
+
+    def _cursor_for_diagnostic(self, editor: CodeEditor, diagnostic: Diagnostic) -> QTextCursor:
+        related_cursor = self._cursor_for_related_syntax_error(editor, diagnostic)
+        if related_cursor is not None:
+            return related_cursor
+
+        document = editor.document()
+        block = document.findBlockByNumber(max(0, diagnostic.line - 1))
+        cursor = QTextCursor(block)
+        start = block.position() + max(0, diagnostic.column - 1)
+        end = min(start + diagnostic.length, block.position() + block.length() - 1)
+        cursor.setPosition(start)
+        cursor.setPosition(max(start + 1, end), QTextCursor.KeepAnchor)
+        return cursor
+
+    def _cursor_for_related_syntax_error(
+        self,
+        editor: CodeEditor,
+        diagnostic: Diagnostic,
+    ) -> QTextCursor | None:
+        expected = set(diagnostic.expected)
+        source = editor.toPlainText()
+        error_offset = self._offset_for_diagnostic(editor, diagnostic)
+
+        if "}" in expected:
+            opening_offset = self._find_block_opening_before_outdented_line(
+                source,
+                error_offset,
+            )
+            if opening_offset is None:
+                opening_offset = self._find_unclosed_opening(source, error_offset, "{", "}")
+            if opening_offset is not None:
+                return self._cursor_for_offset(editor, opening_offset, 1)
+
+        if ")" in expected:
+            opening_offset = self._find_unclosed_opening(source, error_offset, "(", ")")
+            if opening_offset is not None:
+                return self._cursor_for_offset(editor, opening_offset, 1)
+
+        if ";" in expected:
+            statement_end = self._find_previous_statement_end(source, error_offset)
+            if statement_end is not None:
+                return self._cursor_for_offset(editor, statement_end, 1)
+
+        return None
+
+    def _offset_for_diagnostic(self, editor: CodeEditor, diagnostic: Diagnostic) -> int:
+        block = editor.document().findBlockByNumber(max(0, diagnostic.line - 1))
+        if not block.isValid():
+            return len(editor.toPlainText())
+        return min(
+            len(editor.toPlainText()),
+            block.position() + max(0, diagnostic.column - 1),
+        )
+
+    def _cursor_for_offset(self, editor: CodeEditor, offset: int, length: int) -> QTextCursor:
+        cursor = QTextCursor(editor.document())
+        cursor.setPosition(max(0, min(offset, len(editor.toPlainText()))))
+        cursor.setPosition(
+            max(0, min(offset + length, len(editor.toPlainText()))),
+            QTextCursor.KeepAnchor,
+        )
+        return cursor
+
+    def _find_unclosed_opening(
+        self,
+        source: str,
+        limit: int,
+        opening: str,
+        closing: str,
+    ) -> int | None:
+        stack = []
+        for index, char in enumerate(source[:limit]):
+            if char == opening:
+                stack.append(index)
+            elif char == closing and stack:
+                stack.pop()
+        if not stack:
+            return None
+        return stack[-1]
+
+    def _find_block_opening_before_outdented_line(
+        self,
+        source: str,
+        limit: int,
+    ) -> int | None:
+        stack: list[tuple[int, int, int]] = []
+        offset = 0
+
+        for line in source[:limit].splitlines(keepends=True):
+            raw_line = line.rstrip("\r\n")
+            stripped = raw_line.lstrip(" ")
+            indent = len(raw_line) - len(stripped)
+
+            if stripped and not stripped.startswith("}"):
+                while stack and indent <= stack[-1][1] and offset > stack[-1][2]:
+                    return stack[-1][0]
+
+            for column, char in enumerate(raw_line):
+                absolute = offset + column
+                if char == "{":
+                    stack.append((absolute, indent, offset))
+                elif char == "}" and stack:
+                    stack.pop()
+
+            offset += len(line)
+
+        return None
+
+    def _find_previous_statement_end(self, source: str, limit: int) -> int | None:
+        index = min(limit, len(source)) - 1
+        while index >= 0 and source[index].isspace():
+            index -= 1
+        if index < 0:
+            return None
+        if source[index] in {"}", ")"}:
+            return index
+        return index
+
+    def _show_syntax_problems(
+        self,
+        diagnostics: list[Diagnostic],
+        suggestions,
+    ) -> None:
+        lines = ["LL(1): diagnostico sintactico"]
+        for diagnostic in diagnostics:
+            lines.append(f"Linea {diagnostic.line}, columna {diagnostic.column}: {diagnostic.message}")
+            if diagnostic.expected:
+                lines.append("Esperado: " + ", ".join(diagnostic.expected))
+
+        if suggestions:
+            lines.append("")
+            lines.append("Sugerencias:")
+            for suggestion in suggestions:
+                lines.append(f"- {suggestion.label}")
+
+        self.problems_panel.setPlainText("\n".join(lines))
 
     def _update_tab_title(self, editor: CodeEditor) -> None:
         path = self.editor_paths.get(editor)
