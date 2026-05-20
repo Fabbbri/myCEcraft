@@ -9,7 +9,7 @@ from .errors import CodegenError
 
 class EmitMixin:
     NOP_AFTER_CONTROL_TRANSFER = True
-    CONTROL_TRANSFER_STALL_CYCLES = 2
+    CONTROL_TRANSFER_STALL_CYCLES = 0
     NOP_CONTROL_TRANSFER = {
         "beq",
         "bne",
@@ -21,24 +21,9 @@ class EmitMixin:
     }
     RAW_STALL_CYCLES = 3
     RAW_WRITEBACK = {
-        "add",
-        "sub",
-        "sll",
-        "slt",
-        "xor",
-        "srl",
-        "sra",
-        "or",
-        "and",
-        "mul",
-        "div",
-        "addi",
-        "addiHIGH",
-        "addiSigned",
-        "lw",
-        "lb",
-        "jal",
-        "jalr",
+        # "lw",
+        # "lb", la arquitectura los hace
+
         "sllv",
         "slrv",
         "changev",

@@ -349,6 +349,10 @@ memory mem(
     .we_mem(we_memMEM), 
     .size(sizeMEM),
     .neather_mode(neather_modeMEM),
+    .we_reg(we_regMEM),                      // ← falta
+    .w_regv(w_regvMEM),                      // ← falta
+    .result_src(result_srcMEM),              // ← falta
+    .neather_wreg_src(neather_wreg_srcMEM),  // ← falta
 
     .alu_result(alu_resultMEM), 
     .rd2(rd2MEM), 

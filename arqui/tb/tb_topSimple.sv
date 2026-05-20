@@ -3,7 +3,7 @@
 module tb_topSimple;
 
     parameter int          MAX_CYCLES = 5000;
-    parameter logic [31:0] HALT_PC    = 32'h00000104;
+    parameter logic [31:0] HALT_PC    = 32'h0000006C; // freeze en 0x006C
 
     logic clk   = 0;
     logic reset = 0;
@@ -35,7 +35,7 @@ module tb_topSimple;
     endtask
 
     // =========================================================
-    //  Task: Esperar fin — con debug inline por ciclo
+    //  Task: Esperar fin
     // =========================================================
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
@@ -45,38 +45,6 @@ module tb_topSimple;
         forever begin
             @(posedge clk);
             cycles++;
-
-            // ── DEBUG: muestra solo las iteraciones del loop ──
-            // Ciclos 250-350: primera iteración del loop
-            // Ciclos 1700+:   últimas iteraciones antes del halt
-            if ((cycles >= 1 && cycles <= 30) ) begin
-                $display("c=%0d PC=%h | EX: rd1=%h rd2=%h bge=%b pc_src=%b | WB: rd=%0d wd=%h we=%b | x3=%h x4=%h x17=%h",
-                    cycles,
-                    `PC,
-                    dut.rd1EX, dut.rd2EX,
-                    dut.bgeEX, dut.pc_srcEX,
-                    dut.instrDWB, dut.wdWB, dut.we_regWB,
-                    `REGS[3], `REGS[4], `REGS[17]);
-            end
-
-            if (cycles >= 20 && cycles <= 32) begin
-                $display("c=%0d PC=%h | WB: rd=%0d wd=%h we=%b result_src=%b | alu=%h rMem=%h pc4=%h",
-                    cycles, `PC,
-                    dut.instrDWB, dut.wdWB, dut.we_regWB,
-                    dut.result_srcWB,
-                    dut.alu_resultWB,
-                    dut.rMemDataWB,
-                    dut.pc_plus4WB);
-            end
-
-            if (cycles >= 1 && cycles <= 32 ||
-                `PC >= 32'h000000F0) begin
-                $display("c=%0d PC=%h | bge=%b blt=%b beq=%b bne=%b pc_src=%b | x3=%h x4=%h",
-                    cycles, `PC,
-                    dut.bgeEX, dut.bltEX, dut.beqEX, dut.bneEX,
-                    dut.pc_srcEX,
-                    `REGS[3], `REGS[4]);
-            end
 
             if (`PC === HALT_PC) begin
                 $display("[INFO]  HALT en PC=%h  (ciclo %0d)", `PC, cycles);
@@ -132,11 +100,11 @@ module tb_topSimple;
         repeat (4) @(posedge clk);
 
         $display("\n  --- Registros clave ---");
-        check_reg(11, 32'h00000005, "x11");
-        check_reg( 3, 32'h00000005, "x3");
-        check_reg( 5, 32'h00000005, "x5");
-        check_reg( 2, 32'h00000000, "x2");
-        check_reg( 0, 32'h00000000, "x0");
+        check_reg(11, 32'h00000005, "x11"); // return value
+        check_reg( 3, 32'h00000005, "x3");  // x al final del loop
+        check_reg( 5, 32'h00000005, "x5");  // copia de x
+        check_reg( 2, 32'h00007ff0, "x2");  // stack pointer restaurado
+        check_reg( 0, 32'h00000000, "x0");  // siempre 0
     endtask
 
     initial begin
@@ -144,7 +112,7 @@ module tb_topSimple;
         $display("         CRAFT21 ARCHITECTURE TESTBENCH");
         $display("============================================================");
 
-        $dumpfile("sim/waves/tb_top.vcd");
+        $dumpfile("sim/waves/tb_topSimple.vcd");
         $dumpvars(0, tb_topSimple);
 
         run_test("while loop x<5, return x=5");
