@@ -498,11 +498,7 @@ class SymbolTable:
         memory = symbol.memory_info
         segment = memory.segment or "-"
         if memory.segment == "STACK" and memory.offset is not None:
-            if frame_size is not None:
-                address = f"0x{frame_size + memory.offset:04X}"
-            else:
-                base = FP.asm()
-                address = f"{base}{memory.offset:+}"
+            address = f"runtime({FP.asm()}{memory.offset:+})"
         else:
             address = f"0x{memory.address:04X}" if memory.address is not None else "-"
 

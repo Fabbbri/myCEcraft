@@ -15,6 +15,8 @@ DEFAULT_OUTPUT_DIR = Path("compi") / "output"
 DEFAULT_ASM_DIR = DEFAULT_OUTPUT_DIR / "asm_unresolved"
 DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
 DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
+DEFAULT_AST_DIR = DEFAULT_OUTPUT_DIR / "ast"
+DEFAULT_SYMBOLS_DIR = DEFAULT_OUTPUT_DIR / "symbols"
 EXPANDED_OUTPUT_DIR = DEFAULT_OUTPUT_DIR / "expanded"
 
 INVOKE_PATTERN = re.compile(
@@ -226,7 +228,10 @@ def main() -> int:
         ast = parser.parse()
 
         if show_ast:
-            print(format_ast(ast))
+            DEFAULT_AST_DIR.mkdir(parents=True, exist_ok=True)
+            ast_path = DEFAULT_AST_DIR / f"{input_path.stem}.ast.txt"
+            ast_path.write_text(format_ast(ast) + "\n", encoding="utf-8")
+            print(f"AST generado: {ast_path}")
 
         semantic = SemanticAnalyzer(filename=str(input_path))
         symbol_table = semantic.analyze(ast)
@@ -283,13 +288,23 @@ def main() -> int:
                     print(f"Codigo binario generado: {bin_path}")
                     print(f"Listado generado: {listing_path}")
 
-        if show_symbols and show_resolved:
-            print("\n=== Labels resueltas (.text) ===")
-            for label, pc in sorted(resolved.labels.items(), key=lambda item: item[1]):
-                print(f"{label:28} pc=0x{pc:04X}")
-
         if show_symbols:
-            print(symbol_table.dump())
+            DEFAULT_SYMBOLS_DIR.mkdir(parents=True, exist_ok=True)
+            symbol_sections: list[str] = []
+
+            if show_resolved:
+                symbol_sections.append("=== Labels resueltas (.text) ===")
+                symbol_sections.extend(
+                    f"{label:28} pc=0x{pc:04X}"
+                    for label, pc in sorted(resolved.labels.items(), key=lambda item: item[1])
+                )
+                symbol_sections.append("")
+
+            symbol_sections.append(symbol_table.dump())
+
+            symbols_path = DEFAULT_SYMBOLS_DIR / f"{input_path.stem}.symbols.txt"
+            symbols_path.write_text("\n".join(symbol_sections) + "\n", encoding="utf-8")
+            print(f"Tabla de simbolos generada: {symbols_path}")
         elif (
             not show_tokens
             and not show_ast

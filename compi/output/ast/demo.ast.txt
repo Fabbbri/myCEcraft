@@ -1,0 +1,27 @@
+Program(pragmas=['@EnterCraftWorld']) @ 1:1
+  declarations: [
+    FunctionDeclaration(name='main') @ 2:1
+      return_type: Type(int) @ 2:7
+      parameters: [
+      ]
+      body: Block @ 2:18
+        statements: [
+          VariableDeclaration(name='x') @ 3:5
+            type: Type(int) @ 3:7
+            initializer: Literal(type='int', value=0) @ 3:13
+          WhileStatement @ 5:5
+            condition: BinaryExpression(operator='<') @ 5:14
+              left: Identifier(name='x') @ 5:12
+              right: Literal(type='int', value=5) @ 5:16
+            body: Block @ 5:19
+              statements: [
+                Assignment @ 6:9
+                  target: Identifier(name='x') @ 6:9
+                  value: BinaryExpression(operator='+') @ 6:15
+                    left: Identifier(name='x') @ 6:13
+                    right: Literal(type='int', value=1) @ 6:17
+              ]
+          ReturnStatement @ 9:5
+            value: Identifier(name='x') @ 9:12
+        ]
+  ]
