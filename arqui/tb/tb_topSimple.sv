@@ -32,6 +32,9 @@ module tb_topSimple;
             dut.stallIF,
             dut.flushD,
             dut.flushE);
+
+        $display("[PIPE] pcF=%08h instrF=%08h | pcDE=%08h instrDE=%08h",
+         dut.pcF, dut.instrF, dut.pcDE, dut.instrDE);
     endtask
 
     // =========================================================
