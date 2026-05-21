@@ -208,7 +208,7 @@ assign w_regvOUT = w_regv; // DIRECCION CONTR
 
 // NON CONTROL SIGNALS
 
-assign rd2OUT = rd2E;
+assign rd2OUT = srcB_hz;
 assign rdv2OUT = rdv2E;
 
 assign instrDOUT = instrD;
