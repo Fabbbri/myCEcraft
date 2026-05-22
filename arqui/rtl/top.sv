@@ -96,7 +96,6 @@ issue Issue(
     .clk(clk),
     .reset(reset),
     .stallIF(stallIF),
-    .stallD(stallD),
 
     .new_addr(newpc),
 

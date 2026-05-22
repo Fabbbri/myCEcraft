@@ -1,7 +1,6 @@
 module issue(
     input logic clk, reset, stallIF, // hazard
     input logic [31:0] new_addr,
-    input logic flushD, stallD, // hazards adelantados para instr por ser ROM sincrona
 
     output logic [31:0] addr, pc_plus4F, instr
 );
@@ -12,15 +11,6 @@ module issue(
 
 logic pc_en;
 logic [31:0] addr_aux;
-logic [31:0] addr_delayed; // PC que corresponde a la instr que sale ahora
-
-// Retener el PC un ciclo para que sea coherente con instr síncrona
-always_ff @(posedge clk or posedge reset) begin
-    if (reset)
-        addr_delayed <= 32'b0;
-    else if (!stallIF)
-        addr_delayed <= addr_aux;
-end
 
 pc pc_reg(
     .clk(clk),
@@ -38,7 +28,6 @@ pc pc_reg(
 
 instr_rom ROM(
     .clk(clk), // ROM síncrona
-    .stall(stallD),   // viene de hazard_unit
     .addr(addr_aux),
     .instr(instr)
 );
@@ -48,7 +37,7 @@ instr_rom ROM(
 // ==========================================================
 
 sumador_pc SUMPC(
-    .addr(addr_delayed),
+    .addr(addr_aux),
     .pcplus4(pc_plus4F)
 );
 
@@ -69,6 +58,6 @@ pc_decoder pcDec(
 //                       OTRAS SEÑALES
 // ==========================================================
 
-assign addr = addr_delayed; // PC coherente con instr
+assign addr = addr_aux;
 
 endmodule

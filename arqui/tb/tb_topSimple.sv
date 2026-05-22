@@ -5,6 +5,8 @@ module tb_topSimple;
     parameter int          MAX_CYCLES = 5000;
     parameter logic [31:0] HALT_PC    = 32'h0000006C; // freeze en 0x006C
 
+    // h00000160 para Factorial.hex
+
     logic clk   = 0;
     logic reset = 0;
     int tests_passed = 0;
@@ -109,6 +111,13 @@ module tb_topSimple;
         check_reg( 2, 32'h00007ff0, "x2");  // stack pointer restaurado
         check_reg( 0, 32'h00000000, "x0");  // siempre 0
     endtask
+
+    always @(posedge clk) begin
+        if (!dut.reset)
+            $display("[IF] addr_aux=%08h instrROM=%08h | instrF=%08h pcF=%08h pc4F=%08h",
+                    dut.Issue.addr_aux, dut.Issue.ROM.instr,
+                    dut.instrF, dut.pcF, dut.pc4F, `REGS[2]);
+    end
 
     initial begin
         $display("============================================================");

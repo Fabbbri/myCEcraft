@@ -158,7 +158,7 @@ module tb_top;
         check_reg( 0, 32'h00000000, "x0");
 
         // TEST 3
-        run_test("factorial(5) = 120", "programs/factorial.hex", 32'h0000016C);
+        run_test("factorial(5) = 120", "programs/factorial.hex", 32'h00000160);
         $display("\n  --- Registros clave ---");
         check_reg(11, 32'h00000078, "x11");  // 5! = 120 = 0x78
         check_reg( 2, 32'h00000000, "x2");

@@ -12,21 +12,23 @@ module if_id_pipe (
     output logic [31:0] pc_out
 );
 
-assign instr_out = instr_in; // Stall y nop se hacen en ROM
-
 always_ff @(posedge clk or posedge reset) begin
     if (reset) begin
+        instr_out <= 32'h00580000;
         pc_out    <= 32'b0;
         addr_out  <= 32'b0;
     end else if (flushD) begin
         pc_out    <= 32'b0;
         addr_out  <= 32'b0;
+        instr_out <= 32'h00580000;
     end else if (stallD) begin
         pc_out    <= pc_out;
         addr_out  <= addr_out;
+        instr_out <= instr_out;
     end else begin
         pc_out    <= pc_in;
         addr_out  <= addr_in;
+        instr_out <= instr_in;
     end
 end
 
