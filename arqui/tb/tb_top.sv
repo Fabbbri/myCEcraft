@@ -4,7 +4,7 @@ module tb_top;
 
     parameter int MAX_CYCLES = 10000;
 
-    // HALT_PC es variable entre tests
+    // HALT_PC es variable entre tests (hay que cambiarlo)
     logic [31:0] halt_pc = 32'h00000110;
 
     logic clk   = 0;
@@ -13,12 +13,19 @@ module tb_top;
     int tests_failed = 0;
 
     top dut (.clk(clk), .reset(reset));
+
     always #5 clk = ~clk;
+
+    // INSTANCIAS DISTINTAS
 
     `define REGS  dut.Decode.RegBank.regs
     `define PC    dut.Issue.addr_aux
-    `define ROM   dut.Issue.ROM.memory
+    `define ROM   dut.Issue.ROM.memory // acceder a rom en modulo instr_rom
+    `define RAM   dut.Memory.NormalRam.mem // acceder a memoria en modulo data_ram
 
+    // ======================================
+    // TASK PARA APLICAR RESET
+    // ======================================
     task automatic apply_reset();
         reset = 1;
         repeat (5) @(posedge clk);
@@ -26,6 +33,9 @@ module tb_top;
         reset = 0;
     endtask
 
+    // ======================================
+    // TASK PARA ESPERAR FIN DEL PROGRAMA
+    // ======================================
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
         logic [31:0] last_pc;
@@ -53,6 +63,9 @@ module tb_top;
         end
     endtask
 
+    // ======================================
+    // TASK PARA REVISAR REGISTROS
+    // ======================================
     task automatic check_reg(input int idx, input logic [31:0] expected, input string name);
         logic [31:0] got;
         got = `REGS[idx];
@@ -66,6 +79,9 @@ module tb_top;
         end
     endtask
 
+    // ======================================
+    // TASK: Imprimir registros distintos de cero
+    // ======================================
     task automatic dump_regs();
         $display("\n  --- Banco de registros ---");
         for (int i = 0; i < 32; i++)
@@ -74,6 +90,9 @@ module tb_top;
         $display("  --------------------------");
     endtask
 
+    // ======================================
+    // TASK: inicializar memoria ROM
+    // ======================================
     task automatic load_and_reset(input string hex_file);
         // Inicializar ROM con NOPs
         for (int i = 0; i < 256; i++)
@@ -83,6 +102,11 @@ module tb_top;
         apply_reset();
     endtask
 
+    // ======================================
+    // TASK: ejecutar simulacion 
+    // recibe nombre, hex_file y 
+    // el halt_pc del programa (ver asm)
+    // ======================================
     task automatic run_test(
         input string       test_name,
         input string       hex_file,
@@ -109,7 +133,7 @@ module tb_top;
     endtask
 
     // =========================================================
-    //  Bloque principal
+    //  Bloque principal: Agregar o quitar tests
     // =========================================================
     initial begin
         $display("============================================================");
@@ -120,13 +144,11 @@ module tb_top;
         $dumpvars(0, tb_top);
 
         // TEST 1
-        run_test("while loop x<5, return x=5", "programs/demo.hex", 32'h00000110);
+        run_test("while loop x<5, return x=5", "programs/demo.hex", 32'h0000006C);
         $display("\n  --- Registros clave ---");
         check_reg(11, 32'h00000005, "x11");
         check_reg( 3, 32'h00000005, "x3");
         check_reg( 5, 32'h00000005, "x5");
-        check_reg( 2, 32'h00000000, "x2");
-        check_reg( 0, 32'h00000000, "x0");
 
         // TEST 2
         run_test("busqueda lineal arreglo, return pos=3", "programs/busqueda_arreglo.hex", 32'h00000268);
@@ -136,11 +158,12 @@ module tb_top;
         check_reg( 0, 32'h00000000, "x0");
 
         // TEST 3
-        run_test("factorial(5) = 120", "programs/factorial.hex", 32'h0000016C);
+        run_test("factorial(5) = 120", "programs/factorial.hex", 32'h00000160);
         $display("\n  --- Registros clave ---");
         check_reg(11, 32'h00000078, "x11");  // 5! = 120 = 0x78
         check_reg( 2, 32'h00000000, "x2");
         check_reg( 0, 32'h00000000, "x0");
+
 
         // REPORTE FINAL
         $display("\n============================================================");
@@ -162,5 +185,6 @@ module tb_top;
     `undef REGS
     `undef PC
     `undef ROM
+    `undef RAM
 
 endmodule

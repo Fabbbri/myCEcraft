@@ -1,0 +1,32 @@
+=== Labels resueltas (.text) ===
+.L_codegen_0_enderExit       pc=0x0018
+main                         pc=0x0018
+.L0_while_start              pc=0x0038
+.L1_while_end                pc=0x0058
+.L_codegen_1_main_end        pc=0x0064
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl            seg   addr    off  size  res
+  ----  --------  ----  --------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   demo.craft:2:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=4)
+    symbols:
+    name             kind      type  decl            seg    addr            off  size  res
+    ---------------  --------  ----  --------------  -----  --------------  ---  ----  ---
+    x                VARIABLE  int   demo.craft:3:5  STACK  runtime(x17-4)  -4   4     yes
+    .L0_while_start  LABEL     None  demo.craft:5:5  TEXT   0x0038          -    0     yes
+    .L1_while_end    LABEL     None  demo.craft:5:5  TEXT   0x0058          -    0     yes
+
+    [scope 2] LOOP 'while'
+      symbols: (none)

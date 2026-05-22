@@ -1,0 +1,104 @@
+=== Labels resueltas (.text) ===
+.L_codegen_0_enderExit       pc=0x0018
+main                         pc=0x0018
+.L6_if_else                  pc=0x01D0
+.L7_if_end                   pc=0x01D0
+.L4_if_else                  pc=0x01D4
+.L5_if_end                   pc=0x01D4
+.L_codegen_1_main_end        pc=0x01E0
+tea_encrypt                  pc=0x01EC
+.L0_for_start                pc=0x024C
+.L1_for_end                  pc=0x0394
+.L_codegen_2_tea_encrypt_end pc=0x03CC
+tea_decrypt                  pc=0x03DC
+.L2_for_start                pc=0x0444
+.L3_for_end                  pc=0x058C
+.L_codegen_3_tea_decrypt_end pc=0x05C4
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name         kind      type              decl            seg   addr    off  size  res
+  -----------  --------  ----------------  --------------  ----  ------  ---  ----  ---
+  tea_encrypt  FUNCTION  void              tea.craft:9:1   TEXT  0x01EC  -    0     yes
+  tea_decrypt  FUNCTION  void              tea.craft:32:1  TEXT  0x03DC  -    0     yes
+  main         FUNCTION  int               tea.craft:55:1  TEXT  0x0018  -    0     yes
+  key          VARIABLE  chest[uint32, 4]  tea.craft:2:1   DATA  0x8000  -    16    yes
+  plain        VARIABLE  chest[uint32, 2]  tea.craft:3:1   DATA  0x8010  -    8     yes
+  cipher       VARIABLE  chest[uint32, 2]  tea.craft:4:1   DATA  0x8018  -    8     yes
+  roundtrip    VARIABLE  chest[uint32, 2]  tea.craft:5:1   DATA  0x8020  -    8     yes
+  DELTA        VARIABLE  uint32            tea.craft:6:1   DATA  0x8028  -    4     yes
+  SUM_INIT     VARIABLE  uint32            tea.craft:7:1   DATA  0x802C  -    4     yes
+
+  [scope 1] FUNCTION tea_encrypt (stack_size=48)
+    symbols:
+    name     kind       type              decl            seg    addr             off  size  res
+    -------  ---------  ----------------  --------------  -----  ---------------  ---  ----  ---
+    v        PARAMETER  chest[uint32, 2]  tea.craft:9:24  STACK  runtime(x17-4)   -4   4     yes
+    tea_key  PARAMETER  chest[uint32, 4]  tea.craft:9:44  STACK  runtime(x17-8)   -8   4     yes
+    v0       VARIABLE   uint32            tea.craft:10:5  STACK  runtime(x17-12)  -12  4     yes
+    v1       VARIABLE   uint32            tea.craft:11:5  STACK  runtime(x17-16)  -16  4     yes
+    sum      VARIABLE   uint32            tea.craft:12:5  STACK  runtime(x17-20)  -20  4     yes
+
+    [scope 2] LOOP 'for'
+      symbols:
+      name           kind      type    decl             seg    addr             off  size  res
+      -------------  --------  ------  ---------------  -----  ---------------  ---  ----  ---
+      .L0_for_start  LABEL     None    tea.craft:14:5   TEXT   0x024C           -    0     yes
+      .L1_for_end    LABEL     None    tea.craft:14:5   TEXT   0x0394           -    0     yes
+      i              VARIABLE  int     tea.craft:14:10  STACK  runtime(x17-24)  -24  4     yes
+      left0          VARIABLE  uint32  tea.craft:17:9   STACK  runtime(x17-28)  -28  4     yes
+      mid0           VARIABLE  uint32  tea.craft:18:9   STACK  runtime(x17-32)  -32  4     yes
+      right0         VARIABLE  uint32  tea.craft:19:9   STACK  runtime(x17-36)  -36  4     yes
+      left1          VARIABLE  uint32  tea.craft:22:9   STACK  runtime(x17-40)  -40  4     yes
+      mid1           VARIABLE  uint32  tea.craft:23:9   STACK  runtime(x17-44)  -44  4     yes
+      right1         VARIABLE  uint32  tea.craft:24:9   STACK  runtime(x17-48)  -48  4     yes
+
+  [scope 3] FUNCTION tea_decrypt (stack_size=48)
+    symbols:
+    name     kind       type              decl             seg    addr             off  size  res
+    -------  ---------  ----------------  ---------------  -----  ---------------  ---  ----  ---
+    v        PARAMETER  chest[uint32, 2]  tea.craft:32:24  STACK  runtime(x17-4)   -4   4     yes
+    tea_key  PARAMETER  chest[uint32, 4]  tea.craft:32:44  STACK  runtime(x17-8)   -8   4     yes
+    v0       VARIABLE   uint32            tea.craft:33:5   STACK  runtime(x17-12)  -12  4     yes
+    v1       VARIABLE   uint32            tea.craft:34:5   STACK  runtime(x17-16)  -16  4     yes
+    sum      VARIABLE   uint32            tea.craft:35:5   STACK  runtime(x17-20)  -20  4     yes
+
+    [scope 4] LOOP 'for'
+      symbols:
+      name           kind      type    decl             seg    addr             off  size  res
+      -------------  --------  ------  ---------------  -----  ---------------  ---  ----  ---
+      .L2_for_start  LABEL     None    tea.craft:37:5   TEXT   0x0444           -    0     yes
+      .L3_for_end    LABEL     None    tea.craft:37:5   TEXT   0x058C           -    0     yes
+      i              VARIABLE  int     tea.craft:37:10  STACK  runtime(x17-24)  -24  4     yes
+      left1          VARIABLE  uint32  tea.craft:38:9   STACK  runtime(x17-28)  -28  4     yes
+      mid1           VARIABLE  uint32  tea.craft:39:9   STACK  runtime(x17-32)  -32  4     yes
+      right1         VARIABLE  uint32  tea.craft:40:9   STACK  runtime(x17-36)  -36  4     yes
+      left0          VARIABLE  uint32  tea.craft:43:9   STACK  runtime(x17-40)  -40  4     yes
+      mid0           VARIABLE  uint32  tea.craft:44:9   STACK  runtime(x17-44)  -44  4     yes
+      right0         VARIABLE  uint32  tea.craft:45:9   STACK  runtime(x17-48)  -48  4     yes
+
+  [scope 5] FUNCTION main (stack_size=0)
+    symbols:
+    name         kind   type  decl            seg   addr    off  size  res
+    -----------  -----  ----  --------------  ----  ------  ---  ----  ---
+    .L4_if_else  LABEL  None  tea.craft:66:5  TEXT  0x01D4  -    0     yes
+    .L5_if_end   LABEL  None  tea.craft:66:5  TEXT  0x01D4  -    0     yes
+
+    [scope 6] CONDITIONAL 'if'
+      symbols:
+      name         kind   type  decl            seg   addr    off  size  res
+      -----------  -----  ----  --------------  ----  ------  ---  ----  ---
+      .L6_if_else  LABEL  None  tea.craft:67:9  TEXT  0x01D0  -    0     yes
+      .L7_if_end   LABEL  None  tea.craft:67:9  TEXT  0x01D0  -    0     yes
+
+      [scope 7] CONDITIONAL 'if'
+        symbols: (none)

@@ -10,12 +10,12 @@ python3 compi/main.py --tokens compi/ejemplos/demo.craft
 ```bash
 python3 compi/main.py -t compi/ejemplos/demo.craft
 ```
-- Imprimir AST
+- Guardar AST en `compi/output/ast/<archivo>.ast.txt`
 ```bash
 python3 compi/main.py --ast compi/ejemplos/demo.craft
 ```
 
-- Imprimir tabla de simbolos con referencias sin resolver:
+- Guardar tabla de simbolos con referencias sin resolver en `compi/output/symbols/<archivo>.symbols.txt`:
 ```bash
 python3 compi/main.py -m compi/ejemplos/demo.craft
 ```
@@ -25,7 +25,7 @@ python3 compi/main.py -m compi/ejemplos/demo.craft
 python3 compi/main.py -r compi/ejemplos/demo.craft
 ```
 
-- Generar ensamblador resuelto e imprimir la tabla de simbolos actualizada con listado de labels:
+- Generar ensamblador resuelto y guardar la tabla de simbolos actualizada con listado de labels:
 ```bash
 python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
 ```
@@ -65,19 +65,20 @@ El archivo expandido se genera como:
 compi/output/expanded/<archivo>.expanded.craft
 ```
 
-## Tabla de simbolos: direccion en STACK
+## Tabla de simbolos: variables en STACK
 
-Para variables locales en `STACK`, la tabla muestra la direccion ya calculada
-como offset relativo al `sp` despues del prologo de la funcion. Por ejemplo,
-si en ensamblador se ve:
+Para variables locales en `STACK`, la tabla no muestra una direccion absoluta
+del dump final. Muestra la direccion efectiva como expresion de runtime basada
+en el `fp` de la funcion activa. Por ejemplo, si en ensamblador se ve:
 
 ```riscv
 lw x3, -4(x17) ; x
 ```
 
-`x17` es el `fp` (frame pointer) y el prologo hace `addi x17, x2, frame_size`.
-Entonces la direccion efectiva es `sp + (frame_size - 4)`. En la tabla se
-imprime ese valor en hexadecimal (por ejemplo `0x000C`).
+`x17` es el `fp` (frame pointer). En la tabla se imprime como
+`runtime(x17-4)`, porque esa direccion solo se puede resolver mientras la
+funcion esta activa. Despues del epilogo, el `fp` se restaura y el dump final no
+permite asociar de forma confiable esa variable local con una direccion unica.
 
 
 ## 1. Análisis léxico
@@ -261,7 +262,8 @@ usá `-m/--symbols` junto con `-o`:
 python compi/main.py -m -o compi/demo.bin compi/demo.craft
 ```
 
-Esto imprime:
+Esto genera:
+- `compi/output/symbols/<archivo>.symbols.txt` con la tabla en texto monoespaciado.
 - la salida habitual de generación (`.hex`, `.bin`, `.lst`), y
 - el dump de la tabla de símbolos (scopes + símbolos + memoria).
 

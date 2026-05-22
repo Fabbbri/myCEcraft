@@ -1,11 +1,13 @@
 module instr_rom #(
-    parameter DEPTH = 1024 // Tamaño de la memoria
+    parameter DEPTH = 16384 // Tamaño de la memoria
 )(
-    input  logic [31:0] addr,   // Dirección en bytes (PC)
-    output logic [31:0] instr   // Instrucción de 32 bits
+    input  logic        clk,
+    input  logic [31:0] addr, // Dirección en bytes (PC)
+    output logic [31:0] instr // Instrucción de 32 bits
 );
 
     // Se accede por palabra (32 bits, 4 bytes)
+    // (16384 palabras de 32 bits)
 
     // Memoria de instrucciones
     logic [31:0] memory [0:DEPTH-1];
@@ -16,17 +18,17 @@ module instr_rom #(
         integer i;
 
         // Inicialización segura con NOP (ADD x0, x0, x0 en Craft21)
-        for (i = 0; i < DEPTH; i = i + 1) begin
+        for (i = 0; i < DEPTH; i = i + 1)
             memory[i] = 32'h00580000; // 0x00580000 es NOP en Craft 21, en RISCV es 0x00000013;
-        end
 
         // Cargar programa
-        $display("📥 Cargando programa desde programs/program.hex...");
+        $display("📥 Cargando programa...");
         $readmemh("programs/program.hex", memory);
     end
 
-    // Acceso a memoria (alineado a palabra)
-    assign instr = (addr[31:2] < DEPTH) ? memory[addr[31:2]] : 32'h00580000;
-    // index = addr / 4, es lo mismo que shift 2
+    // Acceso a memoria en el ciclo negativo (alineado a palabra)
+    always_ff @(negedge clk) begin
+        instr <= (addr[31:2] < DEPTH) ? memory[addr[31:2]] : 32'h00580000;
+    end
 
 endmodule

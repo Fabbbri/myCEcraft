@@ -224,9 +224,11 @@ assign rs2EOUT = rs2EIN;
 assign instrDOUT_hz = instrD;
 assign result_src_0 = result_src[0];
 
+/*
 always @(*) begin
     $display("[EX] srcA=%h srcB=%h alu_ctrl=%b alu_src=%b immE=%h result=%h",
         srcA, srcB, alu_control, alu_src, immE, alu_result);
 end
+*/
 
 endmodule

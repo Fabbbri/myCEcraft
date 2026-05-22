@@ -25,7 +25,9 @@ pc pc_reg(
 //                       INSTR ROM
 // ==========================================================
 
+
 instr_rom ROM(
+    .clk(clk), // ROM síncrona
     .addr(addr_aux),
     .instr(instr)
 );

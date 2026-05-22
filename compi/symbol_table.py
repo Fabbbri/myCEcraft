@@ -451,15 +451,26 @@ class SymbolTable:
         """
         Retorna una representación legible de toda la jerarquía de scopes.
         """
-        lines: list[str] = []
+        lines: list[str] = [
+            "SYMBOL TABLE",
+            "============",
+            "Legend:",
+            "  TEXT  addr is a program counter / code address.",
+            "  DATA  addr is an absolute DRAM address.",
+            "  VAULT addr is an absolute Vault memory address.",
+            "  STACK addr is runtime(fp + off); exact only while that frame is active.",
+            "  res=yes means the compiler resolved the storage/address metadata.",
+            "",
+        ]
         self._dump_scope(self.global_scope, lines)
         return "\n".join(lines)
 
     def _dump_scope(self, scope: Scope, lines: list[str]) -> None:
         indent = "  " * scope.level
-        lines.append(
-            f"{indent}Scope(id={scope.id}, name={scope.name!r}, kind={scope.kind.name})"
-        )
+        if lines and lines[-1] != "":
+            lines.append("")
+
+        lines.append(f"{indent}{self._scope_title(scope)}")
 
         if scope.symbols:
             frame_size = self._find_enclosing_frame_size(scope)
@@ -480,13 +491,25 @@ class SymbolTable:
             ]
             widths = self._column_widths([header_cells, *rows])
             header = self._format_row(header_cells, widths)
+            lines.append(f"{indent}  symbols:")
             lines.append(f"{indent}  {header}")
             lines.append(f"{indent}  {self._format_row(['-' * w for w in widths], widths)}")
             for row in rows:
                 lines.append(f"{indent}  {self._format_row(row, widths)}")
+        else:
+            lines.append(f"{indent}  symbols: (none)")
 
         for child in scope.children:
             self._dump_scope(child, lines)
+
+    def _scope_title(self, scope: Scope) -> str:
+        if scope.kind == ScopeKind.GLOBAL:
+            return f"[scope {scope.id}] GLOBAL"
+
+        if scope.kind == ScopeKind.FUNCTION and scope.name.startswith("function:"):
+            return f"[scope {scope.id}] FUNCTION {scope.name[len('function:'):]}"
+
+        return f"[scope {scope.id}] {scope.kind.name} {scope.name!r}"
 
     def _format_symbol_row(
         self,
@@ -498,11 +521,7 @@ class SymbolTable:
         memory = symbol.memory_info
         segment = memory.segment or "-"
         if memory.segment == "STACK" and memory.offset is not None:
-            if frame_size is not None:
-                address = f"0x{frame_size + memory.offset:04X}"
-            else:
-                base = FP.asm()
-                address = f"{base}{memory.offset:+}"
+            address = f"runtime({FP.asm()}{memory.offset:+})"
         else:
             address = f"0x{memory.address:04X}" if memory.address is not None else "-"
 
