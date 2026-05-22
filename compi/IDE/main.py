@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal
+from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal, QTimer
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -44,6 +44,108 @@ APP_TITLE = "Craft Studio"
 IDE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = IDE_DIR.parent.parent
 LOGO_PATH = IDE_DIR / "CS.png"
+READY_OUTPUT_TEXT = "Listo para compilar."
+NO_PROBLEMS_TEXT = "No hay errores ni advertencias."
+PROBLEM_OUTPUT_MARKER = "Revise la pestana Problemas."
+ERROR_DEMO_FILE = "ide_error_demo.craft"
+ERROR_DEMO_CASES = [
+    (
+        "Numero invalido",
+        """@EnterCraftWorld
+craft:int main(){
+    x:int = 0;
+
+    while (x < 5awd){
+        x = x + 1;
+    }
+
+    return x;
+}
+""",
+    ),
+    (
+        "Falta punto y coma y llave",
+        """@EnterCraftWorld
+craft:int main(){
+    x:int = 0;
+
+    while (x < 5){
+        x = x + 1;
+    }
+
+    return x
+""",
+    ),
+    (
+        "Tipo desconocido y llave faltante",
+        """@EnterCraftWorld
+craft:int main(){
+    x:intadaw = 0;
+
+    while (x < 5){
+        x = x + 1;
+    }
+
+    return x;
+""",
+    ),
+    (
+        "Return incompleto",
+        """@EnterCraftWorld
+craft:int main(){
+    return
+}
+""",
+    ),
+    (
+        "Parentesis faltante",
+        """@EnterCraftWorld
+craft:int main(){
+    x:int = 0;
+
+    while (x < 5{
+        x = x + 1;
+    }
+
+    return x;
+}
+""",
+    ),
+    (
+        "Variable no declarada",
+        """@EnterCraftWorld
+craft:int main(){
+    return y;
+}
+""",
+    ),
+    (
+        "Aridad incorrecta",
+        """@EnterCraftWorld
+craft:int suma(a:int, b:int){
+    return a + b;
+}
+
+craft:int main(){
+    return summon:suma(1);
+}
+""",
+    ),
+    (
+        "Programa valido",
+        """@EnterCraftWorld
+craft:int main(){
+    x:int = 0;
+
+    while (x < 5){
+        x = x + 1;
+    }
+
+    return x;
+}
+""",
+    ),
+]
 
 
 def make_close_icon(color: str) -> QIcon:
@@ -57,6 +159,26 @@ def make_close_icon(color: str) -> QIcon:
     painter.setPen(pen)
     painter.drawLine(4, 4, 10, 10)
     painter.drawLine(10, 4, 4, 10)
+    painter.end()
+
+    return QIcon(pixmap)
+
+
+def make_problem_badge_icon(count: int) -> QIcon:
+    pixmap = QPixmap(20, 20)
+    pixmap.fill(Qt.transparent)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setBrush(QColor("#F14C4C"))
+    painter.setPen(Qt.NoPen)
+    painter.drawEllipse(1, 1, 18, 18)
+
+    painter.setPen(QColor("#FFFFFF"))
+    font = QFont("Inter", 8)
+    font.setBold(True)
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignCenter, "9+" if count > 9 else str(count))
     painter.end()
 
     return QIcon(pixmap)
@@ -356,6 +478,11 @@ class MainWindow(QMainWindow):
         self.open_editors: dict[Path, CodeEditor] = {}
         self.editor_paths: dict[CodeEditor, Path] = {}
         self.editor_diagnostics: dict[CodeEditor, list[Diagnostic]] = {}
+        self.error_demo_timer = QTimer(self)
+        self.error_demo_timer.setInterval(2600)
+        self.error_demo_timer.timeout.connect(self._advance_error_demo)
+        self.error_demo_index = 0
+        self.error_demo_path: Path | None = None
         self._loading_editor = False
 
         self.setWindowTitle(APP_TITLE)
@@ -428,6 +555,7 @@ class MainWindow(QMainWindow):
             ("Abrir carpeta", self.open_folder_dialog),
             ("Abrir archivo", self.open_file_dialog),
             ("Guardar", self.save_current_file),
+            ("Demo errores", self.toggle_error_demo),
             ("Artefactos", self.show_artifacts_tab),
         ]
 
@@ -439,6 +567,8 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(handler)
             layout.addWidget(button)
+            if label == "Demo errores":
+                self.error_demo_button = button
 
         self.compile_button = QPushButton("Compilar")
         self.compile_button.setObjectName("PrimaryButton")
@@ -523,8 +653,7 @@ class MainWindow(QMainWindow):
         self.file_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.file_list.itemActivated.connect(self._open_file_from_item)
         self.file_list.itemClicked.connect(self._open_file_from_item)
-        layout.addWidget(self.file_list)
-        layout.addStretch(1)
+        layout.addWidget(self.file_list, 1)
 
         self.sidebar_status = QLabel("Workspace listo")
         self.sidebar_status.setObjectName("SidebarHint")
@@ -545,12 +674,14 @@ class MainWindow(QMainWindow):
 
         self.output_tabs = QTabWidget()
         self.output_tabs.setObjectName("OutputTabs")
-        self.output_panel = self._build_output_panel("Listo para compilar.")
-        self.problems_panel = self._build_output_panel("No hay errores ni advertencias.")
+        self.output_tabs.tabBar().setIconSize(QSize(20, 20))
+        self.output_panel = self._build_output_panel(READY_OUTPUT_TEXT)
+        self.problems_panel = self._build_output_panel(NO_PROBLEMS_TEXT)
         self.artifacts_panel = self._build_output_panel("Sin artefactos generados aun.")
         self.output_tabs.addTab(self.output_panel, "Salida")
         self.output_tabs.addTab(self.problems_panel, "Problemas")
         self.output_tabs.addTab(self.artifacts_panel, "Artefactos")
+        self._update_problem_tab_badge(0)
 
         splitter = QSplitter(Qt.Vertical)
         splitter.setObjectName("EditorSplitter")
@@ -737,7 +868,8 @@ class MainWindow(QMainWindow):
 
         path = self.editor_paths[editor]
         self.output_panel.clear()
-        self.problems_panel.setPlainText("No hay errores ni advertencias.")
+        self.problems_panel.setPlainText(NO_PROBLEMS_TEXT)
+        self._set_problem_count(0)
         self.artifacts_panel.setPlainText("Compilando...")
         self.output_tabs.setCurrentWidget(self.output_panel)
         self.compiler.compile(path)
@@ -746,7 +878,9 @@ class MainWindow(QMainWindow):
         index = self.editor_tabs.indexOf(editor)
         if index == -1:
             return
+        self.close_editor_at_index(index)
 
+    def close_editor_at_index(self, index: int) -> None:
         widget = self.editor_tabs.widget(index)
         if not isinstance(widget, CodeEditor):
             return
@@ -763,19 +897,20 @@ class MainWindow(QMainWindow):
     def _build_tab_close_button(self, editor: CodeEditor) -> QWidget:
         container = QWidget()
         container.setObjectName("TabCloseContainer")
-        container.setFixedSize(26, 24)
+        container.setFixedSize(28, 22)
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(4, 3, 0, 3)
+        layout.setContentsMargins(0, 2, 10, 2)
         layout.setSpacing(0)
 
         button = QToolButton()
         button.setObjectName("TabCloseButton")
-        button.setIcon(make_close_icon("#969696"))
-        button.setIconSize(QSize(14, 14))
-        button.setToolTip("Cerrar archivo")
+        button.setIcon(make_close_icon("#AFAFAF"))
+        button.setIconSize(QSize(12, 12))
+        button.setFixedSize(16, 16)
+        button.setToolTip("")
         button.setCursor(Qt.PointingHandCursor)
         button.clicked.connect(lambda _checked=False, current=editor: self.close_editor(current))
-        layout.addWidget(button, 0, Qt.AlignCenter)
+        layout.addWidget(button, 0, Qt.AlignLeft | Qt.AlignVCenter)
         return container
 
     def current_editor(self) -> CodeEditor | None:
@@ -786,6 +921,63 @@ class MainWindow(QMainWindow):
 
     def show_artifacts_tab(self) -> None:
         self.output_tabs.setCurrentWidget(self.artifacts_panel)
+
+    def toggle_error_demo(self) -> None:
+        if self.error_demo_timer.isActive():
+            self.error_demo_timer.stop()
+            self.error_demo_button.setText("Demo errores")
+            self.error_demo_button.setToolTip("Demo errores")
+            self._set_state("Demo de errores detenido")
+            return
+
+        try:
+            self._open_error_demo_file()
+        except OSError as error:
+            self._set_problem_text(f"No se pudo preparar la demo de errores:\n{error}")
+            return
+
+        self.error_demo_index = 0
+        self.error_demo_button.setText("Detener demo")
+        self.error_demo_button.setToolTip("Detener demo de errores")
+        self._apply_error_demo_case()
+        self.error_demo_timer.start()
+
+    def _open_error_demo_file(self) -> None:
+        path = (self.workspace.source_root / ERROR_DEMO_FILE).resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.write_text(ERROR_DEMO_CASES[0][1], encoding="utf-8")
+
+        self.error_demo_path = path
+        self._populate_file_list()
+        self.open_file(path)
+        self._select_file_in_sidebar(path)
+
+    def _advance_error_demo(self) -> None:
+        self.error_demo_index = (self.error_demo_index + 1) % len(ERROR_DEMO_CASES)
+        self._apply_error_demo_case()
+
+    def _apply_error_demo_case(self) -> None:
+        if self.error_demo_path is None:
+            return
+
+        editor = self.open_editors.get(self.error_demo_path)
+        if editor is None:
+            self.open_file(self.error_demo_path)
+            editor = self.open_editors.get(self.error_demo_path)
+            if editor is None:
+                return
+
+        title, source = ERROR_DEMO_CASES[self.error_demo_index]
+        self._loading_editor = True
+        editor.setPlainText(source)
+        editor.document().setModified(False)
+        self._loading_editor = False
+        self._validate_editor(editor)
+        self._update_tab_title(editor)
+        self.editor_tabs.setCurrentWidget(editor)
+        self.output_tabs.setCurrentWidget(self.problems_panel)
+        self._set_state(f"Demo errores: {title}")
 
     def show_completion_popup(self, editor: CodeEditor) -> None:
         cursor = editor.textCursor()
@@ -799,9 +991,11 @@ class MainWindow(QMainWindow):
         for suggestion in suggestions:
             item = QListWidgetItem(suggestion.label, self.completion_popup)
             item.setData(Qt.UserRole, suggestion.insert_text)
+            if suggestion.detail:
+                item.setToolTip(suggestion.detail)
 
         self.completion_popup.setCurrentRow(0)
-        self.completion_popup.setFixedWidth(240)
+        self.completion_popup.setFixedWidth(320)
         visible_rows = min(8, self.completion_popup.count())
         row_height = max(24, self.completion_popup.sizeHintForRow(0))
         self.completion_popup.setFixedHeight((visible_rows * row_height) + 8)
@@ -823,36 +1017,60 @@ class MainWindow(QMainWindow):
             return
 
         cursor = editor.textCursor()
-        word_cursor = QTextCursor(cursor)
-        word_cursor.select(QTextCursor.WordUnderCursor)
-        current_word = word_cursor.selectedText()
-
-        if current_word and insert_text.startswith(current_word):
-            cursor = word_cursor
-
+        prefix_start = self._completion_prefix_start(editor.toPlainText(), cursor.position())
+        if prefix_start < cursor.position():
+            prefix = editor.toPlainText()[prefix_start : cursor.position()]
+            if insert_text.lower().startswith(prefix.lower()):
+                cursor.setPosition(prefix_start, QTextCursor.KeepAnchor)
         cursor.insertText(insert_text)
         editor.setTextCursor(cursor)
         self.completion_popup.hide()
         editor.setFocus()
 
+    def _completion_prefix_start(self, source: str, cursor_position: int) -> int:
+        if cursor_position == 0:
+            return cursor_position
+
+        previous = source[cursor_position - 1]
+        if not (previous.isalpha() or previous in {"_", "@"}):
+            return cursor_position
+
+        index = cursor_position
+        while index > 0:
+            char = source[index - 1]
+            if char.isalnum() or char in {"_", "@"}:
+                index -= 1
+                continue
+            break
+        return index
+
     def _auto_fix_on_enter(self, editor: CodeEditor) -> bool:
+        if self._auto_indent_after_opening_brace(editor):
+            return True
+
         cursor = editor.textCursor()
-        suggestions = self.syntax_service.complete(editor.toPlainText(), cursor.position())
+        suggestions = self._structural_suggestions_at_cursor(editor)
         fix = self._first_structural_fix(suggestions)
         if fix is None:
             return False
-
-        if fix == "}" and not self._should_auto_insert_closing_brace(editor):
-            return False
+        if fix == "}" and self._line_should_end_statement_before_closing(editor):
+            fix = ";"
 
         if fix == ";":
-            indent = self._current_line_indent(editor)
-            cursor.insertText(fix + "\n" + indent)
+            if not self._should_auto_insert_semicolon(editor):
+                return False
+            cursor.insertText(fix)
         elif fix == "}":
-            indent = self._closing_brace_indent(editor)
-            block_start = cursor.block().position()
-            cursor.setPosition(block_start, QTextCursor.KeepAnchor)
-            cursor.insertText(indent + fix)
+            if self._should_auto_insert_closing_brace(editor):
+                indent = self._closing_brace_indent(editor)
+                block_start = cursor.block().position()
+                cursor.setPosition(block_start, QTextCursor.KeepAnchor)
+                cursor.insertText(indent + fix)
+            elif self._should_auto_append_closing_brace(editor):
+                indent = self._closing_brace_indent(editor)
+                cursor.insertText(f"\n{indent}{fix}")
+            else:
+                return False
         else:
             cursor.insertText(fix)
 
@@ -860,12 +1078,74 @@ class MainWindow(QMainWindow):
         self._set_state(f"Correccion automatica: {fix}")
         return True
 
+    def _auto_indent_after_opening_brace(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        if cursor.hasSelection():
+            return False
+
+        line_before_cursor = cursor.block().text()[: cursor.positionInBlock()]
+        if not line_before_cursor.rstrip().endswith("{"):
+            return False
+
+        current_indent = self._current_line_indent(editor)
+        inner_indent = current_indent + CodeEditor.INDENT
+        line_after_cursor = cursor.block().text()[cursor.positionInBlock() :]
+
+        if line_after_cursor.lstrip().startswith("}"):
+            cursor.insertText(f"\n{inner_indent}\n{current_indent}")
+            cursor.movePosition(QTextCursor.Up)
+            cursor.movePosition(QTextCursor.EndOfLine)
+        else:
+            cursor.insertText(f"\n{inner_indent}")
+
+        editor.setTextCursor(cursor)
+        self._set_state("Indentacion automatica")
+        return True
+
+    def _structural_suggestions_at_cursor(self, editor: CodeEditor):
+        cursor_position = editor.textCursor().position()
+        source_before_cursor = editor.toPlainText()[:cursor_position]
+        diagnostics, suggestions = self.syntax_service.analyze(
+            source_before_cursor,
+            include_semantic=False,
+        )
+        if self._cursor_at_document_end(editor) and not self._line_needs_semicolon_first(editor, suggestions):
+            for diagnostic in reversed(diagnostics):
+                if set(diagnostic.expected) & {"}", ")", "]"}:
+                    return diagnostic.suggestions
+        return suggestions
+
     def _first_structural_fix(self, suggestions) -> str | None:
         allowed = {";", "}", ")", "]", ":"}
         for suggestion in suggestions:
             if suggestion.insert_text in allowed:
                 return suggestion.insert_text
         return None
+
+    def _should_auto_insert_semicolon(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        before = cursor.block().text()[: cursor.positionInBlock()].rstrip()
+        if not before:
+            return False
+        if before.endswith((";", "{", "}", "(", "[", ":", ",")):
+            return False
+        return True
+
+    def _line_needs_semicolon_first(self, editor: CodeEditor, suggestions) -> bool:
+        if self._first_structural_fix(suggestions) != ";":
+            return False
+        return self._should_auto_insert_semicolon(editor)
+
+    def _line_should_end_statement_before_closing(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        before = cursor.block().text()[: cursor.positionInBlock()].rstrip()
+        if not before:
+            return False
+        if before.endswith((";", "{", "}", "(", "[", ":", ",")):
+            return False
+        if before == "return":
+            return False
+        return True
 
     def _should_auto_insert_closing_brace(self, editor: CodeEditor) -> bool:
         if not self._cursor_at_line_start(editor):
@@ -886,6 +1166,22 @@ class MainWindow(QMainWindow):
         current_indent = len(self._current_line_indent(editor))
         opening_indent = self._line_indent_at_offset(source, opening_offset)
         return current_indent <= opening_indent + len(CodeEditor.INDENT)
+
+    def _should_auto_append_closing_brace(self, editor: CodeEditor) -> bool:
+        if not self._cursor_at_document_end(editor):
+            return False
+
+        source = editor.toPlainText()
+        cursor_position = editor.textCursor().position()
+        if self._find_unclosed_opening(source, cursor_position, "{", "}") is None:
+            return False
+
+        current_line = editor.textCursor().block().text()[: editor.textCursor().positionInBlock()]
+        stripped = current_line.rstrip()
+        return bool(stripped) and stripped.endswith((";", "}"))
+
+    def _cursor_at_document_end(self, editor: CodeEditor) -> bool:
+        return editor.textCursor().position() == len(editor.toPlainText())
 
     def _previous_non_empty_line(self, editor: CodeEditor) -> str | None:
         block = editor.textCursor().block().previous()
@@ -941,11 +1237,11 @@ class MainWindow(QMainWindow):
         diagnostics = self.editor_diagnostics.get(editor, [])
         if diagnostics:
             _, suggestions = self.syntax_service.analyze(editor.toPlainText())
-            self.status_problems.setText(f"{len(diagnostics)} problema")
+            self._set_problem_count(len(diagnostics))
             self._show_syntax_problems(diagnostics, suggestions)
-        elif self.problems_panel.toPlainText().startswith("LL(1):"):
-            self.status_problems.setText("0 problemas")
-            self.problems_panel.setPlainText("No hay errores ni advertencias.")
+        elif self.problems_panel.toPlainText().startswith("IDE:"):
+            self._set_problem_count(0)
+            self.problems_panel.setPlainText(NO_PROBLEMS_TEXT)
 
     def _select_file_in_sidebar(self, path: Path) -> None:
         resolved = str(path.resolve())
@@ -971,12 +1267,12 @@ class MainWindow(QMainWindow):
             return
 
         if diagnostics:
-            self.status_problems.setText(f"{len(diagnostics)} problema")
+            self._set_problem_count(len(diagnostics))
             self._show_syntax_problems(diagnostics, suggestions)
         else:
-            self.status_problems.setText("0 problemas")
-            if self.problems_panel.toPlainText().startswith("LL(1):"):
-                self.problems_panel.setPlainText("No hay errores ni advertencias.")
+            self._set_problem_count(0)
+            if self.problems_panel.toPlainText().startswith("IDE:"):
+                self.problems_panel.setPlainText(NO_PROBLEMS_TEXT)
 
     def _apply_diagnostics(self, editor: CodeEditor, diagnostics: list[Diagnostic]) -> None:
         selections = []
@@ -1027,9 +1323,11 @@ class MainWindow(QMainWindow):
                 return self._cursor_for_offset(editor, opening_offset, 1)
 
         if ")" in expected:
-            opening_offset = self._find_unclosed_opening(source, error_offset, "(", ")")
-            if opening_offset is not None:
-                return self._cursor_for_offset(editor, opening_offset, 1)
+            current_char = source[error_offset] if error_offset < len(source) else ""
+            if "fin de archivo" in diagnostic.message or current_char in {"", "\n", "\r"}:
+                opening_offset = self._find_unclosed_opening(source, error_offset, "(", ")")
+                if opening_offset is not None:
+                    return self._cursor_for_offset(editor, opening_offset, 1)
 
         if ";" in expected:
             statement_end = self._find_previous_statement_end(source, error_offset)
@@ -1116,7 +1414,7 @@ class MainWindow(QMainWindow):
         diagnostics: list[Diagnostic],
         suggestions,
     ) -> None:
-        lines = ["LL(1): diagnostico sintactico"]
+        lines = ["IDE: diagnostico del compilador"]
         for diagnostic in diagnostics:
             lines.append(f"Linea {diagnostic.line}, columna {diagnostic.column}: {diagnostic.message}")
             if diagnostic.expected:
@@ -1129,6 +1427,41 @@ class MainWindow(QMainWindow):
                 lines.append(f"- {suggestion.label}")
 
         self.problems_panel.setPlainText("\n".join(lines))
+        self._update_output_problem_hint(len(diagnostics))
+
+    def _set_problem_count(self, count: int) -> None:
+        label = "problema" if count == 1 else "problemas"
+        self.status_problems.setText(f"{count} {label}")
+        self._update_problem_tab_badge(count)
+        if count == 0:
+            self._clear_output_problem_hint()
+
+    def _update_problem_tab_badge(self, count: int) -> None:
+        index = self.output_tabs.indexOf(self.problems_panel)
+        if index == -1:
+            return
+
+        if count <= 0:
+            self.output_tabs.setTabText(index, "Problemas")
+            self.output_tabs.setTabIcon(index, QIcon())
+            return
+
+        self.output_tabs.setTabText(index, "Problemas")
+        self.output_tabs.setTabIcon(index, make_problem_badge_icon(count))
+
+    def _update_output_problem_hint(self, count: int) -> None:
+        current = self.output_panel.toPlainText().strip()
+        if current and current != READY_OUTPUT_TEXT and PROBLEM_OUTPUT_MARKER not in current:
+            return
+
+        label = "problema" if count == 1 else "problemas"
+        self.output_panel.setPlainText(
+            f"Hay {count} {label} en el editor. {PROBLEM_OUTPUT_MARKER}"
+        )
+
+    def _clear_output_problem_hint(self) -> None:
+        if PROBLEM_OUTPUT_MARKER in self.output_panel.toPlainText():
+            self.output_panel.setPlainText(READY_OUTPUT_TEXT)
 
     def _update_tab_title(self, editor: CodeEditor) -> None:
         path = self.editor_paths.get(editor)
@@ -1162,10 +1495,11 @@ class MainWindow(QMainWindow):
         self.output_panel.insertPlainText(text)
 
     def _append_compiler_error(self, text: str) -> None:
-        if self.problems_panel.toPlainText() == "No hay errores ni advertencias.":
+        if self.problems_panel.toPlainText() == NO_PROBLEMS_TEXT:
             self.problems_panel.clear()
         self.problems_panel.moveCursor(QTextCursor.End)
         self.problems_panel.insertPlainText(text)
+        self._set_problem_count(1)
         self.output_tabs.setCurrentWidget(self.problems_panel)
 
     def _handle_compile_finished(self, exit_code: int) -> None:
@@ -1174,14 +1508,14 @@ class MainWindow(QMainWindow):
         path = self.editor_paths.get(editor) if editor is not None else None
 
         if exit_code == 0:
-            self.status_problems.setText("0 problemas")
+            self._set_problem_count(0)
             self.sidebar_status.setText("Compilado correctamente")
             self._set_state("Compilado correctamente")
         else:
-            if self.problems_panel.toPlainText() == "No hay errores ni advertencias.":
+            if self.problems_panel.toPlainText() == NO_PROBLEMS_TEXT:
                 details = self.output_panel.toPlainText().strip()
                 self.problems_panel.setPlainText(details or "El compilador termino con errores.")
-            self.status_problems.setText("1 problema")
+            self._set_problem_count(1)
             self.sidebar_status.setText("Error de compilacion")
             self._set_state("Error de compilacion")
             self.output_tabs.setCurrentWidget(self.problems_panel)
@@ -1201,7 +1535,7 @@ class MainWindow(QMainWindow):
     def _set_problem_text(self, text: str) -> None:
         self.problems_panel.setPlainText(text)
         self.output_tabs.setCurrentWidget(self.problems_panel)
-        self.status_problems.setText("1 problema")
+        self._set_problem_count(1)
 
     def _set_state(self, text: str) -> None:
         self.status_state.setText(text)

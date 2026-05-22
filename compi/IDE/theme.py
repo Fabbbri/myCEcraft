@@ -188,7 +188,7 @@ QSplitter::handle:hover {
 }
 
 #FileList::item {
-    padding: 8px 10px;
+    padding: 5px 8px;
     border-radius: 6px;
     color: #CCCCCC;
 }
@@ -242,7 +242,7 @@ QTabWidget::pane {
 QTabBar::tab {
     background: #2D2D2D;
     color: #969696;
-    padding: 8px 14px;
+    padding: 8px 8px 8px 14px;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     border: 1px solid #3C3C3C;
@@ -265,31 +265,32 @@ QTabBar::tab:selected {
 
 #TabCloseContainer {
     background: transparent;
-    min-width: 26px;
-    max-width: 26px;
-    min-height: 24px;
-    max-height: 24px;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 22px;
+    max-height: 22px;
 }
 
 #TabCloseButton {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
-    min-width: 18px;
-    max-width: 18px;
-    min-height: 18px;
-    max-height: 18px;
+    border-radius: 4px;
+    min-width: 16px;
+    max-width: 16px;
+    min-height: 16px;
+    max-height: 16px;
     padding: 0;
+    margin: 0;
 }
 
 #TabCloseButton:hover {
-    background: #3A3D41;
-    border-color: #4A4A4A;
+    background: #45494E;
+    border-color: transparent;
 }
 
 #TabCloseButton:pressed {
-    background: #2A2D2E;
-    border-color: #3C3C3C;
+    background: #50555C;
+    border-color: transparent;
 }
 
 #CodeEditor {

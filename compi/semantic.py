@@ -593,7 +593,10 @@ class SemanticAnalyzer:
         if node.name == "chest":
             if node.base_type is None or node.size is None:
                 raise SemanticError("tipo chest incompleto", node, self.filename)
-            return ChestType(self._type_from_node(node.base_type), node.size)
+            try:
+                return ChestType(self._type_from_node(node.base_type), node.size)
+            except ValueError as error:
+                raise SemanticError(str(error), node, self.filename) from error
 
         raise SemanticError(f"tipo desconocido '{node.name}'", node, self.filename)
 

@@ -1,0 +1,5 @@
+@EnterCraftWorld
+
+craft:int main() {
+    return 0;
+}
