@@ -342,7 +342,7 @@ ex_mem_pipe ex_mem(
 //                       MEM
 // ==========================================================
 
-memory mem(
+memory Memory(
     .clk(clk),
 
     .w_memv(w_memvMEM), 

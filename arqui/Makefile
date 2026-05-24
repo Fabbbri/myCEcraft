@@ -1,7 +1,13 @@
 # =========================
 # Variables de Configuración
 # =========================
-TOP ?= tb_top  # puede sobreescribirse : make run TOP=tb_alu
+# Puede sobreescribirse. Ej: 
+# make run TOP=tb_alu
+# make run TOP=tb_topG ROM=factorial.hex RAM=ram_hex.hex
+
+TOP ?= tb_topG 
+ROM ?= program.hex
+RAM ?= data.hex 
 
 SRC_DIR = rtl
 TB_DIR = tb
@@ -20,6 +26,8 @@ ifeq ($(TOP),all)
 else
     TB = $(TB_DIR)/$(TOP).sv
 endif
+
+
 
 # archivo simulable
 OUT = $(BUILD_DIR)/$(TOP).vvp
@@ -65,7 +73,7 @@ compile: dirs
 
 # correr el compilado
 run: compile
-	$(VVP) $(OUT) $(VVP_FLAGS)
+	$(VVP) $(OUT) $(VVP_FLAGS) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
 # iniciar simulacion con waves
 wave:
