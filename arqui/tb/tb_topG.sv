@@ -39,15 +39,17 @@ module tb_topG;
     `define ROM   dut.Issue.ROM.memory // acceder a rom en modulo instr_rom
     `define RAM   dut.Memory.NormalRam.mem // acceder a memoria en modulo data_ram
 
-    localparam logic [31:0] NOP = 32'h00580000;
-
     // ==========================================
     // Contadores
     // ==========================================
 
+    localparam logic [31:0] NOP = 32'h00580000;
+    logic halt_detected = 0;
+
     // 1. Ciclos ocurridos
     always @(posedge clk) begin
-        if (!reset)
+        if (`PC === HALT_PC) halt_detected <= 1;
+        if (!reset && !halt_detected)
             cycle_count++;
     end
 
@@ -177,6 +179,7 @@ module tb_topG;
 
         cycle_count = 0;
         instr_count = 0;
+        halt_detected = 0; 
 
         load_and_reset(rom_file, ram_file);
         wait_for_finish(timed_out);
@@ -188,7 +191,7 @@ module tb_topG;
             return;
         end
 
-        repeat (4) @(posedge clk);
+        repeat (4) @(posedge clk); // Espera 4 ciclos para drenado de pipeline
 
         // ======================================
         // CHECK REGISTER PRINT
@@ -221,9 +224,11 @@ module tb_topG;
                     cpi);
 
             $display("\n  --- Performance ---");
-            $display("  Cycles       : %0d", cycle_count);
-            $display("  Instructions : %0d", instr_count);
-            $display("  CPI          : %f", cpi);
+            $display("  Ciclos        : %0d", cycle_count-1);
+            // -1 porque cycle_count para de contar hasta el ciclo después de que detecta el HALT
+            // sería +3 si se quiere contar los ciclos del drenado
+            $display("  Instrucciones : %0d", instr_count);
+            $display("  CPI           : %f", cpi);
         end
 
     endtask
