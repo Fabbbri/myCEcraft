@@ -18,8 +18,13 @@ module regfile (
     // Si se cumple que WE=1 AND rd es igual a rs1 (RAW en el mismo ciclo),
     // entonces se toma wd
 
-    assign rd1 = (we_reg && rd == rs1) ? wd : regs[rs1];
-    assign rd2 = (we_reg && rd == rs2) ? wd : regs[rs2];
+    assign rd1 = (rs1 == 5'd0) ? 32'd0 :
+             (we_reg && rd != 5'd0 && rd == rs1) ? wd :
+             regs[rs1];
+
+    assign rd2 = (rs2 == 5'd0) ? 32'd0 :
+             (we_reg && rd != 5'd0 && rd == rs2) ? wd :
+             regs[rs2];
 
     // ----------------------------------------------------------
     // Logica Secuencial para escritura
