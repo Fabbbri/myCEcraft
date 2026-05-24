@@ -14,4 +14,4 @@ def sumeMayores(lista):
         else: 
             multiplicacion=multiplicacion-10
     return (suma,multiplicacion)
-print(sumeMayores([100,2,3,4,5]))
+print(sumeMayores([10,2,3,4,5]))

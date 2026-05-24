@@ -1,5 +1,5 @@
 @EnterCraftWorld
-// --- import: C:\Users\snipe\OneDrive\Desktop\myCEcraft\compi\Defensa\maximo_lista.craft ---
+// --- import: /home/fabbbri/Escritorio/myCEcraft/compi/Defensa/maximo_lista.craft ---
 
 craft:int maximo_lista(lista:chest[int, 7], largo:int) {
     maximo:int = lista[0];
@@ -63,6 +63,6 @@ craft:int sumeMayores(lista:chest[int, 5], salida:chest[int, 2]) {
 }
 
 craft:int main() {
-    lista:chest[int, 5] = [100, 2, 3, 4, 5];
+    lista:chest[int, 5] = [10, 2, 3, 4, 5];
     return summon:sumeMayores(lista, resultado);
 }
