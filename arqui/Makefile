@@ -17,7 +17,7 @@ WAVE_DIR = $(SIM_DIR)/waves
 OUTPUT_DIR = outputs
 
 # Wildcard busca todos los nombres de archivos de rtl
-SRC = $(wildcard $(SRC_DIR)/*.sv)
+SRC = $(wildcard $(SRC_DIR)/*.sv) $(wildcard $(SRC_DIR)/async_fifo/*.sv)
 
 # Si TOP está definido: usar solo ese TB
 # Si no: usar todos
