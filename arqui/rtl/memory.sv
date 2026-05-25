@@ -88,7 +88,7 @@ assign addrPortal_aux = 32'b0;
 neather_ram VaultRam(
     .clk(clk),
     .we_memV(we_memv_aux),
-    .addrV(ram_addr),
+    .addrV(alu_result),
     .addrPortal(addrPortal_aux),
     .wdataV(rdv2),
     .rdataV(rvMemData),
