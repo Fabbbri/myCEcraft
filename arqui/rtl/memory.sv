@@ -1,5 +1,6 @@
 module memory(
     input logic clk,
+    input logic reset,
 
     input logic [1:0] result_src, 
     input logic neather_wreg_src, w_memv, we_mem, size,
@@ -16,27 +17,57 @@ module memory(
     output logic we_reg_MEM_hz, // hazard unit
 
     // forward
-    output logic [31:0] ex_mem
+    output logic [31:0] ex_mem,
+    output logic stall_mem // hazard unit
 
 
+);
+// ==========================================================
+//                 INSTANCIA CLK DIVIDER 
+// ==========================================================
+logic clk_mem;
+
+clk_divider clk_div(
+    .clk(clk),    //100 MHz
+    .reset(reset), 
+    .clkdiv(clk_mem)  // 50 MHz
+);
+
+// ==========================================================
+//                 INSTANCIA MEM_CONTROLLER
+// ==========================================================
+
+logic ram_we;
+logic [1:0] ram_size;
+logic [31:0] ram_addr;
+logic [31:0] ram_wdata;
+
+mem_controller MemCtrl (
+    .reset(reset),       
+    .clk (clk),
+    .clk_mem (clk_mem),
+    .req(we_mem | result_src[0]),
+    .we (we_mem),
+    .addr(alu_result),
+    .size({size, 1'b0}),
+    .wdata(rd2),
+    .ram_we (ram_we),
+    .ram_size(ram_size),
+    .ram_addr(ram_addr),
+    .ram_wdata(ram_wdata),
+    .stall_mem(stall_mem)
 );
 
 // ==========================================================
 //                       INSTANCIA DATA_RAM
 // ==========================================================
 
-logic [31:0] ram_addr;
-logic [1:0] size_aux;
-
-assign ram_addr = alu_result;
-assign size_aux = {size, 1'b0};
-
 data_ram NormalRam(
-    .clk(clk),
-    .we_mem(we_mem),
-    .size(size_aux),
+    .clk(clk_mem),
+    .we_mem(ram_we),
+    .size(ram_size),
     .addr(ram_addr),
-    .wdata(rd2),
+    .wdata(ram_wdata),
     .rdata(rMemData)
 );
 
