@@ -6,12 +6,13 @@ module counter #(
 )(
     input logic clk,
     input logic reset,
+    input  logic clear,
     input logic en,
     output logic [3:0] count  // 4 bits, cuenta hasta 15
 );
 
     always_ff @(posedge clk or posedge reset) begin
-        if (reset)
+        if (reset || clear)
             count <= 4'b0;
         else if (en) begin
             if (count < MAX)

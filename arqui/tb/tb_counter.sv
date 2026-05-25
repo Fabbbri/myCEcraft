@@ -5,6 +5,7 @@ module tb_counter;
     // Señales
     logic clk   = 0;
     logic reset = 1;
+    logic clear = 0;
     logic en = 0;
     logic [3:0] count;
 
@@ -12,6 +13,7 @@ module tb_counter;
     counter #(.MAX(9)) dut (
         .clk(clk),
         .reset(reset),
+        .clear(clear),
         .en(en),
         .count(count)
     );
@@ -19,10 +21,10 @@ module tb_counter;
     // 100 MHz 
     always #5 clk = ~clk;
 
-    // display 
+    // display
     task show;
-        $display("T=%0t | clk=%b reset=%b en=%b | count=%0d",
-                  $time, clk, reset, en, count);
+        $display("T=%0t | clk=%b reset=%b clear=%b en=%b | count=%0d",
+                  $time, clk, reset, clear, en, count);
     endtask
 
     initial begin
@@ -68,7 +70,27 @@ module tb_counter;
             show();
         end
 
-        // Reset en medio del conteo 
+        // Clear en medio del conteo
+        $display("\n Clear en medio del conteo (sin reset)");
+        reset = 1;
+        @(posedge clk); #1;
+        reset = 0;
+        en = 1;
+        repeat(4) begin
+            @(posedge clk); #1;
+            show();
+        end
+        clear = 1;
+        @(posedge clk); #1;
+        show();
+        clear = 0;
+        $display("clear activo, count debe ser 0");
+        repeat(3) begin
+            @(posedge clk); #1;
+            show();
+        end
+
+        // Reset en medio del conteo
         $display("\n Reset en medio del conteo");
         reset = 1;
         @(posedge clk); #1;
