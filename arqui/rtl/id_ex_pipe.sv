@@ -12,6 +12,7 @@ module id_ex_pipe (
 
     // Hazard Unit
     input logic flushE,
+    input logic stallE,
 
     output  logic jumpOUT, bltOUT, bgeOUT, bneOUT, beqOUT, 
     output logic [1:0] result_srcOUT, alu_srcOUT,
@@ -23,7 +24,7 @@ module id_ex_pipe (
 );
 
 always_ff @(posedge clk or posedge reset) begin
-    if (reset || flushE) begin // si es reset o flushE, se inserta un nop
+    if (reset | flushE) begin // si es flushE, se inserta un nop
         jumpOUT              <= 1'b0;
         bltOUT               <= 1'b0;
         bgeOUT               <= 1'b0;
@@ -47,8 +48,10 @@ always_ff @(posedge clk or posedge reset) begin
         pcplus4OUT           <= 32'b0;
         rdv2OUT              <= 32'b0;
         instrDOUT            <= 5'b0;
-        rs1DOUT                <= 5'b0;
-        rs2DOUT               <= 5'b0;
+        rs1DOUT              <= 5'b0;
+        rs2DOUT              <= 5'b0;
+    end else if (stallE) begin
+        // hold — mantener valores actuales
     end else begin
         jumpOUT              <= jump;
         bltOUT               <= blt;

@@ -12,7 +12,7 @@ module tb_topG;
     // Parametros
     // ==========================================
 
-    parameter int          MAX_CYCLES = 5000;
+    parameter int          MAX_CYCLES = 20000;
     parameter logic [31:0] HALT_PC    = 32'h0000006C; // freeze en 0x006C
 
     // h00000160 para Factorial.hex
@@ -54,11 +54,13 @@ module tb_topG;
     end
 
     // 2. Instrucciones distintas de NOP y que pasan por EX
+    // stallE=1 congela EX sin flush -> misma instruccion se contaria N veces durante stall_mem
     always @(posedge clk) begin
         if (!reset) begin
             if (dut.instrDE !== NOP &&
                 dut.instrDE !== 32'hxxxxxxxx &&
-                !dut.flushE)
+                !dut.flushE &&
+                !dut.stallE)
             begin
                 instr_count++;
             end
@@ -78,13 +80,14 @@ module tb_topG;
         $display("[RESET] Reset liberado en t=%0t ns", $time);
 
         @(posedge clk); #1;
-        $display("[DEBUG] pcF=%h instrF=%h newpc=%h stallIF=%b flushD=%b flushE=%b",
+        $display("[DEBUG] pcF=%h instrF=%h newpc=%h stallIF=%b flushD=%b flushE=%b stall_mem=%b",
             dut.pcF,
             dut.instrF,
             dut.newpc,
             dut.stallIF,
             dut.flushD,
-            dut.flushE);
+            dut.flushE,
+            dut.stall_mem);
 
         $display("[PIPE] pcF=%08h instrF=%08h | pcDE=%08h instrDE=%08h",
          dut.pcF, dut.instrF, dut.pcDE, dut.instrDE);
@@ -111,7 +114,7 @@ module tb_topG;
 
             // Terminar si lleva muchos ciclos
             if (cycles >= MAX_CYCLES) begin
-                $display("[ERROR] Timeout tras %0d ciclos — último PC: %h",
+                $display("[ERROR] Timeout tras %0d ciclos - último PC: %h",
                           MAX_CYCLES, `PC);
                 timed_out = 1;
                 return;
@@ -185,13 +188,23 @@ module tb_topG;
         wait_for_finish(timed_out);
 
         if (timed_out) begin
-            $display("[ERROR] Test abortado — dump de registros:");
+            $display("[ERROR] Test abortado - dump de registros:");
             dump_regs();
             tests_failed++;
             return;
         end
 
-        repeat (4) @(posedge clk); // Espera 4 ciclos para drenado de pipeline
+        // Drenar pipeline: esperar que stall_mem lleve 8 ciclos quieto
+        // (cubre LWs que entran a MEM varios ciclos despues del HALT)
+        begin
+            int quiet;
+             while (quiet < 8) begin
+                @(posedge clk);
+                if (!dut.stall_mem) quiet++;
+                else quiet = 0;
+            end
+        end
+        repeat (4) @(posedge clk);
 
         // ======================================
         // CHECK REGISTER PRINT
@@ -232,6 +245,81 @@ module tb_topG;
         end
 
     endtask
+
+/*     // ==========================================
+    // Memory debug 
+    // ==========================================
+    logic prev_stall_mem  = 0;
+    logic prev_req_lw = 0;
+    logic prev_req_sw  = 0;
+    logic [2:0] prev_fsm  = 3'bx;
+    int stall_cyc = 0;
+
+    task automatic mem_snapshot(input string tag);
+        $display("[%s t=%0t] FSM=%0d rq_full=%b rq_empty=%b lp=%b lp_nxt=%b rd_valid=%b stall=%b",
+            tag, $time,
+            dut.Memory.MemCtrl.FSM.state,
+            dut.Memory.MemCtrl.rq_full,
+            dut.Memory.MemCtrl.rq_empty,
+            dut.Memory.MemCtrl.load_pending,
+            dut.Memory.MemCtrl.load_pending_next,
+            dut.Memory.MemCtrl.rd_valid,
+            dut.stall_mem);
+    endtask
+
+    always @(posedge clk) begin
+        if (!reset) begin
+            // LW request - fire once on rising edge
+            if (dut.Memory.MemCtrl.req && !dut.Memory.MemCtrl.we && !prev_req_lw) begin
+                $display("[LW-REQ  t=%0t] addr=%08h", $time, dut.Memory.MemCtrl.addr);
+                mem_snapshot("SNAP");
+            end
+            // SW request - fire once on rising edge
+            if (dut.Memory.MemCtrl.req && dut.Memory.MemCtrl.we && !prev_req_sw)
+                $display("[SW-REQ  t=%0t] addr=%08h wdata=%08h",
+                         $time, dut.Memory.MemCtrl.addr, dut.Memory.MemCtrl.wdata);
+
+            // stall_mem rising edge
+            if (!prev_stall_mem && dut.stall_mem) begin
+                $display("[STALL-UP t=%0t]", $time);
+                stall_cyc = 0;
+            end
+
+            // stall_mem falling edge - LW done
+            if (prev_stall_mem && !dut.stall_mem)
+                $display("[LW-DONE t=%0t] rdata=%08h", $time, dut.Memory.rMemData);
+
+            // Periodic snapshot while stalled (every 100 clk cycles)
+            if (dut.stall_mem) begin
+                stall_cyc++;
+                if (stall_cyc % 50 == 0) begin
+                    $display("[STALL   t=%0t] %0d cycles", $time, stall_cyc);
+                    mem_snapshot("SNAP");
+                end
+            end
+
+            // FSM state change
+            if (dut.Memory.MemCtrl.FSM.state !== prev_fsm && prev_fsm !== 3'bx)
+                $display("[FSM-CHG t=%0t] %0d->%0d  writes_done=%b wb_empty=%b wbd_busy=%b rq_empty=%b",
+                         $time, prev_fsm, dut.Memory.MemCtrl.FSM.state,
+                         dut.Memory.MemCtrl.writes_all_done,
+                         dut.Memory.MemCtrl.wb_empty,
+                         dut.Memory.MemCtrl.wbd_busy,
+                         dut.Memory.MemCtrl.rq_empty);
+
+            prev_stall_mem <= dut.stall_mem;
+            prev_req_lw <= dut.Memory.MemCtrl.req && !dut.Memory.MemCtrl.we;
+            prev_req_sw <= dut.Memory.MemCtrl.req &&  dut.Memory.MemCtrl.we;
+            prev_fsm <= dut.Memory.MemCtrl.FSM.state;
+        end
+    end
+
+    // RAM writes (clk_mem domain)
+    always @(posedge dut.Memory.clk_mem) begin
+        if (!reset && dut.Memory.MemCtrl.ram_we)
+            $display("[RAM-WR  t=%0t] addr=%08h data=%08h",
+                     $time, dut.Memory.MemCtrl.ram_addr, dut.Memory.MemCtrl.ram_wdata);
+    end */
 
     initial begin
         $display("============================================================");

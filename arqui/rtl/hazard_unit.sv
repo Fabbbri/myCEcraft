@@ -3,10 +3,12 @@ module hazard_unit(
     input logic [4:0] rs2DE, rs2EX,
     input logic [4:0] rdEX, rdMEM, rdWB,
     input logic result_src_0, pc_src_exOUT, we_reg_mem, we_reg_wb,
+    input logic stall_mem,
 
     output logic [1:0] forwardA, forwardB,
     output logic stallIF, stallD,
-    output logic flushD, flushE
+    output logic flushD, flushE,
+    output logic stallE, stallM, stallW
 );
 // 11 señales de entrada, 6 señales de salida
 
@@ -43,8 +45,8 @@ assign stall = result_src_0 && // indica que es un load
 
 // Si los 3 no se cumplen a la vez, entonces no es un RAW o bien es un ALU-ALU
 
-assign stallIF = stall;
-assign stallD = stall;
+assign stallIF = stall || stall_mem;
+assign stallD = stall || stall_mem;
 
 // ========================================================================
 //                          FLUSH
@@ -53,5 +55,13 @@ assign stallD = stall;
 
 assign flushD = pc_src_exOUT;
 assign flushE = stall | pc_src_exOUT;
+
+// stall_mem=1: el LW en MEM espera datos (burst en progreso o write buffer sin drenar).
+// stallM - congela EX/MEM: el LW se queda en MEM hasta que rdata sea válido.
+// stallE - congela ID/EX: la instrucción en EX no avanza a MEM (está ocupado).
+// stallW - congela MEM/WB: evita que MEM/WB lo capture antes de que el dato esté listo.
+assign stallE = stall_mem;
+assign stallM = stall_mem;
+assign stallW = stall_mem;
 
 endmodule 

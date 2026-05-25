@@ -8,38 +8,52 @@ module tb_hazard_unit;
     logic [4:0] rdEX, rdMEM, rdWB;
     logic       result_src_0, pc_src_exOUT;
     logic       we_reg_mem, we_reg_wb;
+    logic stall_mem;
 
     // ── Salidas ──────────────────────────────────────────────
     logic [1:0] forwardA, forwardB;
     logic       stallIF, stallD;
     logic       flushD, flushE;
+    logic       stallE, stallM, stallW;
 
     // ── DUT ──────────────────────────────────────────────────
-    hazard_unit dut (
-        .rs1DE(rs1DE), .rs1EX(rs1EX),
-        .rs2DE(rs2DE), .rs2EX(rs2EX),
-        .rdEX(rdEX), .rdMEM(rdMEM), .rdWB(rdWB),
-        .result_src_0(result_src_0),
-        .pc_src_exOUT(pc_src_exOUT),
-        .we_reg_mem(we_reg_mem),
+    hazard_unit dut(
+        .rs1DE(rs1DE),
+        .rs1EX(rs1EX),
+        .rs2DE(rs2DE), 
+        .rs2EX(rs2EX),
+        .rdEX(rdEX),
+        .rdMEM(rdMEM), 
+        .rdWB(rdWB),
+        .result_src_0(result_src_0), 
+        .pc_src_exOUT(pc_src_exOUT), 
+        .we_reg_mem(we_reg_mem), 
         .we_reg_wb(we_reg_wb),
-        .forwardA(forwardA), .forwardB(forwardB),
-        .stallIF(stallIF), .stallD(stallD),
-        .flushD(flushD), .flushE(flushE)
+        .stall_mem(stall_mem),
+
+        .forwardA(forwardA),
+        .forwardB(forwardB),
+        .stallIF(stallIF),
+        .stallD(stallD),
+        .flushD(flushD),
+        .flushE(flushE),
+        .stallE(stallE),
+        .stallM(stallM),
+        .stallW(stallW)
     );
 
     // ── Task de verificación ─────────────────────────────────
     task check(
         input string        test_name,
         input logic [1:0]   exp_fwdA, exp_fwdB,
-        input logic         exp_stallIF, exp_stallDE,
+        input logic         exp_stallIF, exp_stallD,
         input logic         exp_flushD,  exp_flushE
     );
         #1; // dejar propagar combinacional
         if (forwardA  !== exp_fwdA   ||
             forwardB  !== exp_fwdB   ||
             stallIF   !== exp_stallIF||
-            stallD   !== exp_stallDE||
+            stallD   !== exp_stallD||
             flushD    !== exp_flushD ||
             flushE    !== exp_flushE)
         begin
@@ -47,7 +61,7 @@ module tb_hazard_unit;
             $display("  fwdA:   got %b  exp %b", forwardA,  exp_fwdA);
             $display("  fwdB:   got %b  exp %b", forwardB,  exp_fwdB);
             $display("  stallIF got %b  exp %b", stallIF,   exp_stallIF);
-            $display("  stallDE got %b  exp %b", stallD,   exp_stallDE);
+            $display("  stallDE got %b  exp %b", stallD,   exp_stallD);
             $display("  flushD: got %b  exp %b", flushD,    exp_flushD);
             $display("  flushE: got %b  exp %b", flushE,    exp_flushE);
         end else
@@ -60,13 +74,13 @@ module tb_hazard_unit;
         rs1DE=0; rs1EX=0; rs2DE=0; rs2EX=0;
         rdEX=0;  rdMEM=0; rdWB=0;
         result_src_0=0; pc_src_exOUT=0;
-        we_reg_mem=0;   we_reg_wb=0;
+        we_reg_mem=0;   we_reg_wb=0; stall_mem = 0;
 
         // ── TEST 1: sin hazard ────────────────────────────────
         // Todos los registros distintos, sin writes activos
         rs1EX=5'd1; rs2EX=5'd2;
         rdMEM=5'd5; rdWB=5'd6;
-        we_reg_mem=1; we_reg_wb=1;
+        we_reg_mem=1; we_reg_wb=1; 
         check("Sin hazard", 2'b00, 2'b00, 0, 0, 0, 0);
 
         // ── TEST 2: forward MEM→EX en rs1 ────────────────────
@@ -146,6 +160,31 @@ module tb_hazard_unit;
         pc_src_exOUT=1;
         check("Load-use + branch", 2'b00, 2'b00, 1, 1, 1, 1);
 
+
+        //  TEST 14: stall_mem bloquea pipeline ─────────────
+        stall_mem = 1;
+
+        rs1DE=5'd1; rs2DE=5'd2;
+        rs1EX=5'd3; rs2EX=5'd4;
+        rdEX=5'd5; rdMEM=5'd6; rdWB=5'd7;
+        we_reg_mem=1; we_reg_wb=1;
+        result_src_0=0;
+        pc_src_exOUT=0;
+
+        #1;
+        check("stall_mem -> stallIF", 2'b00, 2'b00, 1, 1, 0, 0);
+
+        // chequeo de E/M/W directo
+        if (stallE !== 1'b1 || stallM !== 1'b1 || stallW !== 1'b1)
+            $display("FAIL stall_mem outputs E/M/W");
+        else
+            $display("PASS stall_mem outputs E/M/W");
+
+        // liberar stall
+        stall_mem = 0;
+
+        #1;
+        check("stall_mem liberado", 2'b00, 2'b00, 0, 0, 0, 0);
         $display("\nSimulacion completa.");
         $finish;
     end
