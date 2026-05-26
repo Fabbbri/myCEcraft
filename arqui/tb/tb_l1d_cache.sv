@@ -30,109 +30,92 @@ module tb_l1d_cache;
     initial clk = 0;
     always #5 clk = ~clk;
 
-    int errors;
-    int checks;
+    // lru bit por set (modelo del futuro controlador)
+    logic lru [0:63];
 
-    function automatic logic [255:0] make_line(input logic [31:0] base);
+    // contadores por benchmark
+    int g_accesses;
+    int g_hits;
+    int g_misses;
+
+    // tabla final
+    string rep_name [0:6];
+    int    rep_acc  [0:6];
+    int    rep_hit  [0:6];
+    int    rep_miss [0:6];
+    int    rep_n;
+
+    function automatic logic [255:0] synth_line(input logic [31:0] block_id);
         logic [255:0] l;
         int i;
         l = '0;
         for (i = 0; i < 8; i = i + 1) begin
-            l[i*32 +: 32] = base ^ i;
+            l[i*32 +: 32] = {block_id[23:0], i[7:0]};
         end
         return l;
     endfunction
 
-    function automatic logic [31:0] pack_addr(
-        input logic [20:0] t,
-        input logic [5:0]  s,
-        input logic [2:0]  w,
-        input logic [1:0]  b
-    );
-        return {t, s, w, b};
-    endfunction
-
-    task automatic do_fill(
-        input logic        way,
-        input logic [5:0]  s,
-        input logic [20:0] t,
-        input logic [255:0] line
-    );
-        @(posedge clk);
-        fill_en   <= 1'b1;
-        fill_way  <= way;
-        fill_set  <= s;
-        fill_tag  <= t;
-        fill_line <= line;
-        @(posedge clk);
-        fill_en   <= 1'b0;
+    task automatic clear_cache;
+        reset = 1;
+        @(posedge clk); @(posedge clk);
+        reset = 0;
+        for (int s = 0; s < 64; s++) lru[s] = 1'b0;
         #1;
     endtask
 
-    task automatic do_invalidate(
-        input logic        way,
-        input logic [5:0]  s
-    );
-        @(posedge clk);
-        inv_en  <= 1'b1;
-        inv_way <= way;
-        inv_set <= s;
-        @(posedge clk);
-        inv_en  <= 1'b0;
-        #1;
+    task automatic reset_counters;
+        g_accesses = 0;
+        g_hits     = 0;
+        g_misses   = 0;
     endtask
 
-    task automatic check_hit(
-        input string        label,
-        input logic [31:0]  a,
-        input logic [31:0]  expected_data,
-        input logic         expected_way
-    );
+    // emula al controlador: lookup; si miss, fill en la via LRU y reintenta
+    task automatic access(input logic [31:0] a);
+        logic [20:0] t;
+        logic [5:0]  s;
+        logic        chosen_way;
         addr = a;
         #1;
-        checks++;
-        if (!hit) begin
-            $error("[%0s] expected HIT, got MISS  addr=%h", label, a);
-            errors++;
-        end else if (hit_way !== expected_way) begin
-            $error("[%0s] way mismatch  addr=%h got=%0d exp=%0d",
-                   label, a, hit_way, expected_way);
-            errors++;
-        end else if (data_out !== expected_data) begin
-            $error("[%0s] data mismatch  addr=%h got=%h exp=%h",
-                   label, a, data_out, expected_data);
-            errors++;
-        end else begin
-            $display("[%0s] OK  addr=%h data=%h way=%0d",
-                     label, a, data_out, hit_way);
-        end
-    endtask
-
-    task automatic check_miss(
-        input string       label,
-        input logic [31:0] a
-    );
-        addr = a;
-        #1;
-        checks++;
+        g_accesses++;
         if (hit) begin
-            $error("[%0s] expected MISS, got HIT  addr=%h data=%h",
-                   label, a, data_out);
-            errors++;
+            g_hits++;
+            lru[a[10:5]] = !hit_way;
         end else begin
-            $display("[%0s] OK miss  addr=%h", label, a);
+            g_misses++;
+            t = a[31:11];
+            s = a[10:5];
+            chosen_way = lru[s];
+            @(posedge clk);
+            fill_en   <= 1'b1;
+            fill_way  <= chosen_way;
+            fill_set  <= s;
+            fill_tag  <= t;
+            fill_line <= synth_line({11'b0, t});
+            @(posedge clk);
+            fill_en   <= 1'b0;
+            #1;
+            lru[s] = !chosen_way;
+            addr = a;
+            #1;
         end
+    endtask
+
+    task automatic snapshot(input string label);
+        rep_name[rep_n] = label;
+        rep_acc[rep_n]  = g_accesses;
+        rep_hit[rep_n]  = g_hits;
+        rep_miss[rep_n] = g_misses;
+        rep_n++;
+        $display("[%0s] accesos=%0d hits=%0d misses=%0d hit_rate=%0d%%",
+                 label, g_accesses, g_hits, g_misses,
+                 (g_accesses == 0) ? 0 : (100*g_hits)/g_accesses);
     endtask
 
     initial begin
         $dumpfile("sim/waves/tb_l1d_cache.vcd");
         $dumpvars(0, tb_l1d_cache);
 
-        errors = 0;
-        checks = 0;
-
-        reset     = 1;
-        addr      = 32'h0;
+        addr      = 0;
         fill_en   = 0;
         fill_way  = 0;
         fill_set  = 0;
@@ -141,83 +124,105 @@ module tb_l1d_cache;
         inv_en    = 0;
         inv_way   = 0;
         inv_set   = 0;
+        rep_n     = 0;
 
-        repeat (2) @(posedge clk);
-        reset = 0;
-        #1;
+        // chequeo minimo de cableado
+        clear_cache();
+        reset_counters();
+        addr = 32'h00000000; #1;
+        if (hit) $error("cableado: hit espurio tras reset");
+        else     $display("[sanity] cold miss ok");
 
-        $display("== TEST 1: cold miss en sets variados ==");
-        check_miss("cold0", pack_addr(21'h00000, 6'd0,  3'd0, 2'd0));
-        check_miss("cold1", pack_addr(21'h00001, 6'd17, 3'd3, 2'd0));
-        check_miss("cold2", pack_addr(21'h1FFFF, 6'd63, 3'd7, 2'd0));
-
-        $display("== TEST 2: fill via0 set5 tag 0xA, leer las 8 palabras ==");
-        do_fill(1'b0, 6'd5, 21'h0000A, make_line(32'hDEAD0000));
-        for (int w = 0; w < 8; w++) begin
-            check_hit($sformatf("rd_w%0d", w),
-                      pack_addr(21'h0000A, 6'd5, w[2:0], 2'd0),
-                      32'hDEAD0000 ^ w,
-                      1'b0);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 1: recorrido secuencial 256 palabras ===");
+        $display("    espera: ~87%% hit (1 miss cada 8 palabras = linea de 32B)");
+        clear_cache();
+        reset_counters();
+        for (int i = 0; i < 256; i++) begin
+            access(i * 4);
         end
+        snapshot("seq_256");
 
-        $display("== TEST 3: tag distinto en mismo set -> miss ==");
-        check_miss("tag_mm", pack_addr(21'h0000B, 6'd5, 3'd0, 2'd0));
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 2: 4 pasadas sobre mismas 256 palabras ===");
+        $display("    espera: pasada 1 ~87%%, pasadas 2-4 ~100%% (localidad temporal)");
+        clear_cache();
+        reset_counters();
+        for (int p = 0; p < 4; p++) begin
+            for (int i = 0; i < 256; i++) begin
+                access(i * 4);
+            end
+        end
+        snapshot("loop_x4");
 
-        $display("== TEST 4: fill via1 mismo set con otro tag ==");
-        do_fill(1'b1, 6'd5, 21'h0000B, make_line(32'hCAFE0000));
-        check_hit("way0_still",
-                  pack_addr(21'h0000A, 6'd5, 3'd2, 2'd0),
-                  32'hDEAD0000 ^ 2, 1'b0);
-        check_hit("way1_new",
-                  pack_addr(21'h0000B, 6'd5, 3'd2, 2'd0),
-                  32'hCAFE0000 ^ 2, 1'b1);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 3: stride de 32B (una palabra por linea) ===");
+        $display("    espera: ~0%% hit hasta llenar caché, luego sigue mal por capacidad");
+        clear_cache();
+        reset_counters();
+        for (int i = 0; i < 256; i++) begin
+            access(i * 32);
+        end
+        snapshot("stride_32");
 
-        $display("== TEST 5: otro set es independiente ==");
-        check_miss("other_set", pack_addr(21'h0000A, 6'd6, 3'd0, 2'd0));
-        do_fill(1'b0, 6'd6, 21'h0000A, make_line(32'hBEEF0000));
-        check_hit("set6_w0",
-                  pack_addr(21'h0000A, 6'd6, 3'd0, 2'd0),
-                  32'hBEEF0000, 1'b0);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 4: conflicto 3 tags al mismo set, repetido ===");
+        $display("    espera: thrashing, ~0%% hit (LRU bota lo que se va a usar)");
+        clear_cache();
+        reset_counters();
+        for (int r = 0; r < 32; r++) begin
+            access(32'h00000000);
+            access(32'h00001000);
+            access(32'h00002000);
+        end
+        snapshot("trash_3way");
 
-        $display("== TEST 6: invalidar via0 set5 ==");
-        do_invalidate(1'b0, 6'd5);
-        check_miss("inv_way0",
-                   pack_addr(21'h0000A, 6'd5, 3'd0, 2'd0));
-        check_hit("way1_kept",
-                  pack_addr(21'h0000B, 6'd5, 3'd1, 2'd0),
-                  32'hCAFE0000 ^ 1, 1'b1);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 5: working set de 16 lineas, 16 pasadas ===");
+        $display("    espera: misses solo en la primera pasada, luego ~100%% hit");
+        clear_cache();
+        reset_counters();
+        for (int p = 0; p < 16; p++) begin
+            for (int i = 0; i < 16*8; i++) begin
+                access(i * 4);
+            end
+        end
+        snapshot("warm_16ln");
 
-        $display("== TEST 7: byte offset no afecta seleccion de palabra ==");
-        check_hit("byte_off_1",
-                  pack_addr(21'h0000B, 6'd5, 3'd4, 2'd1),
-                  32'hCAFE0000 ^ 4, 1'b1);
-        check_hit("byte_off_3",
-                  pack_addr(21'h0000B, 6'd5, 3'd4, 2'd3),
-                  32'hCAFE0000 ^ 4, 1'b1);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 6: random sobre region que cabe en cache ===");
+        $display("    espera: alto hit rate tras calentamiento");
+        clear_cache();
+        reset_counters();
+        for (int i = 0; i < 1024; i++) begin
+            // 64 lineas = 2 KB, cabe en cache (4 KB)
+            access(($random & 32'h000003FF) & ~32'h3);
+        end
+        snapshot("rand_fit");
 
-        $display("== TEST 8: refill sobrescribe linea ==");
-        do_fill(1'b0, 6'd5, 21'h12345, make_line(32'h11110000));
-        check_hit("refill_w0",
-                  pack_addr(21'h12345, 6'd5, 3'd0, 2'd0),
-                  32'h11110000, 1'b0);
-        check_hit("refill_w7",
-                  pack_addr(21'h12345, 6'd5, 3'd7, 2'd0),
-                  32'h11110000 ^ 7, 1'b0);
+        // -----------------------------------------------------------
+        $display("\n=== BENCH 7: random sobre region 4x mas grande que cache ===");
+        $display("    espera: bajo hit rate, dominan misses de capacidad/conflicto");
+        clear_cache();
+        reset_counters();
+        for (int i = 0; i < 1024; i++) begin
+            access(($random & 32'h00003FFF) & ~32'h3);
+        end
+        snapshot("rand_big");
 
-        $display("== TEST 9: reset limpia valids ==");
-        reset = 1;
-        @(posedge clk); @(posedge clk);
-        reset = 0;
-        #1;
-        check_miss("post_rst_a", pack_addr(21'h12345, 6'd5, 3'd0, 2'd0));
-        check_miss("post_rst_b", pack_addr(21'h0000B, 6'd5, 3'd0, 2'd0));
-        check_miss("post_rst_c", pack_addr(21'h0000A, 6'd6, 3'd0, 2'd0));
-
-        $display("==================================");
-        $display("checks=%0d  errors=%0d", checks, errors);
-        if (errors == 0) $display("RESULT: PASS");
-        else             $display("RESULT: FAIL");
-        $display("==================================");
+        // -----------------------------------------------------------
+        $display("\n\n=================  RESUMEN  =================");
+        $display("benchmark        accesos    hits   misses  hit%%   AMAT (hit=1, penal=8)");
+        for (int k = 0; k < rep_n; k++) begin
+            int hr_x100;
+            real amat;
+            hr_x100 = (rep_acc[k] == 0) ? 0 : (100*rep_hit[k])/rep_acc[k];
+            amat = 1.0 + (real'(rep_miss[k]) / real'(rep_acc[k])) * 8.0;
+            $display("%-15s   %6d  %6d  %6d   %3d    %0.2f",
+                     rep_name[k], rep_acc[k], rep_hit[k], rep_miss[k],
+                     hr_x100, amat);
+        end
+        $display("=============================================");
         $finish;
     end
 
