@@ -10,8 +10,11 @@ from codegen.binary import BinaryEncoder, EncodingError
 from codegen.generator import AssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
+from IR.ir_generator import IRGenerator
+from IR.basic_blocks import ControlFlowGraph
 
-DEFAULT_OUTPUT_DIR = Path("compi") / "output"
+DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "output"
+DEFAULT_IR_DIR = DEFAULT_OUTPUT_DIR / "ir"
 DEFAULT_ASM_DIR = DEFAULT_OUTPUT_DIR / "asm_unresolved"
 DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
 DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
@@ -145,6 +148,7 @@ def main() -> int:
 
     show_tokens = False
     show_ast = False
+    show_ir = False
     show_symbols = False
     show_asm = False
     show_resolved = False
@@ -160,6 +164,8 @@ def main() -> int:
             show_tokens = True
         elif arg in {"--ast", "-t"}:
             show_ast = True
+        elif arg in {"--ir", "-i"}:
+            show_ir = True
         elif arg in {"--asm", "-s"}:
             show_asm = True
         elif arg in {"--resolve", "-r"}:
@@ -185,7 +191,7 @@ def main() -> int:
 
     if input_file is None:
         print(
-            "Uso: python main.py [--tokens] [-t|--ast] [-m|--symbols] "
+            "Uso: python main.py [--tokens] [-t|--ast] [-i|--ir] [-m|--symbols] "
             "[-s|--asm] [-r|--resolve] [-b|--binary] [-o archivo.bin] <archivo.craft>"
         )
         return 2
@@ -232,6 +238,46 @@ def main() -> int:
             ast_path = DEFAULT_AST_DIR / f"{input_path.stem}.ast.txt"
             ast_path.write_text(format_ast(ast) + "\n", encoding="utf-8")
             print(f"AST generado: {ast_path}")
+
+        if show_ir:
+            ir_gen = IRGenerator()
+            ir_instructions = ir_gen.generate(ast)
+            DEFAULT_IR_DIR.mkdir(parents=True, exist_ok=True)
+            ir_path = DEFAULT_IR_DIR / f"{input_path.stem}.ir.txt"
+            
+            lines = []
+            for instr in ir_instructions:
+                name = type(instr).__name__
+                if name == "IRLabel":
+                    lines.append(f"{instr.name}:")
+                elif name == "IRJump":
+                    lines.append(f"  goto {instr.label}")
+                elif name == "IRJumpIfFalse":
+                    lines.append(f"  ifFalse {instr.condition} goto {instr.label}")
+                elif name == "IRBinOp":
+                    lines.append(f"  {instr.result} = {instr.left} {instr.op} {instr.right}")
+                elif name == "IRUnaryOp":
+                    lines.append(f"  {instr.result} = {instr.op}{instr.operand}")
+                elif name == "IRAssign":
+                    lines.append(f"  {instr.result} = {instr.source}")
+                elif name == "IRCall":
+                    args_str = ", ".join(instr.args)
+                    if instr.result:
+                        lines.append(f"  {instr.result} = call {instr.func_name}({args_str})")
+                    else:
+                        lines.append(f"  call {instr.func_name}({args_str})")
+                elif name == "IRReturn":
+                    lines.append(f"  return {instr.value}")
+                else:
+                    lines.append(f"  {instr}")
+                    
+            # Análisis de Bloques Básicos
+            cfg = ControlFlowGraph()
+            cfg.build_from_ir(ir_instructions)
+            lines.append("\n" + cfg.print_blocks())
+
+            ir_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            print(f"Representación Intermedia (IR) generada: {ir_path}")
 
         semantic = SemanticAnalyzer(filename=str(input_path))
         symbol_table = semantic.analyze(ast)
