@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ast_nodes import ArrayLiteral, FunctionDeclaration, Program, VariableDeclaration
+from typing import Any
+from ast_nodes import ASTNode, ArrayLiteral, CallExpression, FunctionDeclaration, Program, VariableDeclaration
 
 from symbol_table import Scope, ScopeKind, SymbolTable
 
@@ -67,6 +68,8 @@ class AssemblyGenerator(
     def generate(self, program: Program) -> str:
         self.lines = []
 
+        self._calculate_static_fps(program)
+
         self._emit("; ==================================================")
         self._emit("; Ensamblador generado para Craft21")
         self._emit("; Fase 4 - versión inicial")
@@ -77,6 +80,54 @@ class AssemblyGenerator(
         self._emit_text_section(program)
 
         return self._with_instruction_addresses("\n".join(self.lines))
+
+    def _calculate_static_fps(self, program: Program) -> None:
+        main_func = None
+        func_map = {}
+        for decl in program.declarations:
+            if isinstance(decl, FunctionDeclaration):
+                func_map[decl.name] = decl
+                if decl.name == "main":
+                    main_func = decl
+                    
+        if main_func is None:
+            return
+            
+        visited = set()
+        
+        def trace(func_decl: FunctionDeclaration, current_fp: int) -> None:
+            if func_decl.name in visited: return
+            visited.add(func_decl.name)
+            
+            func_scope = self._find_child_scope(
+                parent=self.symbol_table.global_scope,
+                kind=ScopeKind.FUNCTION,
+                name_prefix=f"function:{func_decl.name}",
+            )
+            if not func_scope: return
+            
+            func_scope.static_fp = current_fp
+            stack_size = self._calculate_stack_size(func_scope)
+            frame_size = stack_size + 8
+            new_fp = current_fp - frame_size
+            
+            def walk(node: Any) -> None:
+                if isinstance(node, CallExpression):
+                    if node.name in func_map:
+                        trace(func_map[node.name], new_fp)
+                if not isinstance(node, ASTNode):
+                    return
+                for k, v in vars(node).items():
+                    if isinstance(v, ASTNode):
+                        walk(v)
+                    elif isinstance(v, list):
+                        for item in v:
+                            if isinstance(item, ASTNode):
+                                walk(item)
+            
+            walk(func_decl.body)
+                
+        trace(main_func, self.INITIAL_STACK_POINTER)
 
     def _emit_text_section(self, program: Program) -> None:
         self._emit(".text")

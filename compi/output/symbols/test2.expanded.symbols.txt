@@ -1,0 +1,58 @@
+=== Labels resueltas (.text) ===
+.L_codegen_0_enderExit       pc=0x0018
+main                         pc=0x0018
+.L_codegen_1_main_end        pc=0x0088
+maximo_lista                 pc=0x0094
+.L0_for_start                pc=0x00E8
+.L_codegen_3_cmp_true        pc=0x012C
+.L_codegen_4_cmp_end         pc=0x0130
+.L2_if_else                  pc=0x0150
+.L3_if_end                   pc=0x0150
+.L1_for_end                  pc=0x0164
+.L_codegen_2_maximo_lista_end pc=0x0170
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name          kind      type  decl                       seg   addr    off  size  res
+  ------------  --------  ----  -------------------------  ----  ------  ---  ----  ---
+  maximo_lista  FUNCTION  int   test2.expanded.craft:4:1   TEXT  0x0094  -    0     yes
+  main          FUNCTION  int   test2.expanded.craft:24:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION maximo_lista (stack_size=28)
+    symbols:
+    name     kind       type           decl                       seg    addr    off  size  res
+    -------  ---------  -------------  -------------------------  -----  ------  ---  ----  ---
+    lista    PARAMETER  chest[int, 7]  test2.expanded.craft:4:24  STACK  0x7FAC  -4   4     yes
+    largo    PARAMETER  int            test2.expanded.craft:4:45  STACK  0x7FA8  -8   4     yes
+    maximo   VARIABLE   int            test2.expanded.craft:5:5   STACK  0x7FA4  -12  4     yes
+    num      VARIABLE   int            test2.expanded.craft:6:5   STACK  0x7FA0  -16  4     yes
+    esMayor  VARIABLE   int            test2.expanded.craft:7:5   STACK  0x7F9C  -20  4     yes
+    limite   VARIABLE   int            test2.expanded.craft:8:5   STACK  0x7F98  -24  4     yes
+
+    [scope 2] LOOP 'for'
+      symbols:
+      name           kind      type  decl                        seg    addr    off  size  res
+      -------------  --------  ----  --------------------------  -----  ------  ---  ----  ---
+      .L0_for_start  LABEL     None  test2.expanded.craft:10:5   TEXT   0x00E8  -    0     yes
+      .L1_for_end    LABEL     None  test2.expanded.craft:10:5   TEXT   0x0164  -    0     yes
+      i              VARIABLE  int   test2.expanded.craft:10:10  STACK  0x7F94  -28  4     yes
+      .L2_if_else    LABEL     None  test2.expanded.craft:15:9   TEXT   0x0150  -    0     yes
+      .L3_if_end     LABEL     None  test2.expanded.craft:15:9   TEXT   0x0150  -    0     yes
+
+      [scope 3] CONDITIONAL 'if'
+        symbols: (none)
+
+  [scope 4] FUNCTION main (stack_size=28)
+    symbols:
+    name   kind      type           decl                       seg    addr    off  size  res
+    -----  --------  -------------  -------------------------  -----  ------  ---  ----  ---
+    lista  VARIABLE  chest[int, 7]  test2.expanded.craft:25:5  STACK  0x7FD4  -28  28    yes

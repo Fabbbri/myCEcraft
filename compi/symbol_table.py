@@ -206,6 +206,7 @@ class Scope:
     kind: ScopeKind
     parent: Scope | None = None
     level: int = 0
+    static_fp: int | None = None
     symbols: dict[str, Symbol] = field(default_factory=dict)
     children: list[Scope] = field(default_factory=list)
 
@@ -475,7 +476,7 @@ class SymbolTable:
         if scope.symbols:
             frame_size = self._find_enclosing_frame_size(scope)
             rows = [
-                self._format_symbol_row(symbol, frame_size)
+                self._format_symbol_row(symbol, scope, frame_size)
                 for symbol in scope.symbols.values()
             ]
             header_cells = [
@@ -514,6 +515,7 @@ class SymbolTable:
     def _format_symbol_row(
         self,
         symbol: Symbol,
+        scope: Scope,
         frame_size: int | None,
     ) -> list[str]:
         type_repr = symbol.type.describe() if symbol.type is not None else "None"
@@ -521,7 +523,19 @@ class SymbolTable:
         memory = symbol.memory_info
         segment = memory.segment or "-"
         if memory.segment == "STACK" and memory.offset is not None:
-            address = f"runtime({FP.asm()}{memory.offset:+})"
+            current: Scope | None = scope
+            func_static_fp = None
+            while current is not None:
+                if current.kind == ScopeKind.FUNCTION and current.static_fp is not None:
+                    func_static_fp = current.static_fp
+                    break
+                current = current.parent
+                
+            if func_static_fp is not None:
+                addr_val = func_static_fp + memory.offset
+                address = f"0x{addr_val:04X}"
+            else:
+                address = f"runtime({FP.asm()}{memory.offset:+})"
         else:
             address = f"0x{memory.address:04X}" if memory.address is not None else "-"
 
