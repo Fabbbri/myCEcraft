@@ -2,7 +2,6 @@
 
 module tb_l1d_cache;
 
-    // DUT I/O
     logic        clk;
     logic        reset;
     logic [31:0] addr;
@@ -10,10 +9,10 @@ module tb_l1d_cache;
     logic        hit;
     logic        hit_way;
 
-    logic        fill_en;
-    logic        fill_way;
-    logic [5:0]  fill_set;
-    logic [20:0] fill_tag;
+    logic         fill_en;
+    logic         fill_way;
+    logic [5:0]   fill_set;
+    logic [20:0]  fill_tag;
     logic [255:0] fill_line;
 
     logic        inv_en;
@@ -28,15 +27,12 @@ module tb_l1d_cache;
         .inv_en(inv_en), .inv_way(inv_way), .inv_set(inv_set)
     );
 
-    // 100 MHz clock
     initial clk = 0;
     always #5 clk = ~clk;
 
-    // Counters
     int errors;
     int checks;
 
-    // Build a synthetic 256-bit line where word[i] = base ^ i
     function automatic logic [255:0] make_line(input logic [31:0] base);
         logic [255:0] l;
         int i;
@@ -47,7 +43,6 @@ module tb_l1d_cache;
         return l;
     endfunction
 
-    // Pack an address from {tag, set, word, byte}
     function automatic logic [31:0] pack_addr(
         input logic [20:0] t,
         input logic [5:0]  s,
@@ -57,7 +52,6 @@ module tb_l1d_cache;
         return {t, s, w, b};
     endfunction
 
-    // Drive a fill on the next posedge
     task automatic do_fill(
         input logic        way,
         input logic [5:0]  s,
@@ -137,7 +131,6 @@ module tb_l1d_cache;
         errors = 0;
         checks = 0;
 
-        // Init
         reset     = 1;
         addr      = 32'h0;
         fill_en   = 0;
@@ -149,19 +142,17 @@ module tb_l1d_cache;
         inv_way   = 0;
         inv_set   = 0;
 
-        // Hold reset a few cycles so valid bits go low
         repeat (2) @(posedge clk);
         reset = 0;
         #1;
 
-        $display("== TEST 1: cold miss on every set ==");
+        $display("== TEST 1: cold miss en sets variados ==");
         check_miss("cold0", pack_addr(21'h00000, 6'd0,  3'd0, 2'd0));
         check_miss("cold1", pack_addr(21'h00001, 6'd17, 3'd3, 2'd0));
         check_miss("cold2", pack_addr(21'h1FFFF, 6'd63, 3'd7, 2'd0));
 
-        $display("== TEST 2: fill way0 of set 5, tag 0xA, read all 8 words ==");
+        $display("== TEST 2: fill via0 set5 tag 0xA, leer las 8 palabras ==");
         do_fill(1'b0, 6'd5, 21'h0000A, make_line(32'hDEAD0000));
-        // expected word i = 0xDEAD0000 ^ i
         for (int w = 0; w < 8; w++) begin
             check_hit($sformatf("rd_w%0d", w),
                       pack_addr(21'h0000A, 6'd5, w[2:0], 2'd0),
@@ -169,10 +160,10 @@ module tb_l1d_cache;
                       1'b0);
         end
 
-        $display("== TEST 3: tag mismatch on filled set -> miss ==");
+        $display("== TEST 3: tag distinto en mismo set -> miss ==");
         check_miss("tag_mm", pack_addr(21'h0000B, 6'd5, 3'd0, 2'd0));
 
-        $display("== TEST 4: fill way1 same set with different tag ==");
+        $display("== TEST 4: fill via1 mismo set con otro tag ==");
         do_fill(1'b1, 6'd5, 21'h0000B, make_line(32'hCAFE0000));
         check_hit("way0_still",
                   pack_addr(21'h0000A, 6'd5, 3'd2, 2'd0),
@@ -181,14 +172,14 @@ module tb_l1d_cache;
                   pack_addr(21'h0000B, 6'd5, 3'd2, 2'd0),
                   32'hCAFE0000 ^ 2, 1'b1);
 
-        $display("== TEST 5: different set is independent ==");
+        $display("== TEST 5: otro set es independiente ==");
         check_miss("other_set", pack_addr(21'h0000A, 6'd6, 3'd0, 2'd0));
         do_fill(1'b0, 6'd6, 21'h0000A, make_line(32'hBEEF0000));
         check_hit("set6_w0",
                   pack_addr(21'h0000A, 6'd6, 3'd0, 2'd0),
                   32'hBEEF0000, 1'b0);
 
-        $display("== TEST 6: invalidate way0 set 5 -> miss for tag A, hit kept for tag B ==");
+        $display("== TEST 6: invalidar via0 set5 ==");
         do_invalidate(1'b0, 6'd5);
         check_miss("inv_way0",
                    pack_addr(21'h0000A, 6'd5, 3'd0, 2'd0));
@@ -196,7 +187,7 @@ module tb_l1d_cache;
                   pack_addr(21'h0000B, 6'd5, 3'd1, 2'd0),
                   32'hCAFE0000 ^ 1, 1'b1);
 
-        $display("== TEST 7: byte offset must be ignored (word selected by [4:2]) ==");
+        $display("== TEST 7: byte offset no afecta seleccion de palabra ==");
         check_hit("byte_off_1",
                   pack_addr(21'h0000B, 6'd5, 3'd4, 2'd1),
                   32'hCAFE0000 ^ 4, 1'b1);
@@ -204,7 +195,7 @@ module tb_l1d_cache;
                   pack_addr(21'h0000B, 6'd5, 3'd4, 2'd3),
                   32'hCAFE0000 ^ 4, 1'b1);
 
-        $display("== TEST 8: refill way0 set 5 with new tag/data overrides ==");
+        $display("== TEST 8: refill sobrescribe linea ==");
         do_fill(1'b0, 6'd5, 21'h12345, make_line(32'h11110000));
         check_hit("refill_w0",
                   pack_addr(21'h12345, 6'd5, 3'd0, 2'd0),
@@ -213,7 +204,7 @@ module tb_l1d_cache;
                   pack_addr(21'h12345, 6'd5, 3'd7, 2'd0),
                   32'h11110000 ^ 7, 1'b0);
 
-        $display("== TEST 9: reset clears all valid bits ==");
+        $display("== TEST 9: reset limpia valids ==");
         reset = 1;
         @(posedge clk); @(posedge clk);
         reset = 0;
