@@ -1,7 +1,13 @@
 # =========================
 # Variables de Configuración
 # =========================
-TOP ?= tb_top  # puede sobreescribirse : make run TOP=tb_alu
+# Puede sobreescribirse. Ej: 
+# make run TOP=tb_alu
+# make run TOP=tb_topG ROM=factorial.hex RAM=ram_hex.hex
+
+TOP ?= tb_topG 
+ROM ?= program.hex
+RAM ?= data.hex 
 
 SRC_DIR = rtl
 TB_DIR = tb
@@ -11,7 +17,14 @@ WAVE_DIR = $(SIM_DIR)/waves
 OUTPUT_DIR = outputs
 
 # Wildcard busca todos los nombres de archivos de rtl
-SRC = $(wildcard $(SRC_DIR)/*.sv)
+SRC = \
+	$(wildcard $(SRC_DIR)/*.sv) \
+	$(wildcard $(SRC_DIR)/async_fifo/*.sv) \
+	$(wildcard $(SRC_DIR)/IF/*.sv) \
+	$(wildcard $(SRC_DIR)/DE/*.sv) \
+	$(wildcard $(SRC_DIR)/MEM/*.sv) \
+	$(wildcard $(SRC_DIR)/utils/*.sv) \
+	$(wildcard $(SRC_DIR)/TOP/*.sv) \
 
 # Si TOP está definido: usar solo ese TB
 # Si no: usar todos
@@ -20,6 +33,8 @@ ifeq ($(TOP),all)
 else
     TB = $(TB_DIR)/$(TOP).sv
 endif
+
+
 
 # archivo simulable
 OUT = $(BUILD_DIR)/$(TOP).vvp
@@ -65,7 +80,7 @@ compile: dirs
 
 # correr el compilado
 run: compile
-	$(VVP) $(OUT) $(VVP_FLAGS)
+	$(VVP) $(OUT) $(VVP_FLAGS) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
 # iniciar simulacion con waves
 wave:
