@@ -31,6 +31,7 @@ from ast_nodes import (
     VaultInstruction,
     WhileStatement,
 )
+from IR.optimizer import AUTO_UNROLL_FACTOR, MAX_AUTO_UNROLL_FACTOR
 
 
 def write_optimized_craft_preview(
@@ -47,7 +48,7 @@ def write_optimized_craft_preview(
     detalles de formato/tipos necesarios para reconstruir el .craft original.
     """
 
-    if unroll_factor <= 1:
+    if unroll_factor == 1:
         return None
 
     preview = _CraftLoopPreviewUnroller(unroll_factor).run(program)
@@ -215,7 +216,8 @@ class _CraftLoopPreviewUnroller:
             return None
 
         iterations = _iteration_count(start, limit, step, op)
-        if iterations <= 0 or iterations < self.factor:
+        factor = self._select_factor(iterations, len(body))
+        if iterations <= 0 or factor <= 1:
             return None
 
         return _LoopPreview(
@@ -225,6 +227,7 @@ class _CraftLoopPreviewUnroller:
             condition_op=op,
             step=step,
             iterations=iterations,
+            factor=factor,
             body=body,
             original=node,
         )
@@ -255,7 +258,8 @@ class _CraftLoopPreviewUnroller:
             return None
 
         iterations = _iteration_count(start, limit, step, op)
-        if iterations <= 0 or iterations < self.factor:
+        factor = self._select_factor(iterations, len(body))
+        if iterations <= 0 or factor <= 1:
             return None
 
         return _LoopPreview(
@@ -265,19 +269,33 @@ class _CraftLoopPreviewUnroller:
             condition_op=op,
             step=step,
             iterations=iterations,
+            factor=factor,
             body=body,
             original=node,
         )
+
+    def _select_factor(self, iterations: int, body_size: int) -> int:
+        if self.factor != AUTO_UNROLL_FACTOR:
+            return self.factor if self.factor <= iterations else 1
+
+        max_factor = min(MAX_AUTO_UNROLL_FACTOR, iterations)
+        if max_factor < 2:
+            return 1
+        if body_size <= 2 and iterations >= 16 and max_factor >= 8:
+            return 8
+        if body_size <= 6 and iterations >= 8 and max_factor >= 4:
+            return 4
+        return 2
 
     def _build_for(self, loop: "_LoopPreview") -> ForStatement:
         original = loop.original
         assert isinstance(original, ForStatement)
 
-        main_limit = loop.start + self.factor * (loop.iterations // self.factor) * loop.step
+        main_limit = loop.start + loop.factor * (loop.iterations // loop.factor) * loop.step
         body = self._unrolled_body(loop)
         increment = _increment_assignment(
             loop.variable,
-            loop.step * self.factor,
+            loop.step * loop.factor,
             line=original.line,
             column=original.column,
         )
@@ -301,12 +319,12 @@ class _CraftLoopPreviewUnroller:
         original = loop.original
         assert isinstance(original, WhileStatement)
 
-        main_limit = loop.start + self.factor * (loop.iterations // self.factor) * loop.step
+        main_limit = loop.start + loop.factor * (loop.iterations // loop.factor) * loop.step
         body = self._unrolled_body(loop)
         body.append(
             _increment_assignment(
                 loop.variable,
-                loop.step * self.factor,
+                loop.step * loop.factor,
                 line=original.line,
                 column=original.column,
             )
@@ -327,13 +345,13 @@ class _CraftLoopPreviewUnroller:
 
     def _unrolled_body(self, loop: "_LoopPreview") -> list[ASTNode]:
         result: list[ASTNode] = []
-        for copy_index in range(self.factor):
+        for copy_index in range(loop.factor):
             offset = copy_index * loop.step
             result.extend(_clone_with_index(statement, loop.variable, offset, None) for statement in loop.body)
         return result
 
     def _remainder(self, loop: "_LoopPreview") -> list[ASTNode]:
-        unrolled_iterations = loop.iterations - (loop.iterations % self.factor)
+        unrolled_iterations = loop.iterations - (loop.iterations % loop.factor)
         remainder_start = loop.start + unrolled_iterations * loop.step
         normalized_limit = loop.limit + (1 if loop.condition_op == "<=" else 0)
 
@@ -373,6 +391,7 @@ class _LoopPreview:
         condition_op: str,
         step: int,
         iterations: int,
+        factor: int,
         body: list[ASTNode],
         original: ASTNode,
     ) -> None:
@@ -382,6 +401,7 @@ class _LoopPreview:
         self.condition_op = condition_op
         self.step = step
         self.iterations = iterations
+        self.factor = factor
         self.body = body
         self.original = original
 

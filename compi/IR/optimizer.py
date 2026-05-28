@@ -18,6 +18,9 @@ from IR.instructions import (
 )
 from registers import TEMP_REGISTERS
 
+AUTO_UNROLL_FACTOR = 0
+MAX_AUTO_UNROLL_FACTOR = min(8, len(TEMP_REGISTERS))
+
 
 class IROptimizationError(Exception):
     pass
@@ -26,21 +29,32 @@ class IROptimizationError(Exception):
 @dataclass
 class IROptimizationStats:
     unroll_factor: int
+    max_auto_unroll_factor: int = MAX_AUTO_UNROLL_FACTOR
     loops_seen: int = 0
     loops_unrolled: int = 0
     loops_skipped: int = 0
     duplicated_instructions: int = 0
     static_registers_renamed: int = 0
+    selected_unroll_factors: list[int] | None = None
 
     def summary(self) -> str:
+        factor = (
+            f"auto(max={self.max_auto_unroll_factor})"
+            if self.unroll_factor == AUTO_UNROLL_FACTOR
+            else str(self.unroll_factor)
+        )
+        selected = ""
+        if self.selected_unroll_factors:
+            selected = f", selected_factors={self.selected_unroll_factors}"
         return (
             "Optimizaciones IR: "
-            f"loop_unrolling factor={self.unroll_factor}, "
+            f"loop_unrolling factor={factor}, "
             f"loops={self.loops_seen}, "
             f"unrolled={self.loops_unrolled}, "
             f"skipped={self.loops_skipped}, "
             f"duplicated_ir={self.duplicated_instructions}, "
             f"renamed_static_registers={self.static_registers_renamed}"
+            f"{selected}"
         )
 
 
@@ -50,7 +64,10 @@ def optimize_ir(
     unroll_factor: int,
     rename_static_registers: bool,
 ) -> tuple[list[IRInstruction], IROptimizationStats]:
-    stats = IROptimizationStats(unroll_factor=max(1, unroll_factor))
+    stats = IROptimizationStats(
+        unroll_factor=unroll_factor if unroll_factor == AUTO_UNROLL_FACTOR else max(1, unroll_factor),
+        selected_unroll_factors=[],
+    )
     optimized = _IRLoopUnroller(stats.unroll_factor, stats).run(instructions)
     if rename_static_registers:
         optimized = _IRStaticRegisterRenamer(stats).run(optimized)
@@ -64,7 +81,7 @@ class _IRLoopUnroller:
         self._next_temp = 0
 
     def run(self, instructions: list[IRInstruction]) -> list[IRInstruction]:
-        if self.factor <= 1:
+        if self.factor == 1:
             return list(instructions)
 
         self._next_temp = self._first_available_temp(instructions)
@@ -206,14 +223,18 @@ class _IRLoopUnroller:
         )
 
     def _unroll_match(self, match: "_LoopMatch") -> list[IRInstruction] | None:
-        if match.iterations < self.factor:
+        factor = self._select_factor(match)
+        if factor <= 1:
+            return None
+
+        if match.iterations < factor:
             raise IROptimizationError(
                 "loop unrolling: el factor "
-                f"{self.factor} es mayor que las {match.iterations} "
+                f"{factor} es mayor que las {match.iterations} "
                 f"iteraciones conocidas del loop '{match.start_label.name}'"
             )
 
-        unrolled_iterations = match.iterations - (match.iterations % self.factor)
+        unrolled_iterations = match.iterations - (match.iterations % factor)
         main_limit = match.start_value + (unrolled_iterations * match.step)
         remainder_start = match.start_value + (unrolled_iterations * match.step)
 
@@ -229,7 +250,7 @@ class _IRLoopUnroller:
         condition_temp = result[-1].result
         result.append(IRJumpIfFalse(condition_temp, match.end_label.name))
 
-        for copy_index in range(self.factor):
+        for copy_index in range(factor):
             result.extend(
                 self._clone_body(
                     match.body,
@@ -239,7 +260,7 @@ class _IRLoopUnroller:
                 )
             )
 
-        result.extend(self._increment(match.variable, match.step * self.factor))
+        result.extend(self._increment(match.variable, match.step * factor))
         result.append(match.jump)
         result.append(match.end_label)
 
@@ -254,8 +275,25 @@ class _IRLoopUnroller:
             )
 
         self.stats.loops_unrolled += 1
-        self.stats.duplicated_instructions += len(match.body) * (self.factor - 1)
+        self.stats.duplicated_instructions += len(match.body) * (factor - 1)
+        if self.stats.selected_unroll_factors is not None:
+            self.stats.selected_unroll_factors.append(factor)
         return result
+
+    def _select_factor(self, match: "_LoopMatch") -> int:
+        if self.factor != AUTO_UNROLL_FACTOR:
+            return self.factor
+
+        body_size = len(match.body)
+        max_factor = min(MAX_AUTO_UNROLL_FACTOR, match.iterations)
+        if max_factor < 2:
+            return 1
+
+        if body_size <= 2 and match.iterations >= 16 and max_factor >= 8:
+            return 8
+        if body_size <= 6 and match.iterations >= 8 and max_factor >= 4:
+            return 4
+        return 2
 
     def _clone_body(
         self,

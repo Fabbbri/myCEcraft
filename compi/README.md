@@ -389,7 +389,8 @@ Opciones útiles:
 - `-O0`: no aplica optimizaciones.
 - `-O1`, `-O` o `--optimize`: activa loop unrolling y renombramiento de registros.
 - `-O2`: perfil reservado; por ahora no aplica optimizaciones.
-- `--unroll-factor N`: aplica loop unrolling con factor configurable.
+- `--unroll-factor N`: aplica loop unrolling con factor configurable
+  entre 1 y 8. Si no se indica en `-O1`, se escoge automaticamente.
 - `--rename-registers`: activa solo el renombramiento de registros estaticos en IR.
 - Los artefactos generados por defecto se escriben en `output/`.
 
@@ -401,8 +402,10 @@ Con `-O1`, `-O` o `--optimize`, el compilador aplica solamente:
   `IRInstruction` ya generadas. Para loops contados con inicio, limite e
   incremento constantes, usa el estilo clasico: aumenta el stride por el factor,
   sustituye `i`, `i + 1`, etc. en las copias del cuerpo y emite el remainder
-  despues del loop. Si el factor es mayor que las iteraciones conocidas,
-  reporta un error de optimizacion.
+  despues del loop. En `-O1`, si no se pasa `--unroll-factor`, el factor se
+  escoge con heuristica automatica y maximo 8, alineado con los 8 registros
+  temporales `x3` a `x10`. Si el usuario pide manualmente un factor mayor que
+  las iteraciones conocidas, reporta un error de optimizacion.
 - **Renombramiento de registros estaticos en IR**. La pasada renombra
   temporales `tN` usando los registros temporales definidos para Craft21
   (`x3` a `x10`). Esto permite mostrar como se reducen dependencias falsas

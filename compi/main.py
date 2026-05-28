@@ -13,7 +13,12 @@ from codegen.resolver import LabelResolver, ResolutionError
 from IR.ir_generator import IRGenerator
 from IR.basic_blocks import ControlFlowGraph
 from IR.craft_preview import write_optimized_craft_preview
-from IR.optimizer import IROptimizationError, optimize_ir
+from IR.optimizer import (
+    AUTO_UNROLL_FACTOR,
+    IROptimizationError,
+    MAX_AUTO_UNROLL_FACTOR,
+    optimize_ir,
+)
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 DEFAULT_IR_DIR = DEFAULT_OUTPUT_DIR / "ir"
@@ -214,7 +219,7 @@ def main() -> int:
             optimization_level = max(optimization_level, 1)
             rename_static_registers = True
             if unroll_factor <= 1:
-                unroll_factor = 2
+                unroll_factor = AUTO_UNROLL_FACTOR
         elif arg == "-O0":
             optimize = False
             optimization_level = 0
@@ -239,6 +244,12 @@ def main() -> int:
                 return 2
             if unroll_factor < 1:
                 print("Error: --unroll-factor debe ser mayor o igual a 1")
+                return 2
+            if unroll_factor > MAX_AUTO_UNROLL_FACTOR:
+                print(
+                    "Error: --unroll-factor no puede ser mayor que "
+                    f"{MAX_AUTO_UNROLL_FACTOR} para la arquitectura Craft21"
+                )
                 return 2
             optimize = True
             optimization_level = max(optimization_level, 1)
@@ -318,7 +329,7 @@ def main() -> int:
                     rename_static_registers=rename_static_registers,
                 )
                 print(f"-O{optimization_level}: {optimization_stats.summary()}")
-                if unroll_factor > 1:
+                if unroll_factor != 1:
                     preview_path = DEFAULT_OPTIMIZED_DIR / f"{input_path.stem}.O{optimization_level}.craft"
                     written_preview = write_optimized_craft_preview(
                         ast,
