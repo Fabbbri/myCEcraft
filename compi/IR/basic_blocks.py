@@ -141,6 +141,8 @@ class ControlFlowGraph:
                     lines.append(f"    ifFalse {instr.condition} goto {instr.label}")
                 elif name == "IRBinOp":
                     lines.append(f"    {instr.result} = {instr.left} {instr.op} {instr.right}")
+                elif name == "IRUnaryOp":
+                    lines.append(f"    {instr.result} = {instr.op}{instr.operand}")
                 elif name == "IRAssign":
                     lines.append(f"    {instr.result} = {instr.source}")
                 elif name == "IRReturn":

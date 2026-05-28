@@ -1,0 +1,51 @@
+main:
+  vr0 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  datos = vr0
+  i = 0
+L_for_start_0:
+  vr1 = i < 10
+  ifFalse vr1 goto L_for_end_1
+  vr2 = datos[i]
+  vr3 = vr2 + 1
+  datos[i] = vr3
+  vr4 = datos[(i + 1)]
+  vr5 = vr4 + 1
+  datos[(i + 1)] = vr5
+  vr6 = i + 2
+  i = vr6
+  goto L_for_start_0
+L_for_end_1:
+  vr7 = datos[9]
+  return vr7
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+  main:
+    vr0 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    datos = vr0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+  L_for_start_0:
+    vr1 = i < 10
+    ifFalse vr1 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    vr2 = datos[i]
+    vr3 = vr2 + 1
+    datos[i] = vr3
+    vr4 = datos[(i + 1)]
+    vr5 = vr4 + 1
+    datos[(i + 1)] = vr5
+    vr6 = i + 2
+    i = vr6
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  L_for_end_1:
+    vr7 = datos[9]
+    return vr7

@@ -1,0 +1,63 @@
+main:
+  i = 0
+  suma = 0
+  mezcla = 1
+  total = 0
+L_while_start_0:
+  vr0 = i < 8
+  ifFalse vr0 goto L_while_end_1
+  vr1 = suma + i
+  suma = vr1
+  vr2 = mezcla * 2
+  mezcla = vr2
+  vr3 = total + suma
+  total = vr3
+  vr4 = suma + (i + 1)
+  suma = vr4
+  vr5 = mezcla * 2
+  mezcla = vr5
+  vr6 = total + suma
+  total = vr6
+  vr7 = i + 2
+  i = vr7
+  goto L_while_start_0
+L_while_end_1:
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+  main:
+    i = 0
+    suma = 0
+    mezcla = 1
+    total = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+  L_while_start_0:
+    vr0 = i < 8
+    ifFalse vr0 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    vr1 = suma + i
+    suma = vr1
+    vr2 = mezcla * 2
+    mezcla = vr2
+    vr3 = total + suma
+    total = vr3
+    vr4 = suma + (i + 1)
+    suma = vr4
+    vr5 = mezcla * 2
+    mezcla = vr5
+    vr6 = total + suma
+    total = vr6
+    vr7 = i + 2
+    i = vr7
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  L_while_end_1:
+    return total

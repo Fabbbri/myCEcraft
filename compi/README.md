@@ -386,7 +386,35 @@ python compi/main.py -s compi/demo.craft
 Opciones útiles:
 
 - `-s` o `--asm`: genera el archivo `.asm` del programa de entrada.
+- `-O0`: no aplica optimizaciones.
+- `-O1`, `-O` o `--optimize`: activa loop unrolling y renombramiento de registros.
+- `-O2`: perfil reservado; por ahora no aplica optimizaciones.
+- `--unroll-factor N`: aplica loop unrolling con factor configurable.
+- `--rename-registers`: activa solo el renombramiento de registros virtuales en IR.
 - Los artefactos generados por defecto se escriben en `output/`.
+
+### Optimizaciones de iteracion 3
+
+Con `-O1`, `-O` o `--optimize`, el compilador aplica solamente:
+
+- **Loop unrolling sobre IR**. La pasada trabaja sobre instrucciones
+  `IRInstruction` ya generadas. Para loops contados con inicio, limite e
+  incremento constantes, usa el estilo clasico: aumenta el stride por el factor,
+  sustituye `i`, `i + 1`, etc. en las copias del cuerpo y emite el remainder
+  despues del loop. Si el factor es mayor que las iteraciones conocidas,
+  reporta un error de optimizacion.
+- **Renombramiento de registros virtuales en IR**. La pasada renombra
+  temporales `tN` a registros virtuales frescos `vrN`, aprovechando que el IR
+  puede modelar una cantidad no limitada de registros antes de bajar a registros
+  fisicos del backend.
+
+Ejemplos:
+
+```bash
+python compi/main.py -O1 -i compi/ejemplos/demo.craft
+python compi/main.py --unroll-factor 4 -i compi/ejemplos/array_unrolling_demo.craft
+python compi/main.py --unroll-factor 4 --rename-registers -i compi/ejemplos/array_unrolling_demo.craft
+```
 
 ---
 
