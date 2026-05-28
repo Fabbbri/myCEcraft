@@ -147,6 +147,10 @@ class ControlFlowGraph:
                     lines.append(f"    return {instr.value}")
                 elif name == "IRCall":
                     lines.append(f"    call {instr.func_name}")
+                elif name == "IRVaultInstruction":
+                    operands = ", ".join(instr.operands)
+                    suffix = f" {operands}" if operands else ""
+                    lines.append(f"    vault {instr.keyword}{suffix}")
                 else:
                     lines.append(f"    {instr}")
         return "\n".join(lines)

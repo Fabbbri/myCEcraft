@@ -3,11 +3,12 @@ from ast_nodes import (
     ASTNode, Program, FunctionDeclaration, Block, VariableDeclaration,
     IfStatement, WhileStatement, ForStatement, ExpressionStatement,
     ReturnStatement, BinaryExpression, UnaryExpression, Identifier, Literal, CallExpression,
-    ArrayLiteral, IndexExpression, ImportDeclaration
+    ArrayLiteral, IndexExpression, ImportDeclaration, Assignment,
+    EnderPortalStatement, VaultInstruction, ChangePasswordInstruction, MemberExpression
 )
 from IR.instructions import (
     IRInstruction, IRBinOp, IRUnaryOp, IRAssign, IRLabel,
-    IRJump, IRJumpIfFalse, IRCall, IRReturn
+    IRJump, IRJumpIfFalse, IRCall, IRVaultInstruction, IRReturn
 )
 
 class IRGenerator:
@@ -74,17 +75,26 @@ class IRGenerator:
             val = self.visit(node.initializer)
             self._emit(IRAssign(val, node.name))
 
-    def visit_Assignment(self, node: Any) -> None:
+    def visit_Assignment(self, node: Assignment) -> str:
         # node es de tipo Assignment
         val = self.visit(node.value)
         # target puede ser un Identifier o un IndexExpression (array[x])
         if type(node.target).__name__ == "Identifier":
             self._emit(IRAssign(val, node.target.name))
+            return node.target.name
         elif type(node.target).__name__ == "IndexExpression":
             array_val = self.visit(node.target.target)
             index_val = self.visit(node.target.index)
             # pseudo-instrucción IR para set de arrays: array[index] = val
-            self._emit(IRAssign(val, f"{array_val}[{index_val}]"))
+            target = f"{array_val}[{index_val}]"
+            self._emit(IRAssign(val, target))
+            return target
+        elif isinstance(node.target, MemberExpression):
+            target = self.visit(node.target)
+            self._emit(IRAssign(val, target))
+            return target
+
+        raise NotImplementedError(f"No IR assignment target for {type(node.target).__name__}")
 
     def visit_ExpressionStatement(self, node: ExpressionStatement) -> None:
         self.visit(node.expression)
@@ -111,6 +121,10 @@ class IRGenerator:
         # en una instrucción de puntero especial. Aquí usamos una sintaxis clara.
         self._emit(IRAssign(f"{array_val}[{index_val}]", temp))
         return temp
+
+    def visit_MemberExpression(self, node: MemberExpression) -> str:
+        target_val = self.visit(node.target)
+        return f"{target_val}.{node.member}"
 
     def visit_Identifier(self, node: Identifier) -> str:
         # Devolvemos el nombre de la variable
@@ -195,6 +209,26 @@ class IRGenerator:
         self._emit(IRJump(start_label))
         self._emit(IRLabel(end_label))
 
+    def visit_EnderPortalStatement(self, node: EnderPortalStatement) -> None:
+        password_val = str(self.visit(node.password))
+
+        if node.body is None:
+            self._emit(IRVaultInstruction("enderPortal", [password_val, "0"]))
+            return
+
+        end_label = self._new_label("L_endchange_")
+        self._emit(IRVaultInstruction("enderPortal", [password_val]))
+        self._emit(IRJumpIfFalse(f"portal({password_val})", end_label))
+        self.visit(node.body)
+        self._emit(IRLabel(end_label))
+
+    def visit_ChangePasswordInstruction(self, node: ChangePasswordInstruction) -> None:
+        value = str(self.visit(node.value))
+        self._emit(IRVaultInstruction("enderchange", [value]))
+
+    def visit_VaultInstruction(self, node: VaultInstruction) -> None:
+        self._emit(IRVaultInstruction(node.keyword, list(node.operands)))
+
     # === Llamadas y Retornos ===
 
     def visit_CallExpression(self, node: CallExpression) -> str:
@@ -203,7 +237,12 @@ class IRGenerator:
             args.append(str(self.visit(arg_node)))
             
         result_temp = self._new_temp()
-        self._emit(IRCall(node.name, args, result_temp))
+        function_name = (
+            f"{node.module_alias}.{node.name}"
+            if node.module_alias is not None
+            else node.name
+        )
+        self._emit(IRCall(function_name, args, result_temp))
         return result_temp
 
     def visit_ReturnStatement(self, node: ReturnStatement) -> None:

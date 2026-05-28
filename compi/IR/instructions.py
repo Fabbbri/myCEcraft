@@ -80,6 +80,17 @@ class IRCall(IRInstruction):
 
 
 @dataclass
+class IRVaultInstruction(IRInstruction):
+    """
+    Pseudo-instruccion para operaciones de boveda/ender.
+    Conserva el opcode fuente y sus operandos para que etapas posteriores
+    puedan bajarla a ensamblador u optimizar alrededor de ella.
+    """
+    keyword: str
+    operands: list[str]
+
+
+@dataclass
 class IRReturn(IRInstruction):
     """
     Retorno de función: return value

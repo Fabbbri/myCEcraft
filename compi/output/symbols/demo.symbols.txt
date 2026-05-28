@@ -22,11 +22,11 @@ Legend:
 
   [scope 1] FUNCTION main (stack_size=4)
     symbols:
-    name             kind      type  decl            seg    addr            off  size  res
-    ---------------  --------  ----  --------------  -----  --------------  ---  ----  ---
-    x                VARIABLE  int   demo.craft:3:5  STACK  runtime(x17-4)  -4   4     yes
-    .L0_while_start  LABEL     None  demo.craft:5:5  TEXT   0x0038          -    0     yes
-    .L1_while_end    LABEL     None  demo.craft:5:5  TEXT   0x0058          -    0     yes
+    name             kind      type  decl            seg    addr    off  size  res
+    ---------------  --------  ----  --------------  -----  ------  ---  ----  ---
+    x                VARIABLE  int   demo.craft:3:5  STACK  0x7FEC  -4   4     yes
+    .L0_while_start  LABEL     None  demo.craft:5:5  TEXT   0x0038  -    0     yes
+    .L1_while_end    LABEL     None  demo.craft:5:5  TEXT   0x0058  -    0     yes
 
     [scope 2] LOOP 'while'
       symbols: (none)

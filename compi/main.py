@@ -239,6 +239,9 @@ def main() -> int:
             ast_path.write_text(format_ast(ast) + "\n", encoding="utf-8")
             print(f"AST generado: {ast_path}")
 
+        semantic = SemanticAnalyzer(filename=str(input_path))
+        symbol_table = semantic.analyze(ast)
+
         if show_ir:
             ir_gen = IRGenerator()
             ir_instructions = ir_gen.generate(ast)
@@ -266,6 +269,10 @@ def main() -> int:
                         lines.append(f"  {instr.result} = call {instr.func_name}({args_str})")
                     else:
                         lines.append(f"  call {instr.func_name}({args_str})")
+                elif name == "IRVaultInstruction":
+                    operands = ", ".join(instr.operands)
+                    suffix = f" {operands}" if operands else ""
+                    lines.append(f"  vault {instr.keyword}{suffix}")
                 elif name == "IRReturn":
                     lines.append(f"  return {instr.value}")
                 else:
@@ -278,9 +285,6 @@ def main() -> int:
 
             ir_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
             print(f"Representación Intermedia (IR) generada: {ir_path}")
-
-        semantic = SemanticAnalyzer(filename=str(input_path))
-        symbol_table = semantic.analyze(ast)
 
         if show_asm or show_resolved or show_binary:
             asm_dir = DEFAULT_ASM_DIR
@@ -354,6 +358,7 @@ def main() -> int:
         elif (
             not show_tokens
             and not show_ast
+            and not show_ir
             and not show_asm
             and not show_resolved
             and not show_binary
