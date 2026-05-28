@@ -26,7 +26,7 @@ module wb_drain (
     output logic busy
 );
 
-localparam logic [3:0] WRITE_CYCLES = 4'd11; // 1 ciclo de IDLE + 11 de write = 24 de procesador
+localparam logic [3:0] WRITE_CYCLES = 4'd9; // 1 ciclo de IDLE + 11 de write = 24 de procesador
 
 localparam IDLE  = 1'b0;
 localparam WRITE = 1'b1;
