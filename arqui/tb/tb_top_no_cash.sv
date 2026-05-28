@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module tb_topG;
+module tb_top_no_cash;
 
     string FILE_ROM;
     string FILE_RAM;
@@ -330,14 +330,14 @@ module tb_topG;
         // Archivo Waves
         // ======================================
 
-        $dumpfile("sim/waves/tb_topG.vcd");
-        $dumpvars(0, tb_topG);
+        $dumpfile("sim/waves/tb_top_no_cash.vcd");
+        $dumpvars(0, tb_top_no_cash);
 
         // ======================================
         // Preparar archivo de tipo CSV
         // ======================================
 
-        csv_fd = $fopen("outputs/reports/results.csv", "w");
+        csv_fd = $fopen("outputs/reports/results_no_cash.csv", "w");
 
         if (csv_fd == 0) begin
             $display("ERROR: no se pudo abrir CSV");
