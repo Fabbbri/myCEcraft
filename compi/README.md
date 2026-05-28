@@ -390,7 +390,7 @@ Opciones útiles:
 - `-O1`, `-O` o `--optimize`: activa loop unrolling y renombramiento de registros.
 - `-O2`: perfil reservado; por ahora no aplica optimizaciones.
 - `--unroll-factor N`: aplica loop unrolling con factor configurable.
-- `--rename-registers`: activa solo el renombramiento de registros virtuales en IR.
+- `--rename-registers`: activa solo el renombramiento de registros estaticos en IR.
 - Los artefactos generados por defecto se escriben en `output/`.
 
 ### Optimizaciones de iteracion 3
@@ -403,10 +403,19 @@ Con `-O1`, `-O` o `--optimize`, el compilador aplica solamente:
   sustituye `i`, `i + 1`, etc. en las copias del cuerpo y emite el remainder
   despues del loop. Si el factor es mayor que las iteraciones conocidas,
   reporta un error de optimizacion.
-- **Renombramiento de registros virtuales en IR**. La pasada renombra
-  temporales `tN` a registros virtuales frescos `vrN`, aprovechando que el IR
-  puede modelar una cantidad no limitada de registros antes de bajar a registros
-  fisicos del backend.
+- **Renombramiento de registros estaticos en IR**. La pasada renombra
+  temporales `tN` usando los registros temporales definidos para Craft21
+  (`x3` a `x10`). Esto permite mostrar como se reducen dependencias falsas
+  WAR/WAW sin inventar registros que no existen en la arquitectura.
+
+Ademas, cuando se aplica loop unrolling con `-i`, se genera una vista fuente en:
+
+```text
+compi/output/optimized/<archivo>.O1.craft
+```
+
+Esa vista `.craft` es para demostracion. La transformacion que usa el compilador
+para optimizar y construir los bloques basicos se aplica sobre el IR.
 
 Ejemplos:
 

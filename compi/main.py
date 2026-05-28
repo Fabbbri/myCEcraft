@@ -12,6 +12,7 @@ from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
 from IR.ir_generator import IRGenerator
 from IR.basic_blocks import ControlFlowGraph
+from IR.craft_preview import write_optimized_craft_preview
 from IR.optimizer import IROptimizationError, optimize_ir
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "output"
@@ -21,6 +22,7 @@ DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
 DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
 DEFAULT_AST_DIR = DEFAULT_OUTPUT_DIR / "ast"
 DEFAULT_SYMBOLS_DIR = DEFAULT_OUTPUT_DIR / "symbols"
+DEFAULT_OPTIMIZED_DIR = DEFAULT_OUTPUT_DIR / "optimized"
 EXPANDED_OUTPUT_DIR = DEFAULT_OUTPUT_DIR / "expanded"
 
 INVOKE_PATTERN = re.compile(
@@ -32,6 +34,27 @@ ENTER_PRAGMA_PATTERN = re.compile(r"^\s*@EnterCraftWorld\b.*(?:\r?\n)?", re.MULT
 
 def _strip_enter_pragma(content: str) -> str:
     return ENTER_PRAGMA_PATTERN.sub("", content)
+
+
+def _write_text_artifact(path: Path, text: str, *, encoding: str = "utf-8") -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    candidates = [path]
+    candidates.extend(
+        path.with_name(f"{path.stem}.new{index if index else ''}{path.suffix}")
+        for index in range(3)
+    )
+
+    last_error: PermissionError | None = None
+    for candidate in candidates:
+        try:
+            candidate.write_text(text, encoding=encoding)
+            return candidate
+        except PermissionError as error:
+            last_error = error
+
+    if last_error is not None:
+        raise last_error
+    return path
 
 
 def _expand_invokes(source_code: str, input_path: Path) -> tuple[str, Path | None]:
@@ -279,7 +302,7 @@ def main() -> int:
         if show_ast:
             DEFAULT_AST_DIR.mkdir(parents=True, exist_ok=True)
             ast_path = DEFAULT_AST_DIR / f"{input_path.stem}.ast.txt"
-            ast_path.write_text(format_ast(ast) + "\n", encoding="utf-8")
+            ast_path = _write_text_artifact(ast_path, format_ast(ast) + "\n")
             print(f"AST generado: {ast_path}")
 
         semantic = SemanticAnalyzer(filename=str(input_path))
@@ -292,9 +315,18 @@ def main() -> int:
                 ir_instructions, optimization_stats = optimize_ir(
                     ir_instructions,
                     unroll_factor=unroll_factor,
-                    rename_virtual_registers=rename_static_registers,
+                    rename_static_registers=rename_static_registers,
                 )
                 print(f"-O{optimization_level}: {optimization_stats.summary()}")
+                if unroll_factor > 1:
+                    preview_path = DEFAULT_OPTIMIZED_DIR / f"{input_path.stem}.O{optimization_level}.craft"
+                    written_preview = write_optimized_craft_preview(
+                        ast,
+                        preview_path,
+                        unroll_factor=unroll_factor,
+                    )
+                    if written_preview is not None:
+                        print(f"Vista .craft optimizada generada: {written_preview}")
             DEFAULT_IR_DIR.mkdir(parents=True, exist_ok=True)
             ir_path = DEFAULT_IR_DIR / f"{input_path.stem}.ir.txt"
             
@@ -333,7 +365,7 @@ def main() -> int:
             cfg.build_from_ir(ir_instructions)
             lines.append("\n" + cfg.print_blocks())
 
-            ir_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            ir_path = _write_text_artifact(ir_path, "\n".join(lines) + "\n")
             print(f"Representación Intermedia (IR) generada: {ir_path}")
 
         if show_asm or show_resolved or show_binary:
@@ -350,7 +382,7 @@ def main() -> int:
 
             asm_path = asm_dir / f"{input_path.stem}.asm"
             if show_asm or show_resolved:
-                asm_path.write_text(assembly_code, encoding="utf-8")
+                asm_path = _write_text_artifact(asm_path, assembly_code)
                 print(f"Ensamblador generado: {asm_path}")
 
             if show_resolved or show_binary:
@@ -362,7 +394,7 @@ def main() -> int:
 
                 resolved_path = asm_resolved_dir / f"{input_path.stem}.resolved.asm"
                 if show_resolved:
-                    resolved_path.write_text(resolved.assembly, encoding="utf-8")
+                    resolved_path = _write_text_artifact(resolved_path, resolved.assembly)
                     print(f"Referencias resueltas: {resolved_path}")
 
                 if show_binary:
@@ -375,12 +407,12 @@ def main() -> int:
                     data_hex_path = bin_path.with_name(f"{bin_path.stem}.data.hex")
                     listing_path = bin_path.with_suffix(".lst")
 
-                    hex_path.write_text(binary.hex_text, encoding="utf-8")
+                    hex_path = _write_text_artifact(hex_path, binary.hex_text)
                     bin_path.write_bytes(binary.binary)
-                    listing_path.write_text(binary.listing_text, encoding="utf-8")
+                    listing_path = _write_text_artifact(listing_path, binary.listing_text)
 
                     if binary.data_binary:
-                        data_hex_path.write_text(binary.data_hex_text, encoding="utf-8")
+                        data_hex_path = _write_text_artifact(data_hex_path, binary.data_hex_text)
 
                     print(f"Codigo hexadecimal de instrucciones generado: {hex_path}")
                     if binary.data_binary:
@@ -403,7 +435,7 @@ def main() -> int:
             symbol_sections.append(symbol_table.dump())
 
             symbols_path = DEFAULT_SYMBOLS_DIR / f"{input_path.stem}.symbols.txt"
-            symbols_path.write_text("\n".join(symbol_sections) + "\n", encoding="utf-8")
+            symbols_path = _write_text_artifact(symbols_path, "\n".join(symbol_sections) + "\n")
             print(f"Tabla de simbolos generada: {symbols_path}")
         elif (
             not show_tokens

@@ -4,22 +4,34 @@ main:
   mezcla = 1
   total = 0
 L_while_start_0:
-  vr0 = i < 8
-  ifFalse vr0 goto L_while_end_1
-  vr1 = suma + i
-  suma = vr1
-  vr2 = mezcla * 2
-  mezcla = vr2
-  vr3 = total + suma
-  total = vr3
-  vr4 = suma + (i + 1)
-  suma = vr4
-  vr5 = mezcla * 2
-  mezcla = vr5
-  vr6 = total + suma
-  total = vr6
-  vr7 = i + 2
-  i = vr7
+  t5 = i < 8
+  ifFalse t5 goto L_while_end_1
+  t6 = suma + i
+  suma = t6
+  t7 = mezcla * 2
+  mezcla = t7
+  t8 = total + suma
+  total = t8
+  t9 = suma + (i + 1)
+  suma = t9
+  t10 = mezcla * 2
+  mezcla = t10
+  t11 = total + suma
+  total = t11
+  t12 = suma + (i + 2)
+  suma = t12
+  t13 = mezcla * 2
+  mezcla = t13
+  t14 = total + suma
+  total = t14
+  t15 = suma + (i + 3)
+  suma = t15
+  t16 = mezcla * 2
+  mezcla = t16
+  t17 = total + suma
+  total = t17
+  t18 = i + 4
+  i = t18
   goto L_while_start_0
 L_while_end_1:
   return total
@@ -37,25 +49,37 @@ L_while_end_1:
 [B_label_L_while_start_0]
   -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
   L_while_start_0:
-    vr0 = i < 8
-    ifFalse vr0 goto L_while_end_1
+    t5 = i < 8
+    ifFalse t5 goto L_while_end_1
 
 [B_fallthrough_2]
   -> Sucesores: B_label_L_while_start_0
-    vr1 = suma + i
-    suma = vr1
-    vr2 = mezcla * 2
-    mezcla = vr2
-    vr3 = total + suma
-    total = vr3
-    vr4 = suma + (i + 1)
-    suma = vr4
-    vr5 = mezcla * 2
-    mezcla = vr5
-    vr6 = total + suma
-    total = vr6
-    vr7 = i + 2
-    i = vr7
+    t6 = suma + i
+    suma = t6
+    t7 = mezcla * 2
+    mezcla = t7
+    t8 = total + suma
+    total = t8
+    t9 = suma + (i + 1)
+    suma = t9
+    t10 = mezcla * 2
+    mezcla = t10
+    t11 = total + suma
+    total = t11
+    t12 = suma + (i + 2)
+    suma = t12
+    t13 = mezcla * 2
+    mezcla = t13
+    t14 = total + suma
+    total = t14
+    t15 = suma + (i + 3)
+    suma = t15
+    t16 = mezcla * 2
+    mezcla = t16
+    t17 = total + suma
+    total = t17
+    t18 = i + 4
+    i = t18
     goto L_while_start_0
 
 [B_label_L_while_end_1]

@@ -16,6 +16,7 @@ from IR.instructions import (
     IRUnaryOp,
     IRVaultInstruction,
 )
+from registers import TEMP_REGISTERS
 
 
 class IROptimizationError(Exception):
@@ -29,7 +30,7 @@ class IROptimizationStats:
     loops_unrolled: int = 0
     loops_skipped: int = 0
     duplicated_instructions: int = 0
-    virtual_registers_renamed: int = 0
+    static_registers_renamed: int = 0
 
     def summary(self) -> str:
         return (
@@ -39,7 +40,7 @@ class IROptimizationStats:
             f"unrolled={self.loops_unrolled}, "
             f"skipped={self.loops_skipped}, "
             f"duplicated_ir={self.duplicated_instructions}, "
-            f"renamed_virtual_registers={self.virtual_registers_renamed}"
+            f"renamed_static_registers={self.static_registers_renamed}"
         )
 
 
@@ -47,12 +48,12 @@ def optimize_ir(
     instructions: list[IRInstruction],
     *,
     unroll_factor: int,
-    rename_virtual_registers: bool,
+    rename_static_registers: bool,
 ) -> tuple[list[IRInstruction], IROptimizationStats]:
     stats = IROptimizationStats(unroll_factor=max(1, unroll_factor))
     optimized = _IRLoopUnroller(stats.unroll_factor, stats).run(instructions)
-    if rename_virtual_registers:
-        optimized = _IRVirtualRegisterRenamer(stats).run(optimized)
+    if rename_static_registers:
+        optimized = _IRStaticRegisterRenamer(stats).run(optimized)
     return optimized, stats
 
 
@@ -389,11 +390,12 @@ class _LoopMatch:
     iterations: int
 
 
-class _IRVirtualRegisterRenamer:
+class _IRStaticRegisterRenamer:
     def __init__(self, stats: IROptimizationStats) -> None:
         self.stats = stats
         self._counter = 0
         self._mapping: dict[str, str] = {}
+        self._registers = [register.asm() for register in TEMP_REGISTERS]
 
     def run(self, instructions: list[IRInstruction]) -> list[IRInstruction]:
         return [self._rename_instruction(instr) for instr in instructions]
@@ -405,12 +407,12 @@ class _IRVirtualRegisterRenamer:
         if isinstance(instr, IRBinOp):
             left = self._rename_operand(instr.left)
             right = self._rename_operand(instr.right)
-            result = self._fresh_virtual(instr.result)
+            result = self._fresh_static_register(instr.result)
             self._mapping[instr.result] = result
             return IRBinOp(instr.op, left, right, result)
         if isinstance(instr, IRUnaryOp):
             operand = self._rename_operand(instr.operand)
-            result = self._fresh_virtual(instr.result)
+            result = self._fresh_static_register(instr.result)
             self._mapping[instr.result] = result
             return IRUnaryOp(instr.op, operand, result)
         if isinstance(instr, IRAssign):
@@ -424,7 +426,7 @@ class _IRVirtualRegisterRenamer:
             return IRReturn(self._rename_operand(instr.value))
         if isinstance(instr, IRCall):
             args = [self._rename_operand(arg) for arg in instr.args]
-            result = self._fresh_virtual(instr.result) if instr.result else None
+            result = self._fresh_static_register(instr.result) if instr.result else None
             if instr.result and result:
                 self._mapping[instr.result] = result
             return IRCall(instr.func_name, args, result)
@@ -439,13 +441,15 @@ class _IRVirtualRegisterRenamer:
         if "[" in target or "." in target:
             return target
         if re.fullmatch(r"t\d+", target):
-            renamed = self._fresh_virtual(target)
+            renamed = self._fresh_static_register(target)
             self._mapping[target] = renamed
             return renamed
         return target
 
-    def _fresh_virtual(self, original: str) -> str:
-        renamed = f"vr{self._counter}"
+    def _fresh_static_register(self, original: str) -> str:
+        if not self._registers:
+            return original
+        renamed = self._registers[self._counter % len(self._registers)]
         self._counter += 1
-        self.stats.virtual_registers_renamed += 1
+        self.stats.static_registers_renamed += 1
         return renamed
