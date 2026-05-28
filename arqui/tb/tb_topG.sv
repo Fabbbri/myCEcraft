@@ -60,7 +60,7 @@ module tb_topG;
             if (dut.instrDE !== NOP &&
                 dut.instrDE !== 32'hxxxxxxxx &&
                 !dut.flushE &&
-                !dut.stallE)
+                !dut.stallE && )
             begin
                 instr_count++;
             end

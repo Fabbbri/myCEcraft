@@ -1,2 +1,2 @@
 Test Ejecutado,Ciclos,Instr,CPI
-while loop x<5 (return x=5),138,103,1.339806
+while loop x<5 (return x=5),909,111,8.189189
