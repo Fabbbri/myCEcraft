@@ -2,17 +2,21 @@ module l1d_cache (
     input  logic        clk,
     input  logic        reset,
 
+    // Señales para obtener hit y data out
     input  logic [31:0] addr,
     output logic [31:0] data_out,
     output logic        hit,
     output logic        hit_way,
 
+    // Señales de llenado - refill
+    // Son para escribir una línea nueva en caché post miss
     input  logic         fill_en,
     input  logic         fill_way,
     input  logic [5:0]   fill_set,
     input  logic [20:0]  fill_tag,
     input  logic [255:0] fill_line,
 
+    // Señales para invalidar líneas 
     input  logic        inv_en,
     input  logic        inv_way,
     input  logic [5:0]  inv_set
@@ -25,6 +29,8 @@ module l1d_cache (
     logic [TAG_BITS-1:0]  tag_mem  [NUM_SETS-1:0][0:1];
     logic [LINE_BITS-1:0] data_mem [NUM_SETS-1:0][0:1];
     logic                 valid    [NUM_SETS-1:0][0:1];
+
+    // Lectura
 
     logic [20:0] addr_tag;
     logic [5:0]  addr_set;
@@ -45,6 +51,8 @@ module l1d_cache (
 
     assign data_out = sel_line[addr_word*32 +: 32];
 
+    // Escritura
+
     integer s;
     always_ff @(posedge clk) begin
         if (reset) begin
@@ -52,12 +60,15 @@ module l1d_cache (
                 valid[s][0] <= 1'b0;
                 valid[s][1] <= 1'b0;
             end
+
+            // Si hay que hacer refill, se escribe datos y se activa la validez
         end else begin
             if (fill_en) begin
                 tag_mem [fill_set][fill_way] <= fill_tag;
                 data_mem[fill_set][fill_way] <= fill_line;
                 valid   [fill_set][fill_way] <= 1'b1;
             end
+            // Si el bit está inválido, se pone en bajo
             if (inv_en) begin
                 valid[inv_set][inv_way] <= 1'b0;
             end
