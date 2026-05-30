@@ -388,10 +388,13 @@ Opciones útiles:
 - `-s` o `--asm`: genera el archivo `.asm` del programa de entrada.
 - `-O0`: no aplica optimizaciones.
 - `-O1`, `-O` o `--optimize`: activa loop unrolling y renombramiento de registros.
-- `-O2`: perfil reservado; por ahora no aplica optimizaciones.
+- `-O2`: activa eliminacion de codigo muerto y reordenamiento.
+- `-O3`: activa todas las optimizaciones disponibles (`-O1` + `-O2`).
 - `--unroll-factor N`: aplica loop unrolling con factor configurable
   entre 1 y 8. Si no se indica en `-O1`, se escoge automaticamente.
 - `--rename-registers`: activa solo el renombramiento de registros estaticos en IR.
+- `--dce`: activa solo la eliminacion de codigo muerto sobre IR.
+- `--reorder`: activa solo el reordenamiento seguro de instrucciones sobre IR.
 - Los artefactos generados por defecto se escriben en `output/`.
 
 ### Optimizaciones de iteracion 3
@@ -426,6 +429,56 @@ Ejemplos:
 python compi/main.py -O1 -i compi/ejemplos/demo.craft
 python compi/main.py --unroll-factor 4 -i compi/ejemplos/array_unrolling_demo.craft
 python compi/main.py --unroll-factor 4 --rename-registers -i compi/ejemplos/array_unrolling_demo.craft
+```
+
+---
+
+### Optimizaciones de iteracion 4
+
+Con `-O2` o `--dce`, el compilador aplica **eliminacion de codigo muerto
+(DCE)** sobre la representacion intermedia:
+
+- construye el CFG con los bloques basicos existentes;
+- calcula variables vivas por bloque;
+- recorre las instrucciones en orden inverso;
+- elimina definiciones cuyo resultado no esta vivo en la salida;
+- conserva instrucciones con efectos laterales, como stores a arreglos/campos,
+  llamadas, retornos, saltos e instrucciones de boveda.
+
+Con `-O2` o `--reorder`, tambien aplica **reordenamiento seguro de
+instrucciones**:
+
+- construye el CFG y trabaja dentro de cada bloque basico;
+- no cruza labels, saltos, returns, llamadas, stores ni instrucciones de boveda;
+- calcula dependencias RAW, WAR y WAW entre instrucciones candidatas;
+- usa list scheduling conservador para preservar dependencias;
+- si detecta una carga seguida por un uso inmediato, intenta colocar una
+  instruccion independiente entre ambas para reducir el caso `LW -> ALU` que
+  todavia produce stall en la arquitectura.
+
+El codigo de optimizaciones esta separado en `compi/Optimizations/`:
+
+```text
+compi/Optimizations/
+├── pipeline.py
+├── loop_unrolling.py
+├── dead_code_elimination.py
+├── instruction_reordering.py
+├── static_register_renaming.py
+└── common.py
+```
+
+Las utilidades compartidas para calcular `uses`, `defs`, efectos laterales y
+candidatos reordenables viven en `compi/IR/ir_analysis.py`, porque describen el
+IR y pueden reutilizarse fuera de las optimizaciones.
+
+Ejemplos:
+
+```bash
+python compi/main.py --dce -i compi/ejemplos/dce_demo.craft
+python compi/main.py --reorder -i compi/ejemplos/reorder_demo.craft
+python compi/main.py -O2 -i compi/ejemplos/dce_demo.craft
+python compi/main.py -O3 -i compi/ejemplos/array_unrolling_demo.craft
 ```
 
 ---

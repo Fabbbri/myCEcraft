@@ -31,7 +31,7 @@ from ast_nodes import (
     VaultInstruction,
     WhileStatement,
 )
-from IR.optimizer import AUTO_UNROLL_FACTOR, MAX_AUTO_UNROLL_FACTOR
+from Optimizations import AUTO_UNROLL_FACTOR, MAX_AUTO_UNROLL_FACTOR
 
 
 def write_optimized_craft_preview(

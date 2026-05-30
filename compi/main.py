@@ -13,7 +13,7 @@ from codegen.resolver import LabelResolver, ResolutionError
 from IR.ir_generator import IRGenerator
 from IR.basic_blocks import ControlFlowGraph
 from IR.craft_preview import write_optimized_craft_preview
-from IR.optimizer import (
+from Optimizations import (
     AUTO_UNROLL_FACTOR,
     IROptimizationError,
     MAX_AUTO_UNROLL_FACTOR,
@@ -185,6 +185,8 @@ def main() -> int:
     optimize = False
     optimization_level = 0
     rename_static_registers = False
+    eliminate_dead_code = False
+    reorder_instructions = False
     unroll_factor = 1
     input_file = None
     output_file = None
@@ -224,15 +226,34 @@ def main() -> int:
             optimize = False
             optimization_level = 0
             rename_static_registers = False
+            eliminate_dead_code = False
+            reorder_instructions = False
             unroll_factor = 1
         elif arg == "-O2":
-            optimize = False
+            optimize = True
             optimization_level = 2
             rename_static_registers = False
-            unroll_factor = 1
+            eliminate_dead_code = True
+            reorder_instructions = True
+        elif arg == "-O3":
+            optimize = True
+            optimization_level = 3
+            rename_static_registers = True
+            eliminate_dead_code = True
+            reorder_instructions = True
+            if unroll_factor <= 1:
+                unroll_factor = AUTO_UNROLL_FACTOR
         elif arg == "--rename-registers":
             rename_static_registers = True
             optimization_level = max(optimization_level, 1)
+        elif arg == "--dce":
+            optimize = True
+            eliminate_dead_code = True
+            optimization_level = max(optimization_level, 2)
+        elif arg == "--reorder":
+            optimize = True
+            reorder_instructions = True
+            optimization_level = max(optimization_level, 2)
         elif arg == "--unroll-factor":
             if index + 1 >= len(args):
                 print("Error: --unroll-factor requiere un numero entero")
@@ -266,7 +287,7 @@ def main() -> int:
         print(
             "Uso: python main.py [--tokens] [-t|--ast] [-i|--ir] [-m|--symbols] "
             "[-s|--asm] [-r|--resolve] [-b|--binary] [-o archivo.bin] "
-            "[-O0|-O1|-O2] [--unroll-factor N] [--rename-registers] <archivo.craft>"
+            "[-O0|-O1|-O2|-O3] [--unroll-factor N] [--rename-registers] [--dce] [--reorder] <archivo.craft>"
         )
         return 2
 
@@ -307,9 +328,6 @@ def main() -> int:
         parser = Parser(tokens, filename=str(input_path))
         ast = parser.parse()
 
-        if optimization_level == 2:
-            print("-O2: perfil reservado; no aplica optimizaciones todavia")
-
         if show_ast:
             DEFAULT_AST_DIR.mkdir(parents=True, exist_ok=True)
             ast_path = DEFAULT_AST_DIR / f"{input_path.stem}.ast.txt"
@@ -322,11 +340,19 @@ def main() -> int:
         if show_ir:
             ir_gen = IRGenerator()
             ir_instructions = ir_gen.generate(ast)
-            if optimize or unroll_factor > 1 or rename_static_registers:
+            if (
+                optimize
+                or unroll_factor > 1
+                or rename_static_registers
+                or eliminate_dead_code
+                or reorder_instructions
+            ):
                 ir_instructions, optimization_stats = optimize_ir(
                     ir_instructions,
                     unroll_factor=unroll_factor,
                     rename_static_registers=rename_static_registers,
+                    eliminate_dead_code=eliminate_dead_code,
+                    reorder_instructions=reorder_instructions,
                 )
                 print(f"-O{optimization_level}: {optimization_stats.summary()}")
                 if unroll_factor != 1:
