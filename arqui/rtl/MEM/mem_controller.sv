@@ -21,7 +21,15 @@ module mem_controller (
     output logic [31:0] ram_wdata,
 
     // stall -> hazard unit
-    output logic stall_mem
+    output logic stall_mem,
+
+    // desde caché L2
+    input logic hit_l2,// L2 hit omitir burst a RAM
+    input logic miss_l2,// L2 miss se necesita burst a RAM
+
+    // hacia controladores de caché y banco de registros de refill
+    output logic burst_mode, // 1 durante burst de lectura a RAM
+    output logic [2:0] burst_mode_counter // índice de palabra en el burst [0..7]
 );
 
 // ==========================================================
@@ -134,6 +142,8 @@ fsm_memory FSM (
     .wb_empty (!wbd_busy),   
     .wb_conflict (wb_conflict),
     .is_write (rq_is_write),
+    .hit_l2 (hit_l2),
+    .miss_l2 (miss_l2),
     .rq_ren (rq_ren),
     .wb_wen (wb_wen),
     .burst_addr (burst_addr),
@@ -185,6 +195,12 @@ assign ram_wdata = burst_addr ? lat_req_wdata : wbd_wdata;
 assign ram_we = !burst_addr && wbd_we;
 
 // ==========================================================
+//                  Salidas hacia cache (burst)
+// ==========================================================
+assign burst_mode = burst_active;
+assign burst_mode_counter = burst_count[2:0];
+
+// ==========================================================
 //                  Load pending
 //  load_pending_next: es 1 al encolar un read (LW), baja cuando
 //  burst_addr && burst_count==0 indica que el dato ya está listo
@@ -195,7 +211,8 @@ assign ram_we = !burst_addr && wbd_we;
 // ==========================================================
 logic load_pending_next;
 assign load_pending_next = (rq_wr_en && !rq_data_in[66]) ? 1'b1 :
-                           (burst_addr && burst_count == '0) ? 1'b0 : load_pending;
+                           (burst_addr && burst_count == '0) ? 1'b0 :
+                           (rq_ren && !rq_is_write && hit_l2) ? 1'b0 : load_pending;
 
 always_ff @(posedge clk or posedge reset)
     if (reset) load_pending <= 1'b0;
