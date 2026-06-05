@@ -19,7 +19,12 @@ module l1d_cache (
     // Señales para invalidar líneas 
     input  logic        inv_en,
     input  logic        inv_way,
-    input  logic [5:0]  inv_set
+    input  logic [5:0]  inv_set,
+
+    // Señales para WriteThrough
+    input logic is_write,
+    input logic [31:0] wdata,
+    output logic store_way_hit
 );
 
     localparam int NUM_SETS  = 64;
@@ -51,6 +56,18 @@ module l1d_cache (
 
     assign data_out = sel_line[addr_word*32 +: 32];
 
+    // Determinar si hay que escribir o no en L1 
+    logic hit_aux = hit0 | hit1;
+    logic store_way_l1_aux = hit_aux && is_write; // si ambos cumplen, estamos en el camino de store hit way
+    // habría que escribir todos los niveles
+    // Si no se cumplen ambos, entonces solo se escribe en L2 (Store Miss Way)
+
+    assign store_way_hit = store_way_l1_aux;
+
+    // Leer la línea actual del way que tuvo hit
+    logic [LINE_BITS-1:0] updated_line;
+    assign updated_line = hit1 ? data_mem[addr_set][1] : data_mem[addr_set][0];
+
     // Escritura
 
     integer s;
@@ -63,6 +80,13 @@ module l1d_cache (
 
             // Si hay que hacer refill, se escribe datos y se activa la validez
         end else begin
+            // Store hit: escribir solo la palabra dentro de la línea existente
+            if (store_way_l1_aux) begin
+                data_mem[addr_set][hit_way][addr_word*32 +: 32] <= wdata;
+                // tag y valid no se tocan, la línea ya era válida (store hit way)
+            end
+
+            // escribir toda la linea tras un miss
             if (fill_en) begin
                 tag_mem [fill_set][fill_way] <= fill_tag;
                 data_mem[fill_set][fill_way] <= fill_line;

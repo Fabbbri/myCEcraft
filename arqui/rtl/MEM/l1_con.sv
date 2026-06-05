@@ -64,12 +64,13 @@ assign addr_block = addr[4:2];
 // WayReg: FIFO de reemplazo para L1 (64 sets, 2-way)
 // ==========================================================
 logic way_to_fill;
+logic replace = fill_en | is_write;
 
 set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
     .clk (clk),
     .reset (reset),
     .set (addr_set),
-    .fill_en (fill_en),
+    .fill_en (replace),
     .way_out (way_to_fill)
 );
 
