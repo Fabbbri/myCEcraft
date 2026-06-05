@@ -38,7 +38,11 @@ module l1_con (
 
     // Hacia l2_con
     output logic miss_l1_out,
-    output logic hit_l1_out
+    output logic hit_l1_out,
+    output logic is_write_out,
+    output logic [31:0] wdata_out,
+    output logic [31:0] addr_out,
+    output logic [1:0]  size_out
 );
 
 // ==========================================================
@@ -70,10 +74,14 @@ set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
 );
 
 // ==========================================================
-// Hit / Miss
+// Hit / Miss, datos para write-through L2
 // ==========================================================
 assign hit_l1_out = hit_l1;
 assign miss_l1_out = ~hit_l1;
+assign is_write_out = is_write;
+assign wdata_out = wdata;
+assign addr_out = addr;
+assign size_out  = size;
 
 // Dato al CPU: válido solo en hit 
 // pipeline en stall durante miss
