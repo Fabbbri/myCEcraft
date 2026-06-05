@@ -17,6 +17,10 @@ module l1_con (
     // Desde mem_controller: contador de palabras del burst (0..7)
     input logic [2:0] block_offset_counter, // contador de palabras del burst (0..7)
 
+    // Señales vienen de l1d_cache
+    input logic hit_l1,
+    input logic [31:0] l1_data_out,
+
     // Hacia l1d_cache: fill
     output logic fill_en,
     output logic fill_way_out,
@@ -51,33 +55,6 @@ logic [2:0] addr_block;
 assign addr_tag = addr[31:11];
 assign addr_set = addr[10:5];
 assign addr_block = addr[4:2];
-
-// ==========================================================
-// Señales internas del l1d_cache
-// ==========================================================
-logic hit_l1;
-logic hit_l1_way;
-logic [31:0] l1_data_out;
-
-// ==========================================================
-// Instancia del l1d_cache
-// ==========================================================
-l1d_cache L1_D (
-    .clk (clk),
-    .reset (reset),
-    .addr (addr),
-    .data_out (l1_data_out),
-    .hit (hit_l1),
-    .hit_way (hit_l1_way),
-    .fill_en (fill_en),
-    .fill_way (fill_way_out),
-    .fill_set (fill_set),
-    .fill_tag (fill_tag),
-    .fill_line (fill_line_out),
-    .inv_en (inv_en),
-    .inv_way (inv_way),
-    .inv_set (inv_set)
-);
 
 // ==========================================================
 // WayReg: FIFO de reemplazo para L1 (64 sets, 2-way)
