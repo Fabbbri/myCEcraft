@@ -1,5 +1,5 @@
 // ============================================================
-//  Controlador de L1-D 
+//  Controlador de L1-D
 // ============================================================
 
 module l1_con (
@@ -32,14 +32,13 @@ module l1_con (
     // Hacia CPU/pipeline
     output logic [31:0] dato_cpu,
 
-    // Hacia l2_con 
-    output logic miss_l1,
-    output logic hit_l1,  
-
+    // Hacia l2_con
+    output logic miss_l1_out,
+    output logic hit_l1_out
 );
 
 // ==========================================================
-// Address breakdown 
+// Address breakdown
 // addr[31:11] = tag (21 bits)
 // addr[10:5] = set (6 bits)
 // addr[4:2] = block offset (3 bits)
@@ -54,6 +53,33 @@ assign addr_set = addr[10:5];
 assign addr_block = addr[4:2];
 
 // ==========================================================
+// Señales internas del l1d_cache
+// ==========================================================
+logic hit_l1;
+logic hit_l1_way;
+logic [31:0] l1_data_out;
+
+// ==========================================================
+// Instancia del l1d_cache
+// ==========================================================
+l1d_cache L1_D (
+    .clk (clk),
+    .reset (reset),
+    .addr (addr),
+    .data_out (l1_data_out),
+    .hit (hit_l1),
+    .hit_way (hit_l1_way),
+    .fill_en (fill_en),
+    .fill_way (fill_way_out),
+    .fill_set (fill_set),
+    .fill_tag (fill_tag),
+    .fill_line (fill_line_out),
+    .inv_en (inv_en),
+    .inv_way (inv_way),
+    .inv_set (inv_set)
+);
+
+// ==========================================================
 // WayReg: FIFO de reemplazo para L1 (64 sets, 2-way)
 // ==========================================================
 logic way_to_fill;
@@ -66,6 +92,33 @@ set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
     .way_out (way_to_fill)
 );
 
+// ==========================================================
+// Hit / Miss
+// ==========================================================
+assign hit_l1_out = hit_l1;
+assign miss_l1_out = ~hit_l1;
 
+// Dato al CPU: válido solo en hit 
+// pipeline en stall durante miss
+assign dato_cpu = l1_data_out;
+
+// ==========================================================
+// fill_en = (block_offset_counter == 7) XOR hit_l1
+// Se activa al final del burst (counter==7) durante un miss.
+// ==========================================================
+assign fill_en = (block_offset_counter == 3'b111) ^ hit_l1;
+assign fill_way_out = way_to_fill;
+assign fill_set = addr_set;
+assign fill_tag = addr_tag;
+assign fill_line_out = fill_line;
+
+// ==========================================================
+// Invalidación: load miss antes del refill
+// Stores no invalidan: write-through actualiza L1 en hit 
+// y en miss simplemente escribe a memoria (no-write-allocate).
+// ==========================================================
+assign inv_en = ~is_write & ~hit_l1;
+assign inv_way = way_to_fill;
+assign inv_set = addr_set;
 
 endmodule
