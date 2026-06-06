@@ -19,6 +19,10 @@ module l2_cache (
     input logic inv_en,
     input logic [1:0] inv_way,
     input logic [6:0] inv_set
+
+    // Señales para store (Way hit y miss son iguales)
+    input  logic        store_en,        // is_write desde L1
+    input  logic [31:0] w_data,          // dato a escribir
 );
 
     localparam int NUM_SETS  = 128;
@@ -75,6 +79,19 @@ module l2_cache (
             default: data_out = way0_data;
         endcase
 
+    // DESCOMPOSICION PARA STORE
+
+    // Descomponer store_addr igual que addr
+    logic [TAG_BITS-1:0] st_tag;
+    logic [6:0]          st_set;
+    logic [2:0]          st_word;
+
+    assign st_tag  = addr[31:12];
+    assign st_set  = addr[11:5];
+    assign st_word = addr[4:2];
+
+    logic store_way_l2 = store_en & store_hit_l2;
+
     // Escritura (fill e invalidación)
     integer s, w;
     always_ff @(posedge clk) begin
@@ -83,6 +100,13 @@ module l2_cache (
                 for (w = 0; w < NUM_WAYS; w = w + 1)
                     valid[s][w] <= 1'b0;
         end else begin
+            // Store write-through: solo si hubo hit en L2
+            // Si miss, el controlador L2 escribe directo a memoria
+            // L2 es no-write-allocate igual que L1
+            if (store_way_l2) begin // estamos en STORE HIT WAY
+                data_mem[st_set][st_hit_way][st_word*32 +: 32] <= store_data;
+                // tag y valid no cambian
+            end
             if (fill_en) begin
                 tag_mem [fill_set][fill_way] <= fill_tag;
                 data_mem[fill_set][fill_way] <= fill_line;

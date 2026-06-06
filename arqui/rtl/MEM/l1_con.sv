@@ -64,7 +64,7 @@ assign addr_block = addr[4:2];
 // WayReg: FIFO de reemplazo para L1 (64 sets, 2-way)
 // ==========================================================
 logic way_to_fill;
-logic replace = fill_en | is_write;
+logic replace = ((block_offset_counter == 3'b111) && ~hit_l1) | is_write;
 
 set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
     .clk (clk),
@@ -92,7 +92,7 @@ assign dato_cpu = l1_data_out;
 // fill_en = (block_offset_counter == 7) XOR hit_l1
 // Se activa al final del burst (counter==7) durante un miss.
 // ==========================================================
-assign fill_en = (block_offset_counter == 3'b111) ^ hit_l1;
+assign fill_en = (block_offset_counter == 3'b111) && ~hit_l1;
 assign fill_way_out = way_to_fill;
 assign fill_set = addr_set;
 assign fill_tag = addr_tag;
