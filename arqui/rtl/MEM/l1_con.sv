@@ -89,7 +89,7 @@ assign size_out  = size;
 assign dato_cpu = l1_data_out;
 
 // ==========================================================
-// fill_en = (block_offset_counter == 7) XOR hit_l1
+// fill_en = (block_offset_counter == 7) AND ~hit_l1
 // Se activa al final del burst (counter==7) durante un miss.
 // ==========================================================
 assign fill_en = (block_offset_counter == 3'b111) && ~hit_l1;
