@@ -25,8 +25,8 @@ def optimize_ir(
     optimized = IRLoopUnroller(stats.unroll_factor, stats).run(instructions)
     if eliminate_dead_code:
         optimized = IRDeadCodeEliminator(stats).run(optimized)
-    if reorder_instructions:
-        optimized = IRInstructionReorderer(stats).run(optimized)
     if rename_static_registers:
         optimized = IRStaticRegisterRenamer(stats).run(optimized)
+    if reorder_instructions:
+        optimized = IRInstructionReorderer(stats).run(optimized)
     return optimized, stats

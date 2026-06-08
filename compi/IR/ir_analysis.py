@@ -5,8 +5,10 @@ from typing import Any
 
 from IR.instructions import (
     IRAssign,
+    IRArrayAssign,
     IRBinOp,
     IRCall,
+    IRCommit,
     IRInstruction,
     IRJump,
     IRJumpIfFalse,
@@ -40,6 +42,10 @@ def defs(instr: IRInstruction) -> set[str]:
         return {instr.result} if is_simple_target(instr.result) else set()
     if isinstance(instr, IRAssign):
         return {instr.result} if is_simple_target(instr.result) else set()
+    if isinstance(instr, IRCommit):
+        return {instr.result} if is_simple_target(instr.result) else set()
+    if isinstance(instr, IRArrayAssign):
+        return set()
     if isinstance(instr, IRCall) and instr.result:
         return {instr.result} if is_simple_target(instr.result) else set()
     return set()
@@ -55,6 +61,10 @@ def uses(instr: IRInstruction) -> set[str]:
         if not is_simple_target(instr.result):
             names |= operand_names(instr.result)
         return names
+    if isinstance(instr, IRCommit):
+        return operand_names(instr.source)
+    if isinstance(instr, IRArrayAssign):
+        return set().union(*(operand_names(element) for element in instr.elements))
     if isinstance(instr, IRJumpIfFalse):
         return operand_names(instr.condition)
     if isinstance(instr, IRReturn):
@@ -67,7 +77,19 @@ def uses(instr: IRInstruction) -> set[str]:
 
 
 def has_side_effect(instr: IRInstruction) -> bool:
-    if isinstance(instr, (IRCall, IRVaultInstruction, IRReturn, IRJump, IRJumpIfFalse, IRLabel)):
+    if isinstance(
+        instr,
+        (
+            IRArrayAssign,
+            IRCall,
+            IRCommit,
+            IRVaultInstruction,
+            IRReturn,
+            IRJump,
+            IRJumpIfFalse,
+            IRLabel,
+        ),
+    ):
         return True
     if isinstance(instr, IRAssign):
         return not is_simple_target(instr.result)

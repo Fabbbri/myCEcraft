@@ -6,6 +6,7 @@ from registers import TEMP_REGISTERS
 
 AUTO_UNROLL_FACTOR = 0
 MAX_AUTO_UNROLL_FACTOR = min(8, len(TEMP_REGISTERS))
+MAX_MANUAL_UNROLL_FACTOR = 64
 
 
 class IROptimizationError(Exception):

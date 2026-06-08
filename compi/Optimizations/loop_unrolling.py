@@ -6,6 +6,7 @@ from typing import Any
 
 from IR.instructions import (
     IRAssign,
+    IRArrayAssign,
     IRBinOp,
     IRCall,
     IRInstruction,
@@ -168,7 +169,15 @@ class IRLoopUnroller:
         return any(
             isinstance(
                 instr,
-                (IRCall, IRJump, IRJumpIfFalse, IRLabel, IRReturn, IRVaultInstruction),
+                (
+                    IRArrayAssign,
+                    IRCall,
+                    IRJump,
+                    IRJumpIfFalse,
+                    IRLabel,
+                    IRReturn,
+                    IRVaultInstruction,
+                ),
             )
             for instr in body
         )
@@ -224,6 +233,7 @@ class IRLoopUnroller:
                     constant=value,
                 )
             )
+            result.extend(self._increment(match.variable, match.step))
 
         self.stats.loops_unrolled += 1
         self.stats.duplicated_instructions += len(match.body) * (factor - 1)
@@ -345,8 +355,10 @@ class IRLoopUnroller:
         highest = -1
         for instr in instructions:
             for value in vars(instr).values():
-                if isinstance(value, str) and self._is_temp(value):
-                    highest = max(highest, int(value[1:]))
+                values = value if isinstance(value, list) else [value]
+                for item in values:
+                    if isinstance(item, str) and self._is_temp(item):
+                        highest = max(highest, int(item[1:]))
         return highest + 1
 
     def _is_temp(self, value: str) -> bool:

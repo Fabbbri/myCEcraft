@@ -42,12 +42,34 @@ class IRAssign(IRInstruction):
 
 
 @dataclass
+class IRCommit(IRInstruction):
+    """
+    Consolida una version renombrada en la variable original.
+
+    A diferencia de IRAssign, esta instruccion es una barrera para el
+    planificador: no debe moverse fuera del bloque basico que la produjo.
+    """
+    source: Any
+    result: str
+
+
+@dataclass
+class IRArrayAssign(IRInstruction):
+    """Inicializa un chest completo con una lista de operandos."""
+
+    elements: list[Any]
+    result: str
+
+
+@dataclass
 class IRLabel(IRInstruction):
     """
     Representa una etiqueta para saltos.
     Ejemplo: L1:
     """
     name: str
+    is_function: bool = False
+    is_entry_point: bool = False
 
 
 @dataclass

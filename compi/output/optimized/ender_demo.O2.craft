@@ -1,0 +1,14 @@
+@EnterCraftWorld
+
+craft:int main() {
+    password:int = 2121;
+    enderPortal(password):
+        enderlow v2, v0, 0x1234;
+        enderhigh v2, v2, 0xABCD;
+        enderkey v2, v1;
+        enderload v3, 0(v0);
+        enderstore v3, 4(v0);
+        enderclose;
+    endchange;
+    return 0;
+}

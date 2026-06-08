@@ -391,11 +391,44 @@ Opciones útiles:
 - `-O2`: activa eliminacion de codigo muerto y reordenamiento.
 - `-O3`: activa todas las optimizaciones disponibles (`-O1` + `-O2`).
 - `--unroll-factor N`: aplica loop unrolling con factor configurable
-  entre 1 y 8. Si no se indica en `-O1`, se escoge automaticamente.
+  entre 1 y 64. Si no se indica en `-O1`, se escoge automaticamente con
+  un maximo heuristico de 8.
 - `--rename-registers`: activa solo el renombramiento de registros estaticos en IR.
 - `--dce`: activa solo la eliminacion de codigo muerto sobre IR.
 - `--reorder`: activa solo el reordenamiento seguro de instrucciones sobre IR.
 - Los artefactos generados por defecto se escriben en `output/`.
+- Sin optimizaciones se conservan los nombres tradicionales, por ejemplo
+  `demo.bin`, `demo.hex` y `demo.asm`.
+- Con optimizaciones se generan artefactos separados por nivel, por ejemplo
+  `demo.O1.bin`, `demo.O2.hex` y `demo.O3.asm`. Los archivos normales no se
+  sobrescriben.
+
+### Generar binarios optimizados
+
+```bash
+# O1: loop unrolling y renombramiento de registros
+python compi/main.py -O1 -b compi/ejemplos/demo.craft
+
+# O2: eliminacion de codigo muerto y reordenamiento
+python compi/main.py -O2 -b compi/ejemplos/dce_demo.craft
+
+# O3: todas las optimizaciones disponibles
+python compi/main.py -O3 -b compi/ejemplos/array_unrolling_demo.craft
+```
+
+Los binarios se escriben respectivamente en:
+
+```text
+compi/output/bin_output/demo.O1.bin
+compi/output/bin_output/dce_demo.O2.bin
+compi/output/bin_output/array_unrolling_demo.O3.bin
+```
+
+Para compilar otro archivo, se conserva la misma forma:
+
+```bash
+python compi/main.py -O3 -b ruta/al/programa.craft
+```
 
 ### Optimizaciones de iteracion 3
 
@@ -408,25 +441,26 @@ Con `-O1`, `-O` o `--optimize`, el compilador aplica solamente:
   despues del loop. En `-O1`, si no se pasa `--unroll-factor`, el factor se
   escoge con heuristica automatica y maximo 8, alineado con los 8 registros
   temporales `x3` a `x10`. Si el usuario pide manualmente un factor mayor que
-  las iteraciones conocidas, reporta un error de optimizacion.
-- **Renombramiento de registros estaticos en IR**. La pasada renombra
-  temporales `tN` usando los registros temporales definidos para Craft21
-  (`x3` a `x10`). Esto permite mostrar como se reducen dependencias falsas
-  WAR/WAW sin inventar registros que no existen en la arquitectura.
+  las iteraciones conocidas, reporta un error de optimizacion. Los factores
+  manuales pueden llegar hasta 64 porque el backend reutiliza registros entre
+  las copias; el limite evita crecimiento excesivo del codigo.
+- **Renombramiento de registros estaticos en IR**. La pasada conserva un nombre
+  virtual unico para cada temporal y le agrega una sugerencia de registro
+  fisico de Craft21 entre `x3` y `x10`. `IRAssemblyGenerator` respeta esa
+  sugerencia al bajar cada
+  instruccion, por lo que el cambio llega al `.asm`, `.hex`, `.lst` y `.bin`
+  sin inventar registros que no existen en la arquitectura.
 
-Ademas, cuando se aplica loop unrolling con `-i`, se genera una vista fuente en:
-
-```text
-compi/output/optimized/<archivo>.O1.craft
-```
-
-Esa vista `.craft` es para demostracion. La transformacion que usa el compilador
-para optimizar y construir los bloques basicos se aplica sobre el IR.
+El AST original se usa para analisis semantico y para construir el IR. Las
+optimizaciones se aplican exclusivamente sobre ese IR, y el backend
+`IRAssemblyGenerator` genera desde el IR resultante el ensamblador,
+hexadecimal, listado y binario. No se crea ni se optimiza una copia del AST.
 
 Ejemplos:
 
 ```bash
 python compi/main.py -O1 -i compi/ejemplos/demo.craft
+python compi/main.py -O1 -s -r -b compi/ejemplos/demo.craft
 python compi/main.py --unroll-factor 4 -i compi/ejemplos/array_unrolling_demo.craft
 python compi/main.py --unroll-factor 4 --rename-registers -i compi/ejemplos/array_unrolling_demo.craft
 ```

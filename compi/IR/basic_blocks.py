@@ -145,6 +145,8 @@ class ControlFlowGraph:
                     lines.append(f"    {instr.result} = {instr.op}{instr.operand}")
                 elif name == "IRAssign":
                     lines.append(f"    {instr.result} = {instr.source}")
+                elif name == "IRCommit":
+                    lines.append(f"    commit {instr.result} = {instr.source}")
                 elif name == "IRReturn":
                     lines.append(f"    return {instr.value}")
                 elif name == "IRCall":

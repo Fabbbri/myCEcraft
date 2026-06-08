@@ -31,7 +31,11 @@ from ast_nodes import (
     VaultInstruction,
     WhileStatement,
 )
-from Optimizations import AUTO_UNROLL_FACTOR, MAX_AUTO_UNROLL_FACTOR
+from registers import TEMP_REGISTERS
+
+
+AUTO_UNROLL_FACTOR = 0
+MAX_AUTO_UNROLL_FACTOR = min(8, len(TEMP_REGISTERS))
 
 
 def write_optimized_craft_preview(
@@ -58,6 +62,33 @@ def write_optimized_craft_preview(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     text = _CraftEmitter().emit(preview.program)
 
+    try:
+        output_path.write_text(text, encoding="utf-8")
+        return output_path
+    except PermissionError:
+        if output_path.exists():
+            return output_path
+        fallback_path = output_path.with_name(f"{output_path.stem}.preview{output_path.suffix}")
+        fallback_path.write_text(text, encoding="utf-8")
+        return fallback_path
+
+
+def optimize_craft_program(
+    program: Program,
+    *,
+    unroll_factor: int,
+) -> Program:
+    if unroll_factor == 1:
+        return deepcopy(program)
+    return _CraftLoopPreviewUnroller(unroll_factor).run(program).program
+
+
+def write_craft_program(program: Program, output_path: Path) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    return _write_preview_text(output_path, _CraftEmitter().emit(program))
+
+
+def _write_preview_text(output_path: Path, text: str) -> Path:
     try:
         output_path.write_text(text, encoding="utf-8")
         return output_path
@@ -237,7 +268,7 @@ class _CraftLoopPreviewUnroller:
         node: WhileStatement,
         constants: dict[str, int],
     ) -> "_LoopPreview | None":
-        if len(node.body.statements) < 2:
+        if not node.body.statements:
             return None
 
         condition_variable = _condition_variable(node.condition)
@@ -358,6 +389,14 @@ class _CraftLoopPreviewUnroller:
         result: list[ASTNode] = []
         for value in range(remainder_start, normalized_limit, loop.step):
             result.extend(_clone_with_index(statement, loop.variable, 0, value) for statement in loop.body)
+            result.append(
+                _increment_assignment(
+                    loop.variable,
+                    loop.step,
+                    line=loop.original.line,
+                    column=loop.original.column,
+                )
+            )
         return result
 
     def _update_constants(self, node: ASTNode, constants: dict[str, int]) -> None:
@@ -473,7 +512,10 @@ def _iteration_count(start: int, limit: int, step: int, op: str) -> int:
 
 def _has_barrier(statements: list[ASTNode], variable: str) -> bool:
     for statement in statements:
-        if isinstance(statement, (IfStatement, ForStatement, WhileStatement, ReturnStatement)):
+        if isinstance(
+            statement,
+            (IfStatement, ForStatement, WhileStatement, ReturnStatement, VariableDeclaration),
+        ):
             return True
         if _contains_call_or_vault(statement):
             return True

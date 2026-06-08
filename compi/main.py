@@ -8,15 +8,16 @@ from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
 from codegen.binary import BinaryEncoder, EncodingError
 from codegen.generator import AssemblyGenerator
+from codegen.ir_assembly_generator import IRAssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
 from IR.ir_generator import IRGenerator
 from IR.basic_blocks import ControlFlowGraph
-from IR.craft_preview import write_optimized_craft_preview
 from Optimizations import (
     AUTO_UNROLL_FACTOR,
     IROptimizationError,
     MAX_AUTO_UNROLL_FACTOR,
+    MAX_MANUAL_UNROLL_FACTOR,
     optimize_ir,
 )
 
@@ -27,7 +28,6 @@ DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
 DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
 DEFAULT_AST_DIR = DEFAULT_OUTPUT_DIR / "ast"
 DEFAULT_SYMBOLS_DIR = DEFAULT_OUTPUT_DIR / "symbols"
-DEFAULT_OPTIMIZED_DIR = DEFAULT_OUTPUT_DIR / "optimized"
 EXPANDED_OUTPUT_DIR = DEFAULT_OUTPUT_DIR / "expanded"
 
 INVOKE_PATTERN = re.compile(
@@ -266,10 +266,10 @@ def main() -> int:
             if unroll_factor < 1:
                 print("Error: --unroll-factor debe ser mayor o igual a 1")
                 return 2
-            if unroll_factor > MAX_AUTO_UNROLL_FACTOR:
+            if unroll_factor > MAX_MANUAL_UNROLL_FACTOR:
                 print(
                     "Error: --unroll-factor no puede ser mayor que "
-                    f"{MAX_AUTO_UNROLL_FACTOR} para la arquitectura Craft21"
+                    f"{MAX_MANUAL_UNROLL_FACTOR} para evitar crecimiento excesivo del codigo"
                 )
                 return 2
             optimize = True
@@ -337,16 +337,19 @@ def main() -> int:
         semantic = SemanticAnalyzer(filename=str(input_path))
         symbol_table = semantic.analyze(ast)
 
-        if show_ir:
+        optimization_requested = (
+            optimize
+            or unroll_factor > 1
+            or rename_static_registers
+            or eliminate_dead_code
+            or reorder_instructions
+        )
+        codegen_requested = show_asm or show_resolved or show_binary
+        ir_instructions = None
+        if show_ir or optimization_requested or codegen_requested:
             ir_gen = IRGenerator()
             ir_instructions = ir_gen.generate(ast)
-            if (
-                optimize
-                or unroll_factor > 1
-                or rename_static_registers
-                or eliminate_dead_code
-                or reorder_instructions
-            ):
+            if optimization_requested:
                 ir_instructions, optimization_stats = optimize_ir(
                     ir_instructions,
                     unroll_factor=unroll_factor,
@@ -355,17 +358,15 @@ def main() -> int:
                     reorder_instructions=reorder_instructions,
                 )
                 print(f"-O{optimization_level}: {optimization_stats.summary()}")
-                if unroll_factor != 1:
-                    preview_path = DEFAULT_OPTIMIZED_DIR / f"{input_path.stem}.O{optimization_level}.craft"
-                    written_preview = write_optimized_craft_preview(
-                        ast,
-                        preview_path,
-                        unroll_factor=unroll_factor,
-                    )
-                    if written_preview is not None:
-                        print(f"Vista .craft optimizada generada: {written_preview}")
+
+        artifact_stem = input_path.stem
+        if optimization_requested:
+            artifact_stem = f"{input_path.stem}.O{optimization_level}"
+
+        if show_ir:
+            assert ir_instructions is not None
             DEFAULT_IR_DIR.mkdir(parents=True, exist_ok=True)
-            ir_path = DEFAULT_IR_DIR / f"{input_path.stem}.ir.txt"
+            ir_path = DEFAULT_IR_DIR / f"{artifact_stem}.ir.txt"
             
             lines = []
             for instr in ir_instructions:
@@ -382,6 +383,11 @@ def main() -> int:
                     lines.append(f"  {instr.result} = {instr.op}{instr.operand}")
                 elif name == "IRAssign":
                     lines.append(f"  {instr.result} = {instr.source}")
+                elif name == "IRCommit":
+                    lines.append(f"  commit {instr.result} = {instr.source}")
+                elif name == "IRArrayAssign":
+                    elements = ", ".join(str(element) for element in instr.elements)
+                    lines.append(f"  {instr.result} = [{elements}]")
                 elif name == "IRCall":
                     args_str = ", ".join(instr.args)
                     if instr.result:
@@ -414,10 +420,15 @@ def main() -> int:
             asm_resolved_dir.mkdir(parents=True, exist_ok=True)
             bin_hex_dir.mkdir(parents=True, exist_ok=True)
 
-            generator = AssemblyGenerator(symbol_table)
-            assembly_code = generator.generate(ast)
+            if optimization_requested:
+                assert ir_instructions is not None
+                generator = IRAssemblyGenerator(symbol_table)
+                assembly_code = generator.generate(ir_instructions)
+            else:
+                generator = AssemblyGenerator(symbol_table)
+                assembly_code = generator.generate(ast)
 
-            asm_path = asm_dir / f"{input_path.stem}.asm"
+            asm_path = asm_dir / f"{artifact_stem}.asm"
             if show_asm or show_resolved:
                 asm_path = _write_text_artifact(asm_path, assembly_code)
                 print(f"Ensamblador generado: {asm_path}")
@@ -429,7 +440,7 @@ def main() -> int:
                 if show_symbols:
                     _apply_resolved_text_addresses(symbol_table, resolved.labels)
 
-                resolved_path = asm_resolved_dir / f"{input_path.stem}.resolved.asm"
+                resolved_path = asm_resolved_dir / f"{artifact_stem}.resolved.asm"
                 if show_resolved:
                     resolved_path = _write_text_artifact(resolved_path, resolved.assembly)
                     print(f"Referencias resueltas: {resolved_path}")
@@ -438,7 +449,7 @@ def main() -> int:
                     encoder = BinaryEncoder()
                     binary = encoder.encode(resolved.assembly)
 
-                    bin_path = bin_hex_dir / f"{input_path.stem}.bin"
+                    bin_path = bin_hex_dir / f"{artifact_stem}.bin"
                     bin_path.parent.mkdir(parents=True, exist_ok=True)
                     hex_path = bin_path.with_suffix(".hex")
                     data_hex_path = bin_path.with_name(f"{bin_path.stem}.data.hex")
@@ -471,7 +482,7 @@ def main() -> int:
 
             symbol_sections.append(symbol_table.dump())
 
-            symbols_path = DEFAULT_SYMBOLS_DIR / f"{input_path.stem}.symbols.txt"
+            symbols_path = DEFAULT_SYMBOLS_DIR / f"{artifact_stem}.symbols.txt"
             symbols_path = _write_text_artifact(symbols_path, "\n".join(symbol_sections) + "\n")
             print(f"Tabla de simbolos generada: {symbols_path}")
         elif (

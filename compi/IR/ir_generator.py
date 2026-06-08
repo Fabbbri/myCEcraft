@@ -7,7 +7,7 @@ from ast_nodes import (
     EnderPortalStatement, VaultInstruction, ChangePasswordInstruction, MemberExpression
 )
 from IR.instructions import (
-    IRInstruction, IRBinOp, IRUnaryOp, IRAssign, IRLabel,
+    IRInstruction, IRBinOp, IRUnaryOp, IRAssign, IRArrayAssign, IRLabel,
     IRJump, IRJumpIfFalse, IRCall, IRVaultInstruction, IRReturn
 )
 
@@ -20,6 +20,7 @@ class IRGenerator:
         self._label_counter = 0
         self._loop_end_labels: list[str] = []
         self._loop_start_labels: list[str] = []
+        self._enter_craft_world = False
 
     def _new_temp(self) -> str:
         """Genera un nuevo nombre de variable temporal."""
@@ -39,6 +40,9 @@ class IRGenerator:
 
     def generate(self, program: Program) -> list[IRInstruction]:
         self.instructions.clear()
+        self._temp_counter = 0
+        self._label_counter = 0
+        self._enter_craft_world = "@EnterCraftWorld" in program.pragmas
         self.visit(program)
         return self.instructions
 
@@ -65,15 +69,30 @@ class IRGenerator:
         pass
 
     def visit_FunctionDeclaration(self, node: FunctionDeclaration) -> None:
-        # Etiqueta para marcar el inicio de la función en el IR
-        self._emit(IRLabel(node.name))
+        self._emit(
+            IRLabel(
+                node.name,
+                is_function=True,
+                is_entry_point=self._enter_craft_world and node.name == "main",
+            )
+        )
         self.visit(node.body)
 
     def visit_VariableDeclaration(self, node: VariableDeclaration) -> None:
-        if node.initializer:
-            # Evaluamos la expresión inicializadora primero
-            val = self.visit(node.initializer)
-            self._emit(IRAssign(val, node.name))
+        if isinstance(node.initializer, ArrayLiteral):
+            self._emit(
+                IRArrayAssign(
+                    [self.visit(element) for element in node.initializer.elements],
+                    node.name,
+                )
+            )
+            return
+
+        if node.initializer is not None:
+            self._emit(IRAssign(self.visit(node.initializer), node.name))
+            return
+
+        self._emit(IRAssign(0, node.name))
 
     def visit_Assignment(self, node: Assignment) -> str:
         # node es de tipo Assignment
