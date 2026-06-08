@@ -4,42 +4,33 @@
 
 module mem_controller (
     input  logic        reset,
-    input  logic        clk,      // 100 MHz - pipeline
-    input  logic        clk_mem,  //  50 MHz - FSM y RAM
+    input  logic        clk,
+    input  logic        clk_mem,
 
-    // Entrada desde memory.sv
-    // req = miss_l1 & miss_l2 (loads) | miss_l1 (stores, write-through)
-    // La condición se calcula en memory.sv antes de llegar aquí
     input  logic        req,
     input  logic        we,
     input  logic [31:0] addr,
     input  logic [1:0]  size,
     input  logic [31:0] wdata,
 
-    // Interfaz con data_ram (memory.sv conecta rdata de vuelta aquí)
     output logic        ram_we,
     output logic [1:0]  ram_size,
     output logic [31:0] ram_addr,
     output logic [31:0] ram_wdata,
-    input  logic [31:0] ram_rdata, // ← NUEVO: tap de rdata de data_ram
+    input  logic [31:0] ram_rdata,
 
-    // Stall → hazard unit
     output logic        stall_mem,
 
-    // Desde caché L2
-    input  logic        hit_l2,  // L2 hit: omitir burst a RAM
-    input  logic        miss_l2, // L2 miss: se necesita burst a RAM
+    input  logic        hit_l2,
+    input  logic        miss_l2,
 
-    // Hacia l2_con: progreso del burst
-    output logic        burst_mode,         // 1 durante burst de lectura
-    output logic [2:0]  burst_mode_counter, // índice de palabra [0..7]
-    output logic [31:0] burst_rdata         // ← NUEVO: palabra actual del burst
+    output logic        burst_mode,
+    output logic [2:0]  burst_mode_counter,
+    output logic [31:0] burst_rdata
 );
 
 // ==========================================================
-//                  REQUEST QUEUE
-//  { we[0], addr[31:0], size[1:0], wdata[31:0] } = 67 bits
-//  escribe en clk (pipeline), lee en clk_mem (FSM)
+//  REQUEST QUEUE  (async: escribe en clk, lee en clk_mem)
 // ==========================================================
 logic        rq_full;
 logic        rq_empty;
@@ -47,9 +38,10 @@ logic        rq_wr_en;
 logic        rq_rd_en;
 logic [66:0] rq_data_in;
 logic [66:0] rq_data_out;
-logic        load_pending;
 
-assign rq_wr_en   = req && !rq_full && !load_pending;
+// FIX: eliminado load_pending del guard de rq_wr_en
+// El stall de pipeline (stall_l2) ya evita encolar requests duplicadas
+assign rq_wr_en   = req && !rq_full;
 assign rq_data_in = {we, addr, size, wdata};
 
 async_fifo #(
@@ -79,7 +71,6 @@ assign rq_addr     = rq_data_out[65:34];
 assign rq_size     = rq_data_out[33:32];
 assign rq_wdata    = rq_data_out[31:0];
 
-// Latch en clk_mem: captura la request ANTES de que rptr avance
 logic [31:0] lat_req_addr;
 logic [1:0]  lat_req_size;
 logic [31:0] lat_req_wdata;
@@ -96,9 +87,7 @@ always_ff @(posedge clk_mem or posedge reset)
     end
 
 // ==========================================================
-//                  WRITE BUFFER
-//  { addr[31:0], size[1:0], wdata[31:0] } = 66 bits
-//  síncrona en clk_mem — FSM escribe, wb_drain drena
+//  WRITE BUFFER  (síncrono en clk_mem)
 // ==========================================================
 logic        wb_full;
 logic        wb_empty;
@@ -124,14 +113,14 @@ fifo #(
 );
 
 // ==========================================================
-//                  CONFLICT DETECTION
+//  CONFLICT DETECTION
 // ==========================================================
 logic wbd_busy;
 logic wb_conflict;
 assign wb_conflict = !wb_empty || wbd_busy;
 
 // ==========================================================
-//                       FSM
+//  FSM
 // ==========================================================
 logic       rq_ren;
 logic       wb_wen;
@@ -165,8 +154,7 @@ assign rq_rd_en = rq_ren;
 assign wb_wr_en = wb_wen;
 
 // ==========================================================
-//                  WB DRAIN
-//  Se bloquea cuando burst_active=1 (memoria en uso)
+//  WB DRAIN
 // ==========================================================
 logic        wbd_we;
 logic [1:0]  wbd_size;
@@ -188,8 +176,7 @@ wb_drain WB_DRAIN (
 );
 
 // ==========================================================
-//                  MUX → data_ram
-//  Burst de lectura tiene prioridad sobre drain de escritura
+//  MUX → data_ram
 // ==========================================================
 always_comb
     if (burst_addr)
@@ -202,35 +189,18 @@ assign ram_wdata = burst_addr ? lat_req_wdata : wbd_wdata;
 assign ram_we    = !burst_addr && wbd_we;
 
 // ==========================================================
-//                  Salidas hacia l2_con (burst)
-//
-//  burst_rdata: tap directo de data_ram durante burst_active.
-//  data_ram es combinacional: en cada ciclo de burst_active,
-//  ram_addr ya apunta a la palabra correcta y ram_rdata es válido.
-//  l2_con acumula cada palabra en fill_line_reg usando
-//  burst_mode_counter como índice de escritura.
+//  Salidas burst hacia l2_con
 // ==========================================================
 assign burst_mode         = burst_active;
 assign burst_mode_counter = burst_count[2:0];
 assign burst_rdata        = burst_active ? ram_rdata : 32'b0;
 
 // ==========================================================
-//                  Load pending
+//  Stall → pipeline
+//  FIX: eliminado load_pending. El stall del pipeline lo maneja
+//  stall_l2 (load_state==ACCESS en l2_con). Aquí solo stalleamos
+//  si las colas están llenas (backpressure real).
 // ==========================================================
-logic load_pending_next;
-assign load_pending_next =
-    (rq_wr_en && !rq_data_in[66])       ? 1'b1 : // encolando un load
-    (burst_addr && burst_count == '0)   ? 1'b0 : // primer dato del burst listo
-    (rq_ren && !rq_is_write && hit_l2)  ? 1'b0 : // hit en L2, no hay burst
-    load_pending;
-
-always_ff @(posedge clk or posedge reset)
-    if (reset) load_pending <= 1'b0;
-    else       load_pending <= load_pending_next;
-
-// ==========================================================
-//                  Stall → pipeline
-// ==========================================================
-assign stall_mem = rq_full | wb_full | load_pending_next;
+assign stall_mem = rq_full | wb_full;
 
 endmodule

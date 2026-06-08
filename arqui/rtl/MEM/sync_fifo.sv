@@ -24,13 +24,17 @@ module sync_fifo #(
     output logic                    empty
 );
 
-    localparam int PTR_BITS = $clog2(DEPTH);
+    localparam int PTR_BITS  = $clog2(DEPTH);
+    // COUNT_BITS necesita un bit extra para distinguir 0 (empty) de DEPTH (full)
+    // PTR_BITS'(DEPTH) trunca a PTR_BITS bits: para DEPTH=8, PTR_BITS=3,
+    // 3'(8)=0, haciendo full==empty. Se usa (PTR_BITS+1) bits en count.
+    localparam int COUNT_BITS = PTR_BITS + 1;
 
     logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];
     logic [PTR_BITS-1:0]   wptr, rptr;
-    logic [PTR_BITS:0]     count;   // bit extra para distinguir full/empty
+    logic [COUNT_BITS-1:0] count;
 
-    assign full  = (count == PTR_BITS'(DEPTH));
+    assign full  = (count == COUNT_BITS'(DEPTH));
     assign empty = (count == '0);
     assign dout  = mem[rptr];
 

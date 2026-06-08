@@ -9,10 +9,7 @@
 //  Loads:  entran a request_queue → procesados por FSM Load
 //
 //  WB_DRAIN bloqueado mientras FSM Load está en ACCESS
-//  (compilador garantiza no RAW, hardware solo evita colisión con refill)
-//
 //  fill_line se acumula internamente desde burst_rdata + burst_counter
-//  (ya no llega como input externo)
 // ============================================================
 
 module l2_con (
@@ -28,10 +25,9 @@ module l2_con (
     input  logic [31:0] wdata,
 
     // Burst desde mem_controller
-    // fill_line ya NO es input: se acumula aquí con burst_rdata
-    input  logic [2:0]  burst_counter,  // índice de palabra [0..7]
-    input  logic        burst_active,   // 1 durante burst de lectura
-    input  logic [31:0] burst_rdata,    // palabra actual de data_ram
+    input  logic [2:0]  burst_counter,
+    input  logic        burst_active,
+    input  logic [31:0] burst_rdata,
 
     // Desde l2_cache: lectura
     input  logic        hit_l2,
@@ -75,7 +71,7 @@ module l2_con (
 );
 
 // ==========================================================
-// Typedefs — deben ir antes de cualquier declaración que los use
+// Typedefs
 // ==========================================================
 typedef enum logic [1:0] {
     IDLE   = 2'b00,
@@ -104,14 +100,13 @@ assign addr_set = addr[11:5];
 
 // ==========================================================
 // WayReg: FIFO de reemplazo (128 sets, 4-way)
-// active_set: mux entre addr_set (load) y wb_addr[11:5] (store drain)
 // ==========================================================
 logic [1:0] way_to_fill;
 logic       way_replace;
 logic [6:0] active_set;
 
-logic [31:0] wb_addr;     // declarado aquí para usarse en active_set
-wb_state_t   wb_state;    // tipo ya conocido — ok
+logic [31:0] wb_addr;
+wb_state_t   wb_state;
 
 always_comb begin
     if (wb_state == WB_COMMIT)
@@ -130,6 +125,11 @@ set_reg #(
     .fill_en (way_replace),
     .way_out (way_to_fill)
 );
+
+// Declaración adelantada: rq_push referencia load_state que se declara
+// más abajo en la FSM. Icarus requiere que la declaración preceda al uso.
+load_state_t load_state, load_next;
+logic [3:0]  load_cnt;
 
 // ==========================================================
 // Request Queue: solo loads (miss_l1 & ~is_write)
@@ -154,7 +154,11 @@ request_queue #(
     .empty    (rq_empty)
 );
 
-assign rq_push = miss_l1 & ~is_write & ~rq_full;
+// No encolar nuevas requests mientras la FSM está procesando una (ACCESS o DONE).
+// Durante stall el pipeline mantiene miss_l1=1 continuamente; sin este gate
+// la cola se llenaría antes de que el burst de RAM termine.
+assign rq_push = miss_l1 & ~is_write & ~rq_full
+               & (load_state == IDLE);
 
 // ==========================================================
 // Write Buffer: stores llegan aquí directamente (bypass RQ)
@@ -186,24 +190,30 @@ assign wb_push = miss_l1 & is_write & ~wb_full;
 // ==========================================================
 // Acumulador de fill_line desde burst_rdata
 //
-// En cada ciclo que burst_active=1, mem_controller pone en
-// burst_rdata la palabra indexada por burst_counter.
-// Se captura aquí y se arma la línea de 256 bits.
-// Al ciclo burst_counter==7 la línea está completa y fill_en
-// la escribe en l2_cache.
+// FIX: Icarus no soporta "burst_counter*32 +: 32" dentro de
+// always_ff. Se reemplaza con case explícito de 8 entradas.
 // ==========================================================
 logic [255:0] fill_line_reg;
 
 always_ff @(posedge clk) begin
-    if (burst_active)
-        fill_line_reg[burst_counter*32 +: 32] <= burst_rdata;
+    if (burst_active) begin
+        case (burst_counter)
+            3'd0: fill_line_reg[  31:  0] <= burst_rdata;
+            3'd1: fill_line_reg[  63: 32] <= burst_rdata;
+            3'd2: fill_line_reg[  95: 64] <= burst_rdata;
+            3'd3: fill_line_reg[ 127: 96] <= burst_rdata;
+            3'd4: fill_line_reg[ 159:128] <= burst_rdata;
+            3'd5: fill_line_reg[ 191:160] <= burst_rdata;
+            3'd6: fill_line_reg[ 223:192] <= burst_rdata;
+            3'd7: fill_line_reg[ 255:224] <= burst_rdata;
+            default: ; // no-op
+        endcase
+    end
 end
 
 // ==========================================================
 // FSM Load: IDLE → ACCESS (8 ciclos) → DONE
 // ==========================================================
-load_state_t load_state, load_next;
-logic [3:0]  load_cnt;
 
 always_ff @(posedge clk) begin
     if (reset) begin
@@ -223,7 +233,7 @@ always_comb begin
     case (load_state)
         IDLE:    if (!rq_empty)          load_next = ACCESS;
         ACCESS:  if (load_cnt == 4'd7)   load_next = DONE;
-        DONE:                            load_next = IDLE;
+        DONE:    if (~burst_active)              load_next = IDLE;
         default:                         load_next = IDLE;
     endcase
 end
@@ -267,25 +277,21 @@ assign wb_pop = (wb_state == WB_COMMIT);
 // ==========================================================
 // Señales hacia l2_cache
 // ==========================================================
-
-// Fill: al final del burst (counter==7) en load miss
-// fill_line_reg ya tiene la línea completa en ese ciclo
 assign fill_en       = (burst_counter == 3'b111) & burst_active & ~hit_l2;
 assign fill_way_out  = way_to_fill;
-assign fill_set      = rq_addr[11:5];   // set de la request que disparó el burst
-assign fill_tag      = rq_addr[31:12];  // tag de la request
+assign fill_set      = rq_addr[11:5];
+assign fill_tag      = rq_addr[31:12];
 assign fill_line_out = fill_line_reg;
 
-// WayReg avanza en refill o store hit
 assign way_replace = fill_en
                    | (wb_state == WB_COMMIT & hit_l2_wb);
 
-// Invalidación: load miss al inicio del acceso (un ciclo)
-assign inv_en  = (load_state == IDLE) & ~rq_empty & ~hit_l2;
+// inv_en: solo en el ciclo exacto de transición IDLE→ACCESS
+// (evita invalidar en IDLE genérico antes de que la FSM haya verificado hit)
+assign inv_en  = (load_state == IDLE) & (load_next == ACCESS) & ~hit_l2;
 assign inv_way = way_to_fill;
 assign inv_set = rq_addr[11:5];
 
-// Store write-through: solo si hit en L2
 assign store_en       = (wb_state == WB_COMMIT) & hit_l2_wb;
 assign store_addr_out = wb_addr;
 assign store_data_out = wb_wdata;
@@ -300,7 +306,9 @@ assign stall    = (load_state == ACCESS) | rq_full;
 // Hacia mem_con
 // ==========================================================
 assign hit_l2_out  = hit_l2;
-assign miss_l2_out = ~hit_l2;
+// Gateado por ACCESS: solo válido cuando la FSM tiene una request en vuelo.
+// Evita que mem_controller arranque en ciclo 0 por caché fría (hit_l2=0).
+assign miss_l2_out = (load_state == ACCESS) & ~hit_l2;
 assign addr_out    = rq_addr;
 assign size_out    = rq_size;
 
