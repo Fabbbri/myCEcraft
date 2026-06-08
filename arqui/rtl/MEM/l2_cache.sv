@@ -2,27 +2,33 @@ module l2_cache (
     input logic clk,
     input logic reset,
 
-    // Señales para obtener hit y data out
+    // Puerto de lectura (desde pipeline via l2_con)
     input  logic [31:0] addr,
     output logic [31:0] data_out,
-    output logic hit,
-    output logic [1:0] hit_way,
+    output logic        hit,
+    output logic [1:0]  hit_way,
 
-    // Señales de llenado - refill
-    input logic fill_en,
-    input logic [1:0] fill_way,
-    input logic [6:0] fill_set,
-    input logic [19:0] fill_tag,
+    // Fill - refill tras load miss
+    input logic         fill_en,
+    input logic [1:0]   fill_way,
+    input logic [6:0]   fill_set,
+    input logic [19:0]  fill_tag,
     input logic [255:0] fill_line,
 
-    // Señales para invalidar líneas
-    input logic inv_en,
-    input logic [1:0] inv_way,
-    input logic [6:0] inv_set
+    // Invalidación
+    input logic        inv_en,
+    input logic [1:0]  inv_way,
+    input logic [6:0]  inv_set,
 
-    // Señales para store (Way hit y miss son iguales)
-    input  logic        store_en,        // is_write desde L1
-    input  logic [31:0] w_data,          // dato a escribir
+    // Puerto de store (viene del WB drain en l2_con)
+    // Dirección es wb_addr, no addr del pipeline
+    input logic        store_en,
+    input logic [31:0] store_addr,   // ← dirección del WB head
+    input logic [31:0] store_data,
+
+    // Hit del WB head (para que l2_con sepa si propagar a L2 o solo a mem)
+    output logic        hit_l2_wb,
+    output logic [1:0]  hit_way_wb
 );
 
     localparam int NUM_SETS  = 128;
@@ -30,47 +36,41 @@ module l2_cache (
     localparam int TAG_BITS  = 20;
     localparam int NUM_WAYS  = 4;
 
-    logic [TAG_BITS-1:0] tag_mem [NUM_SETS-1:0][0:NUM_WAYS-1];
+    logic [TAG_BITS-1:0]  tag_mem  [NUM_SETS-1:0][0:NUM_WAYS-1];
     logic [LINE_BITS-1:0] data_mem [NUM_SETS-1:0][0:NUM_WAYS-1];
-    logic valid [NUM_SETS-1:0][0:NUM_WAYS-1];
+    logic                 valid    [NUM_SETS-1:0][0:NUM_WAYS-1];
 
-    // addr[1:0] = byte offset (ignorado)
-    // addr[4:2] = word offset dentro de la línea (3 bits)
-    // addr[11:5] = set index (7 bits)
-    // addr[31:12] = tag (20 bits)
-
+    // ==========================================================
+    // Descomposición: puerto de lectura (load)
+    // ==========================================================
     logic [TAG_BITS-1:0] addr_tag;
-    logic [6:0] addr_set;
-    logic [2:0] addr_word;
+    logic [6:0]          addr_set;
+    logic [2:0]          addr_word;
 
-    assign addr_tag = addr[31:12];
-    assign addr_set = addr[11:5];
+    assign addr_tag  = addr[31:12];
+    assign addr_set  = addr[11:5];
     assign addr_word = addr[4:2];
 
-    // Hit por way
+    // Hit por way (load)
     logic hit0, hit1, hit2, hit3;
-    assign hit0 = valid[addr_set][0] && (tag_mem[addr_set][0] == addr_tag);
-    assign hit1 = valid[addr_set][1] && (tag_mem[addr_set][1] == addr_tag);
-    assign hit2 = valid[addr_set][2] && (tag_mem[addr_set][2] == addr_tag);
-    assign hit3 = valid[addr_set][3] && (tag_mem[addr_set][3] == addr_tag);
+    assign hit0 = valid[addr_set][0] & (tag_mem[addr_set][0] == addr_tag);
+    assign hit1 = valid[addr_set][1] & (tag_mem[addr_set][1] == addr_tag);
+    assign hit2 = valid[addr_set][2] & (tag_mem[addr_set][2] == addr_tag);
+    assign hit3 = valid[addr_set][3] & (tag_mem[addr_set][3] == addr_tag);
 
-    // OR 4:1 -> hit
     assign hit = hit0 | hit1 | hit2 | hit3;
 
-    // Encoder 2 ORs -> selector del mux de datos
-    //   hit_way[1] = hit2 | hit3
-    //   hit_way[0] = hit1 | hit3
+    // Encoder → hit_way
     assign hit_way[1] = hit2 | hit3;
     assign hit_way[0] = hit1 | hit3;
 
-    // Mux de block offset por way (selecciona la palabra de 32 bits)
+    // Mux de palabra por way
     logic [31:0] way0_data, way1_data, way2_data, way3_data;
     assign way0_data = data_mem[addr_set][0][addr_word*32 +: 32];
     assign way1_data = data_mem[addr_set][1][addr_word*32 +: 32];
     assign way2_data = data_mem[addr_set][2][addr_word*32 +: 32];
     assign way3_data = data_mem[addr_set][3][addr_word*32 +: 32];
 
-    // Mux 4:1 final seleccionado por encoder -> data_out
     always_comb
         case (hit_way)
             2'b11:   data_out = way3_data;
@@ -79,20 +79,34 @@ module l2_cache (
             default: data_out = way0_data;
         endcase
 
-    // DESCOMPOSICION PARA STORE
-
-    // Descomponer store_addr igual que addr
+    // ==========================================================
+    // Descomposición: puerto de store (WB drain)
+    // Dirección independiente del puerto de lectura
+    // ==========================================================
     logic [TAG_BITS-1:0] st_tag;
     logic [6:0]          st_set;
     logic [2:0]          st_word;
 
-    assign st_tag  = addr[31:12];
-    assign st_set  = addr[11:5];
-    assign st_word = addr[4:2];
+    assign st_tag  = store_addr[31:12];
+    assign st_set  = store_addr[11:5];
+    assign st_word = store_addr[4:2];
 
-    logic store_way_l2 = store_en & store_hit_l2;
+    // Hit por way evaluado con store_addr (segundo tag-lookup)
+    logic st_hit0, st_hit1, st_hit2, st_hit3;
+    assign st_hit0 = valid[st_set][0] & (tag_mem[st_set][0] == st_tag);
+    assign st_hit1 = valid[st_set][1] & (tag_mem[st_set][1] == st_tag);
+    assign st_hit2 = valid[st_set][2] & (tag_mem[st_set][2] == st_tag);
+    assign st_hit3 = valid[st_set][3] & (tag_mem[st_set][3] == st_tag);
 
-    // Escritura (fill e invalidación)
+    assign hit_l2_wb = st_hit0 | st_hit1 | st_hit2 | st_hit3;
+
+    // Encoder → hit_way_wb
+    assign hit_way_wb[1] = st_hit2 | st_hit3;
+    assign hit_way_wb[0] = st_hit1 | st_hit3;
+
+    // ==========================================================
+    // Escritura
+    // ==========================================================
     integer s, w;
     always_ff @(posedge clk) begin
         if (reset) begin
@@ -100,18 +114,22 @@ module l2_cache (
                 for (w = 0; w < NUM_WAYS; w = w + 1)
                     valid[s][w] <= 1'b0;
         end else begin
-            // Store write-through: solo si hubo hit en L2
-            // Si miss, el controlador L2 escribe directo a memoria
-            // L2 es no-write-allocate igual que L1
-            if (store_way_l2) begin // estamos en STORE HIT WAY
-                data_mem[st_set][st_hit_way][st_word*32 +: 32] <= store_data;
+
+            // Store write-through: solo palabra, solo si hit
+            // No-write-allocate: si miss, solo va a memoria
+            if (store_en & hit_l2_wb) begin
+                data_mem[st_set][hit_way_wb][st_word*32 +: 32] <= store_data;
                 // tag y valid no cambian
             end
+
+            // Refill completo tras load miss
             if (fill_en) begin
                 tag_mem [fill_set][fill_way] <= fill_tag;
                 data_mem[fill_set][fill_way] <= fill_line;
                 valid   [fill_set][fill_way] <= 1'b1;
             end
+
+            // Invalidación
             if (inv_en) begin
                 valid[inv_set][inv_way] <= 1'b0;
             end

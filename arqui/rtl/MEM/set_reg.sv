@@ -33,7 +33,10 @@ module set_reg #(
             for (integer s = 0; s < NUM_SETS; s = s + 1)
                 fifo_ptr[s] <= '0;
         end else if (fill_en) begin
-            fifo_ptr[set] <= fifo_ptr[set] + 1'b1;
+            if (fifo_ptr[set] == WAY_BITS'(NUM_WAYS - 1))
+                fifo_ptr[set] <= '0;
+            else
+                fifo_ptr[set] <= fifo_ptr[set] + 1'b1;
         end
     end
 
