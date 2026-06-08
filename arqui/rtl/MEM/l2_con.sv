@@ -75,6 +75,21 @@ module l2_con (
 );
 
 // ==========================================================
+// Typedefs — deben ir antes de cualquier declaración que los use
+// ==========================================================
+typedef enum logic [1:0] {
+    IDLE   = 2'b00,
+    ACCESS = 2'b01,
+    DONE   = 2'b10
+} load_state_t;
+
+typedef enum logic [1:0] {
+    WB_IDLE   = 2'b00,
+    WB_DRAIN  = 2'b01,
+    WB_COMMIT = 2'b10
+} wb_state_t;
+
+// ==========================================================
 // Address breakdown (L2)
 // addr[31:12] = tag  (20 bits)
 // addr[11:5]  = set  (7 bits)
@@ -95,9 +110,8 @@ logic [1:0] way_to_fill;
 logic       way_replace;
 logic [6:0] active_set;
 
-// Declaraciones adelantadas necesarias para el mux
-logic [31:0] wb_addr;
-wb_state_t   wb_state; // forward declaration resuelta abajo
+logic [31:0] wb_addr;     // declarado aquí para usarse en active_set
+wb_state_t   wb_state;    // tipo ya conocido — ok
 
 always_comb begin
     if (wb_state == WB_COMMIT)
@@ -188,12 +202,6 @@ end
 // ==========================================================
 // FSM Load: IDLE → ACCESS (8 ciclos) → DONE
 // ==========================================================
-typedef enum logic [1:0] {
-    IDLE   = 2'b00,
-    ACCESS = 2'b01,
-    DONE   = 2'b10
-} load_state_t;
-
 load_state_t load_state, load_next;
 logic [3:0]  load_cnt;
 
@@ -226,12 +234,6 @@ assign rq_pop = (load_state == DONE);
 // FSM Write Buffer Drain: WB_IDLE → WB_DRAIN (7 ciclos) → WB_COMMIT
 // Bloqueada mientras load_state == ACCESS
 // ==========================================================
-typedef enum logic [1:0] {
-    WB_IDLE   = 2'b00,
-    WB_DRAIN  = 2'b01,
-    WB_COMMIT = 2'b10
-} wb_state_t;
-
 wb_state_t wb_next;
 logic [2:0] wb_cnt;
 

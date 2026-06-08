@@ -28,6 +28,8 @@ clk_divider clk_div(.clk(clk), .reset(reset), .clkdiv(clk_mem));
 //  SEÑALES INTERNAS ENTRE MÓDULOS
 // ==========================================================
 
+logic is_write = we_mem;
+
 // L1 → L2
 logic        miss_l1,    hit_l1;
 logic [31:0] l1_data_out;
@@ -60,9 +62,13 @@ logic [31:0] store_data_l2;
 // L2 cache → L2 con
 logic        hit_l2;
 logic [31:0] l2_data_out;
-logic [1:0]  hit_way_l2;
 logic        hit_l2_wb;
 logic [1:0]  hit_way_wb;
+// para refill de L1 desde L2
+logic [2:0]  l2_word_counter;
+logic        l2_refill_active;
+logic [31:0] l2_refill_rdata;
+logic [1:0]  hit_way_l2;    // way que hizo hit en L2 (para leer línea completa)
 
 // L2 con → mem_controller
 logic        miss_l2;
@@ -92,13 +98,6 @@ logic        stall_mc;
 // desde refill_regs hacia caches
 logic [255:0] fill_line_to_caches;
 logic         fill_line_ready;
-
-// para refill de L1 desde L2
-logic [2:0]  l2_word_counter;
-logic        l2_refill_active;
-logic [31:0] l2_refill_rdata;
-logic [1:0]  hit_way_l2;    // way que hizo hit en L2 (para leer línea completa)
-
 
 // ----------------------------------------------------------
 // 1. req_to_mem: mem_controller solo activa si hay miss real
@@ -139,7 +138,7 @@ l1d_cache L1D(
     .inv_set      (inv_set_l1),
     .is_write     (we_mem),
     .wdata        (rd2),
-    .store_way_hit(store_way_hit_l1)
+    .store_hit_l1(store_way_hit_l1)
 );
 
 // ==========================================================
@@ -164,7 +163,7 @@ l1_con L1Con(
     .inv_en              (inv_en_l1),
     .inv_way             (inv_way_l1),
     .inv_set             (inv_set_l1),
-    .dato_cpu            (rMemData_l1),
+    .dato_cpu            (l1_data_out),
     .miss_l1_out         (miss_l1),
     .hit_l1_out          (),
     // contador para refill desde L2
