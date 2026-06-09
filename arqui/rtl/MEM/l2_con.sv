@@ -277,7 +277,15 @@ assign wb_pop = (wb_state == WB_COMMIT);
 // ==========================================================
 // Señales hacia l2_cache
 // ==========================================================
-assign fill_en       = (burst_counter == 3'b111) & burst_active & ~hit_l2;
+// fill_en debe activarse UN CICLO DESPUÉS de burst_counter==7.
+// En el ciclo donde burst_counter==7, refill_regs todavía está capturando
+// la última palabra (always_ff escribe en posedge). Si fill_en fuera
+// combinacional en ese ciclo, fill_line_out[255:224] tendría el valor anterior.
+logic burst_last_d;
+always_ff @(posedge clk)
+    burst_last_d <= (burst_counter == 3'b111) & burst_active & ~hit_l2;
+
+assign fill_en = burst_last_d;
 assign fill_way_out  = way_to_fill;
 assign fill_set      = rq_addr[11:5];
 assign fill_tag      = rq_addr[31:12];
