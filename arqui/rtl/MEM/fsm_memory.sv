@@ -15,6 +15,8 @@ module fsm_memory (
 
     // tipo de request de la queue
     input  logic is_write,
+    input  logic hit_l2,   // L2 hit -> saltar BURST, volver a INIT
+    input  logic miss_l2,  // L2 miss -> ir a BURST (RAM)
 
     // control de request queue
     output logic rq_ren,
@@ -99,7 +101,10 @@ always_comb
             else next_state = INIT;
 
         REQUEST:
-            if (!is_write) next_state = BURST;
+            if (!is_write) begin
+                if (hit_l2) next_state = INIT; 
+                else next_state = BURST;
+            end
             else if (!wb_full) next_state = ENQUEUE_WRITE;
             else  next_state = REQUEST;
 
