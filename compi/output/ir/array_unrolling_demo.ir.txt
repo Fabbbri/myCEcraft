@@ -1,0 +1,75 @@
+main:
+  x3 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  datos = x3
+  i = 0
+L_for_start_0:
+  x4 = i < 8
+  ifFalse x4 goto L_for_end_1
+  x5 = datos[i]
+  x6 = x5 + 1
+  datos[i] = x6
+  x7 = datos[(i + 1)]
+  x8 = x7 + 1
+  datos[(i + 1)] = x8
+  x9 = datos[(i + 2)]
+  x10 = x9 + 1
+  datos[(i + 2)] = x10
+  x3 = datos[(i + 3)]
+  x4 = x3 + 1
+  datos[(i + 3)] = x4
+  x5 = i + 4
+  i = x5
+  goto L_for_start_0
+L_for_end_1:
+  x6 = datos[8]
+  x7 = x6 + 1
+  datos[8] = x7
+  x8 = datos[9]
+  x9 = x8 + 1
+  datos[9] = x9
+  x10 = datos[9]
+  return x10
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+  main:
+    x3 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    datos = x3
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+  L_for_start_0:
+    x4 = i < 8
+    ifFalse x4 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    x5 = datos[i]
+    x6 = x5 + 1
+    datos[i] = x6
+    x7 = datos[(i + 1)]
+    x8 = x7 + 1
+    datos[(i + 1)] = x8
+    x9 = datos[(i + 2)]
+    x10 = x9 + 1
+    datos[(i + 2)] = x10
+    x3 = datos[(i + 3)]
+    x4 = x3 + 1
+    datos[(i + 3)] = x4
+    x5 = i + 4
+    i = x5
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  L_for_end_1:
+    x6 = datos[8]
+    x7 = x6 + 1
+    datos[8] = x7
+    x8 = datos[9]
+    x9 = x8 + 1
+    datos[9] = x9
+    x10 = datos[9]
+    return x10

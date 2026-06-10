@@ -86,4 +86,19 @@ class Workspace:
                 self.output_root / "bin_output" / f"{expanded_stem}.lst",
             ]
         )
+        for base_stem in (stem, expanded_stem):
+            for level in range(1, 4):
+                optimized_stem = f"{base_stem}.O{level}"
+                candidates.extend(
+                    [
+                        self.output_root / "ir" / f"{optimized_stem}.ir.txt",
+                        self.output_root / "asm_unresolved" / f"{optimized_stem}.asm",
+                        self.output_root / "asm_resolved" / f"{optimized_stem}.resolved.asm",
+                        self.output_root / "bin_output" / f"{optimized_stem}.bin",
+                        self.output_root / "bin_output" / f"{optimized_stem}.hex",
+                        self.output_root / "bin_output" / f"{optimized_stem}.data.hex",
+                        self.output_root / "bin_output" / f"{optimized_stem}.lst",
+                        self.output_root / "symbols" / f"{optimized_stem}.symbols.txt",
+                    ]
+                )
         return [path for path in candidates if path.exists()]

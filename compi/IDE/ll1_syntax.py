@@ -103,12 +103,26 @@ class LL1SyntaxService:
         prefix = source[prefix_start:cursor_position]
         context_source = source[:prefix_start]
 
+        diagnostics_at_cursor, structural_suggestions = self.analyze(
+            source[:cursor_position],
+            include_semantic=False,
+        )
+
         _diagnostics, suggestions = self.analyze(
             context_source,
             include_semantic=False,
         )
         suggestions = self._with_semantic_suggestions(source, context_source, suggestions)
         suggestions = self._rank_completion_suggestions(suggestions)
+
+        structural_suggestions = self._rank_structural_completion_suggestions(
+            diagnostics_at_cursor,
+            structural_suggestions,
+            suggestions,
+            prefix,
+        )
+        if structural_suggestions:
+            return structural_suggestions
 
         if prefix:
             prefix_lower = prefix.lower()
@@ -120,6 +134,40 @@ class LL1SyntaxService:
             ]
 
         return suggestions
+
+    def _rank_structural_completion_suggestions(
+        self,
+        diagnostics: list[Diagnostic],
+        structural_suggestions: list[Suggestion],
+        context_suggestions: list[Suggestion],
+        prefix: str,
+    ) -> list[Suggestion]:
+        if not diagnostics:
+            return []
+
+        allowed = {";", ")", "]", "}", ":"}
+        fixes = [
+            suggestion
+            for suggestion in structural_suggestions
+            if suggestion.insert_text in allowed
+        ]
+        if not fixes:
+            return []
+
+        if not prefix:
+            return fixes
+
+        prefix_lower = prefix.lower()
+        has_exact_context_match = any(
+            suggestion.insert_text.lower() == prefix_lower
+            or suggestion.label.lower() == prefix_lower
+            or suggestion.label.lower().split()[0] == prefix_lower
+            for suggestion in context_suggestions
+        )
+        if has_exact_context_match:
+            return fixes
+
+        return []
 
     def _with_semantic_suggestions(
         self,

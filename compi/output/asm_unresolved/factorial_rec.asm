@@ -1,228 +1,89 @@
 ; ==================================================
-; Ensamblador generado para Craft21
-; Fase 4 - versión inicial
+; Ensamblador generado directamente desde IR
+; Las optimizaciones IR son la fuente del ejecutable
 ; ==================================================
 
 .text
 
     ; @EnterCraftWorld
-    portalv x0, x0, .L_codegen_0_enderExit              ; pc=0x0000
-    sleep ; nop despues de control                      ; pc=0x0004
-    sleep ; nop despues de control                      ; pc=0x0008
-    lwv v0, 0(v0)                                       ; pc=0x000C
+    portalv x0, x0, .L_ir_0_enderExit                   ; pc=0x0000
+    lwv v0, 0(v0)                                       ; pc=0x0004
+    sleep ; stall RAW                                   ; pc=0x0008
+    sleep ; stall RAW                                   ; pc=0x000C
     sleep ; stall RAW                                   ; pc=0x0010
-    sleep ; stall RAW                                   ; pc=0x0014
-    sleep ; stall RAW                                   ; pc=0x0018
-    closev ; cerrar Secure Mode despues del bootstrap   ; pc=0x001C
-.L_codegen_0_enderExit:
+    closev ; cerrar Secure Mode despues del bootstrap   ; pc=0x0014
+.L_ir_0_enderExit:
 
 main:
     ; inicializar stack pointer
-    addiHIGH x2, x0, 0                                  ; pc=0x0020
-    sleep ; stall RAW                                   ; pc=0x0024
-    sleep ; stall RAW                                   ; pc=0x0028
-    sleep ; stall RAW                                   ; pc=0x002C
-    addi x2, x2, 0x7FF0                                 ; pc=0x0030
-    sleep ; stall RAW                                   ; pc=0x0034
-    sleep ; stall RAW                                   ; pc=0x0038
-    sleep ; stall RAW                                   ; pc=0x003C
+    addiHIGH x2, x0, 0                                  ; pc=0x0018
+    addi x2, x2, 0x7FF0                                 ; pc=0x001C
 
     ; prologue
-    addiSigned x2, x2, -8                               ; pc=0x0040
-    sleep ; stall RAW                                   ; pc=0x0044
-    sleep ; stall RAW                                   ; pc=0x0048
-    sleep ; stall RAW                                   ; pc=0x004C
-    sw x1, 0(x2)                                        ; pc=0x0050
-    sw x17, 4(x2)                                       ; pc=0x0054
-    addi x17, x2, 8                                     ; pc=0x0058
-    sleep ; stall RAW                                   ; pc=0x005C
-    sleep ; stall RAW                                   ; pc=0x0060
-    sleep ; stall RAW                                   ; pc=0x0064
+    addiSigned x2, x2, -12                              ; pc=0x0020
+    sw x1, 0(x2)                                        ; pc=0x0024
+    sw x17, 4(x2)                                       ; pc=0x0028
+    addi x17, x2, 12                                    ; pc=0x002C
 
-    addi x3, x0, 5                                      ; pc=0x0068
-    sleep ; stall RAW                                   ; pc=0x006C
-    sleep ; stall RAW                                   ; pc=0x0070
-    sleep ; stall RAW                                   ; pc=0x0074
-    add x11, x3, x0                                     ; pc=0x0078
-    sleep ; stall RAW                                   ; pc=0x007C
-    sleep ; stall RAW                                   ; pc=0x0080
-    sleep ; stall RAW                                   ; pc=0x0084
-    jal x1, fact                                        ; pc=0x0088
-    sleep ; nop despues de control                      ; pc=0x008C
-    sleep ; nop despues de control                      ; pc=0x0090
-    add x3, x11, x0                                     ; pc=0x0094
-    sleep ; stall RAW                                   ; pc=0x0098
-    sleep ; stall RAW                                   ; pc=0x009C
-    sleep ; stall RAW                                   ; pc=0x00A0
-    add x11, x3, x0                                     ; pc=0x00A4
-    sleep ; stall RAW                                   ; pc=0x00A8
-    sleep ; stall RAW                                   ; pc=0x00AC
-    sleep ; stall RAW                                   ; pc=0x00B0
-    jal x0, .L_codegen_1_main_end                       ; pc=0x00B4
-    sleep ; nop despues de control                      ; pc=0x00B8
-    sleep ; nop despues de control                      ; pc=0x00BC
-.L_codegen_1_main_end:
+    addi x3, x0, 5                                      ; pc=0x0030
+    add x11, x3, x0                                     ; pc=0x0034
+    jal x1, fact                                        ; pc=0x0038
+    add x4, x11, x0                                     ; pc=0x003C
+    sw x4, -4(x17) ; t4                                 ; pc=0x0040
+    lw x5, -4(x17) ; t4                                 ; pc=0x0044
+    add x11, x5, x0                                     ; pc=0x0048
+    jal x0, .L_ir_1_main_end                            ; pc=0x004C
+.L_ir_1_main_end:
     ; epilogue
-    lw x17, 4(x2)                                       ; pc=0x00C0
-    sleep ; stall RAW                                   ; pc=0x00C4
-    sleep ; stall RAW                                   ; pc=0x00C8
-    sleep ; stall RAW                                   ; pc=0x00CC
-    addi x2, x2, 8                                      ; pc=0x00D0
-    sleep ; stall RAW                                   ; pc=0x00D4
-    sleep ; stall RAW                                   ; pc=0x00D8
-    sleep ; stall RAW                                   ; pc=0x00DC
-    freeze                                              ; pc=0x00E0
+    lw x17, 4(x2)                                       ; pc=0x0050
+    addi x2, x2, 12                                     ; pc=0x0054
+    freeze                                              ; pc=0x0058
 
 fact:
     ; prologue
-    addiSigned x2, x2, -16                              ; pc=0x00E4
-    sleep ; stall RAW                                   ; pc=0x00E8
-    sleep ; stall RAW                                   ; pc=0x00EC
-    sleep ; stall RAW                                   ; pc=0x00F0
-    sw x1, 0(x2)                                        ; pc=0x00F4
-    sw x17, 4(x2)                                       ; pc=0x00F8
-    addi x17, x2, 16                                    ; pc=0x00FC
-    sleep ; stall RAW                                   ; pc=0x0100
-    sleep ; stall RAW                                   ; pc=0x0104
-    sleep ; stall RAW                                   ; pc=0x0108
+    addiSigned x2, x2, -28                              ; pc=0x005C
+    sw x1, 0(x2)                                        ; pc=0x0060
+    sw x17, 4(x2)                                       ; pc=0x0064
+    addi x17, x2, 28                                    ; pc=0x0068
 
-    sw x11, -4(x17) ; parámetro n                       ; pc=0x010C
+    sw x11, -4(x17) ; parametro n                       ; pc=0x006C
 
-
-    ; if
-    lw x3, -4(x17) ; n                                  ; pc=0x0110
-    sleep ; stall RAW                                   ; pc=0x0114
-    sleep ; stall RAW                                   ; pc=0x0118
-    sleep ; stall RAW                                   ; pc=0x011C
-    addi x4, x0, 1                                      ; pc=0x0120
-    sleep ; stall RAW                                   ; pc=0x0124
-    sleep ; stall RAW                                   ; pc=0x0128
-    sleep ; stall RAW                                   ; pc=0x012C
-    blt x4, x3, .L0_if_else                             ; pc=0x0130
-    sleep ; nop despues de control                      ; pc=0x0134
-    sleep ; nop despues de control                      ; pc=0x0138
-    addi x4, x0, 1                                      ; pc=0x013C
-    sleep ; stall RAW                                   ; pc=0x0140
-    sleep ; stall RAW                                   ; pc=0x0144
-    sleep ; stall RAW                                   ; pc=0x0148
-    add x11, x4, x0                                     ; pc=0x014C
-    sleep ; stall RAW                                   ; pc=0x0150
-    sleep ; stall RAW                                   ; pc=0x0154
-    sleep ; stall RAW                                   ; pc=0x0158
-    jal x0, .L_codegen_2_fact_end                       ; pc=0x015C
-    sleep ; nop despues de control                      ; pc=0x0160
-    sleep ; nop despues de control                      ; pc=0x0164
-    jal x0, .L1_if_end                                  ; pc=0x0168
-    sleep ; nop despues de control                      ; pc=0x016C
-    sleep ; nop despues de control                      ; pc=0x0170
-.L0_if_else:
-.L1_if_end:
-
-    lw x4, -4(x17) ; n                                  ; pc=0x0174
-    sleep ; stall RAW                                   ; pc=0x0178
-    sleep ; stall RAW                                   ; pc=0x017C
-    sleep ; stall RAW                                   ; pc=0x0180
-    lw x3, -4(x17) ; n                                  ; pc=0x0184
-    sleep ; stall RAW                                   ; pc=0x0188
-    sleep ; stall RAW                                   ; pc=0x018C
-    sleep ; stall RAW                                   ; pc=0x0190
-    addi x5, x0, 1                                      ; pc=0x0194
-    sleep ; stall RAW                                   ; pc=0x0198
-    sleep ; stall RAW                                   ; pc=0x019C
-    sleep ; stall RAW                                   ; pc=0x01A0
-    sub x6, x3, x5                                      ; pc=0x01A4
-    sleep ; stall RAW                                   ; pc=0x01A8
-    sleep ; stall RAW                                   ; pc=0x01AC
-    sleep ; stall RAW                                   ; pc=0x01B0
-    add x11, x6, x0                                     ; pc=0x01B4
-    sleep ; stall RAW                                   ; pc=0x01B8
-    sleep ; stall RAW                                   ; pc=0x01BC
-    sleep ; stall RAW                                   ; pc=0x01C0
-<<<<<<< HEAD
-    jal x1, fact                                        ; pc=0x01C4
-    sleep ; nop despues de control                      ; pc=0x01C8
-    sleep ; nop despues de control                      ; pc=0x01CC
-    add x6, x11, x0                                     ; pc=0x01D0
-    sleep ; stall RAW                                   ; pc=0x01D4
-    sleep ; stall RAW                                   ; pc=0x01D8
-    sleep ; stall RAW                                   ; pc=0x01DC
-    mul x5, x4, x6                                      ; pc=0x01E0
-    sleep ; stall RAW                                   ; pc=0x01E4
-    sleep ; stall RAW                                   ; pc=0x01E8
-    sleep ; stall RAW                                   ; pc=0x01EC
-    add x11, x5, x0                                     ; pc=0x01F0
-    sleep ; stall RAW                                   ; pc=0x01F4
-    sleep ; stall RAW                                   ; pc=0x01F8
-    sleep ; stall RAW                                   ; pc=0x01FC
-    jal x0, .L_codegen_2_fact_end                       ; pc=0x0200
-    sleep ; nop despues de control                      ; pc=0x0204
-    sleep ; nop despues de control                      ; pc=0x0208
-.L_codegen_2_fact_end:
+    lw x6, -4(x17) ; n                                  ; pc=0x0070
+    addi x7, x0, 1                                      ; pc=0x0074
+    addi x8, x0, 0                                      ; pc=0x0078
+    bge x7, x6, .L_ir_3_ir_cmp_true                     ; pc=0x007C
+    jal x0, .L_ir_4_ir_cmp_end                          ; pc=0x0080
+.L_ir_3_ir_cmp_true:
+    addi x8, x0, 1                                      ; pc=0x0084
+.L_ir_4_ir_cmp_end:
+    sw x8, -8(x17) ; t0                                 ; pc=0x0088
+    lw x9, -8(x17) ; t0                                 ; pc=0x008C
+    beq x9, x0, L_else_0                                ; pc=0x0090
+    addi x10, x0, 1                                     ; pc=0x0094
+    add x11, x10, x0                                    ; pc=0x0098
+    jal x0, .L_ir_2_fact_end                            ; pc=0x009C
+    jal x0, L_end_if_1                                  ; pc=0x00A0
+L_else_0:
+L_end_if_1:
+    lw x3, -4(x17) ; n                                  ; pc=0x00A4
+    addi x4, x0, 1                                      ; pc=0x00A8
+    sub x5, x3, x4                                      ; pc=0x00AC
+    sw x5, -12(x17) ; t1                                ; pc=0x00B0
+    lw x8, -12(x17) ; t1                                ; pc=0x00B4
+    add x11, x8, x0                                     ; pc=0x00B8
+    jal x1, fact                                        ; pc=0x00BC
+    add x7, x11, x0                                     ; pc=0x00C0
+    sw x7, -16(x17) ; t2                                ; pc=0x00C4
+    lw x6, -4(x17) ; n                                  ; pc=0x00C8
+    lw x9, -16(x17) ; t2                                ; pc=0x00CC
+    mul x10, x6, x9                                     ; pc=0x00D0
+    sw x10, -20(x17) ; t3                               ; pc=0x00D4
+    lw x5, -20(x17) ; t3                                ; pc=0x00D8
+    add x11, x5, x0                                     ; pc=0x00DC
+    jal x0, .L_ir_2_fact_end                            ; pc=0x00E0
+.L_ir_2_fact_end:
     ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x020C
-    sleep ; stall RAW                                   ; pc=0x0210
-    sleep ; stall RAW                                   ; pc=0x0214
-    sleep ; stall RAW                                   ; pc=0x0218
-    lw x17, 4(x2)                                       ; pc=0x021C
-    sleep ; stall RAW                                   ; pc=0x0220
-    sleep ; stall RAW                                   ; pc=0x0224
-    sleep ; stall RAW                                   ; pc=0x0228
-    addi x2, x2, 16                                     ; pc=0x022C
-    sleep ; stall RAW                                   ; pc=0x0230
-    sleep ; stall RAW                                   ; pc=0x0234
-    sleep ; stall RAW                                   ; pc=0x0238
-    jalr x1, 0                                          ; pc=0x023C
-    sleep ; nop despues de control                      ; pc=0x0240
-    sleep ; nop despues de control                      ; pc=0x0244
-=======
-    ; guardar temporales vivos antes de llamada
-    addiSigned x2, x2, -4                               ; pc=0x01C4
-    sleep ; stall RAW                                   ; pc=0x01C8
-    sleep ; stall RAW                                   ; pc=0x01CC
-    sleep ; stall RAW                                   ; pc=0x01D0
-    sw x4, 0(x2)                                        ; pc=0x01D4
-    jal x1, fact                                        ; pc=0x01D8
-    sleep ; nop despues de control                      ; pc=0x01DC
-    sleep ; nop despues de control                      ; pc=0x01E0
-    lw x4, 0(x2)                                        ; pc=0x01E4
-    sleep ; stall RAW                                   ; pc=0x01E8
-    sleep ; stall RAW                                   ; pc=0x01EC
-    sleep ; stall RAW                                   ; pc=0x01F0
-    addi x2, x2, 4                                      ; pc=0x01F4
-    sleep ; stall RAW                                   ; pc=0x01F8
-    sleep ; stall RAW                                   ; pc=0x01FC
-    sleep ; stall RAW                                   ; pc=0x0200
-    ; restaurar temporales vivos despues de llamada
-    add x6, x11, x0                                     ; pc=0x0204
-    sleep ; stall RAW                                   ; pc=0x0208
-    sleep ; stall RAW                                   ; pc=0x020C
-    sleep ; stall RAW                                   ; pc=0x0210
-    mul x5, x4, x6                                      ; pc=0x0214
-    sleep ; stall RAW                                   ; pc=0x0218
-    sleep ; stall RAW                                   ; pc=0x021C
-    sleep ; stall RAW                                   ; pc=0x0220
-    add x11, x5, x0                                     ; pc=0x0224
-    sleep ; stall RAW                                   ; pc=0x0228
-    sleep ; stall RAW                                   ; pc=0x022C
-    sleep ; stall RAW                                   ; pc=0x0230
-    jal x0, .L_codegen_2_fact_end                       ; pc=0x0234
-    sleep ; nop despues de control                      ; pc=0x0238
-    sleep ; nop despues de control                      ; pc=0x023C
-.L_codegen_2_fact_end:
-    ; epilogue
-    lw x1, 0(x2)                                        ; pc=0x0240
-    sleep ; stall RAW                                   ; pc=0x0244
-    sleep ; stall RAW                                   ; pc=0x0248
-    sleep ; stall RAW                                   ; pc=0x024C
-    lw x17, 4(x2)                                       ; pc=0x0250
-    sleep ; stall RAW                                   ; pc=0x0254
-    sleep ; stall RAW                                   ; pc=0x0258
-    sleep ; stall RAW                                   ; pc=0x025C
-    addi x2, x2, 16                                     ; pc=0x0260
-    sleep ; stall RAW                                   ; pc=0x0264
-    sleep ; stall RAW                                   ; pc=0x0268
-    sleep ; stall RAW                                   ; pc=0x026C
-    jalr x1, 0                                          ; pc=0x0270
-    sleep ; nop despues de control                      ; pc=0x0274
-    sleep ; nop despues de control                      ; pc=0x0278
->>>>>>> origin/feature/arqui/tea
+    lw x1, 0(x2)                                        ; pc=0x00E4
+    lw x17, 4(x2)                                       ; pc=0x00E8
+    addi x2, x2, 28                                     ; pc=0x00EC
+    jalr x1, 0                                          ; pc=0x00F0

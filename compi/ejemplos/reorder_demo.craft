@@ -1,0 +1,12 @@
+@EnterCraftWorld
+
+craft:int main() {
+    datos:chest[int, 3] = [10, 20, 30];
+    a:int = 2;
+    b:int = 3;
+
+    x:int = datos[0] + 1;
+    y:int = a + b;
+
+    return x + y;
+}

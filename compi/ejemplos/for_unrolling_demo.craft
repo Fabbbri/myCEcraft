@@ -1,0 +1,15 @@
+@EnterCraftWorld
+
+craft:int main() {
+    suma:int = 0;
+    producto:int = 1;
+    total:int = 0;
+
+    for (i:int = 0; i < 8; i = i + 1) {
+        suma = suma + i;
+        producto = producto * 2;
+        total = total + suma;
+    }
+
+    return total;
+}

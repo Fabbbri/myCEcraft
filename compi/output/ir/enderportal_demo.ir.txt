@@ -1,0 +1,26 @@
+main:
+  num = 12441
+  vault enderPortal 2121
+  ifFalse portal(2121) goto L_endchange_0
+  vault enderchange num
+  vault enderclose
+L_endchange_0:
+  return 0
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_endchange_0, B_fallthrough_1
+  main:
+    num = 12441
+    vault enderPortal 2121
+    ifFalse portal(2121) goto L_endchange_0
+
+[B_fallthrough_1]
+  -> Sucesores: B_label_L_endchange_0
+    vault enderchange num
+    vault enderclose
+
+[B_label_L_endchange_0]
+  L_endchange_0:
+    return 0

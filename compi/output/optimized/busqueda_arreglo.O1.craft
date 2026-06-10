@@ -1,0 +1,25 @@
+@EnterCraftWorld
+
+craft:int main() {
+    datos:chest[int, 6] = [3, 7, 2, 9, 5, 1];
+    objetivo:int = 9;
+    i:int = 0;
+    pos:int = -1;
+    while ((i < 6)) {
+        if ((datos[i] == objetivo)) {
+            pos = i;
+            i = 6;
+        } else {
+            i = (i + 1);
+        }
+        if ((i < 6)) {
+            if ((datos[i] == objetivo)) {
+                pos = i;
+                i = 6;
+            } else {
+                i = (i + 1);
+            }
+        }
+    }
+    return pos;
+}

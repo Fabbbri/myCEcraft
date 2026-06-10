@@ -1,0 +1,116 @@
+main:
+  t0 = [3, 7, 2, 9, 5, 1]
+  datos = t0
+  objetivo = 9
+  i = 0
+  t1 = -1
+  pos = t1
+L_while_start_0:
+  t2 = i < 6
+  ifFalse t2 goto L_while_end_1
+  t3 = datos[i]
+  t4 = t3 == objetivo
+  ifFalse t4 goto L_else_2
+  pos = i
+  i = 6
+  goto L_end_if_3
+L_else_2:
+  t5 = i + 1
+  i = t5
+L_end_if_3:
+  t6 = i < 6
+  ifFalse t6 goto L_else_4
+  t7 = datos[i]
+  t8 = t7 == objetivo
+  ifFalse t8 goto L_else_6
+  pos = i
+  i = 6
+  goto L_end_if_7
+L_else_6:
+  t9 = i + 1
+  i = t9
+L_end_if_7:
+  goto L_end_if_5
+L_else_4:
+L_end_if_5:
+  goto L_while_start_0
+L_while_end_1:
+  return pos
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+  main:
+    t0 = [3, 7, 2, 9, 5, 1]
+    datos = t0
+    objetivo = 9
+    i = 0
+    t1 = -1
+    pos = t1
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+  L_while_start_0:
+    t2 = i < 6
+    ifFalse t2 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_3
+    t3 = datos[i]
+    t4 = t3 == objetivo
+    ifFalse t4 goto L_else_2
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_end_if_3
+    pos = i
+    i = 6
+    goto L_end_if_3
+
+[B_label_L_else_2]
+  -> Sucesores: B_label_L_end_if_3
+  L_else_2:
+    t5 = i + 1
+    i = t5
+
+[B_label_L_end_if_3]
+  -> Sucesores: B_label_L_else_4, B_fallthrough_6
+  L_end_if_3:
+    t6 = i < 6
+    ifFalse t6 goto L_else_4
+
+[B_fallthrough_6]
+  -> Sucesores: B_label_L_else_6, B_fallthrough_7
+    t7 = datos[i]
+    t8 = t7 == objetivo
+    ifFalse t8 goto L_else_6
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_end_if_7
+    pos = i
+    i = 6
+    goto L_end_if_7
+
+[B_label_L_else_6]
+  -> Sucesores: B_label_L_end_if_7
+  L_else_6:
+    t9 = i + 1
+    i = t9
+
+[B_label_L_end_if_7]
+  -> Sucesores: B_label_L_end_if_5
+  L_end_if_7:
+    goto L_end_if_5
+
+[B_label_L_else_4]
+  -> Sucesores: B_label_L_end_if_5
+  L_else_4:
+
+[B_label_L_end_if_5]
+  -> Sucesores: B_label_L_while_start_0
+  L_end_if_5:
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  L_while_end_1:
+    return pos
