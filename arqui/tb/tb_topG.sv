@@ -4,6 +4,9 @@ module tb_topG;
 
     string FILE_ROM;
     string FILE_RAM;
+    string TEST_NAME;
+    logic [31:0] expect_x11;
+    bit          use_expect;
     longint cycle_count;
     longint instr_count;
     integer csv_fd;
@@ -14,6 +17,11 @@ module tb_topG;
 
     parameter int          MAX_CYCLES = 20000;
     parameter logic [31:0] HALT_PC    = 32'h0000006C;
+
+    // PC del freeze (halt): cada programa compilado lo tiene en una
+    // direccion distinta; se puede sobreescribir con +HALT_PC=<hex>
+    logic [31:0] halt_pc = HALT_PC;
+    int          max_cycles = MAX_CYCLES;
 
     logic clk   = 0;
     logic reset = 0;
@@ -45,7 +53,7 @@ module tb_topG;
     logic halt_detected = 0;
 
     always @(posedge clk) begin
-        if (`PC === HALT_PC) halt_detected <= 1;
+        if (`PC === halt_pc) halt_detected <= 1;
         if (!reset && !halt_detected)
             cycle_count++;
     end
@@ -60,6 +68,75 @@ module tb_topG;
                 instr_count++;
             end
         end
+    end
+
+    // ==========================================
+    // Contadores de cache (muestreo no invasivo de señales del dut)
+    // ==========================================
+
+    // op de memoria real en MEM: load = result_src==01, store = we_mem
+    // (hit_l1/miss_l1 son combinacionales sobre alu_result aunque no haya
+    //  acceso real; hay que filtrar por el tipo de instruccion en MEM)
+    wire mem_rd_op = (dut.Memory.result_src == 2'b01);
+    wire mem_wr_op = (dut.Memory.we_mem === 1'b1);
+    wire mem_op    = mem_rd_op | mem_wr_op;
+
+    longint l1_reads,   l1_writes;
+    longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
+    longint l2_acc,     l2_hits,    l2_miss;
+    longint mem_acc,    mem_bursts;
+
+    // acceso nuevo = cambia direccion o tipo respecto al ciclo anterior
+    // (durante stall el pipeline retiene la misma op en MEM: no recontar)
+    logic        prev_mem_op = 0;
+    logic        prev_wr     = 0;
+    logic [31:0] prev_addr   = '0;
+    logic        prev_burst  = 0;
+
+    wire new_access = mem_op && !(prev_mem_op &&
+                                  prev_addr == dut.Memory.alu_result &&
+                                  prev_wr   == mem_wr_op);
+
+    always @(posedge clk) begin
+        if (!reset && !halt_detected) begin
+            // L1: clasificar en el primer ciclo de cada acceso
+            if (new_access) begin
+                if (mem_wr_op) begin
+                    l1_writes++;
+                    if (dut.Memory.hit_l1) l1_wr_hits++; else l1_wr_miss++;
+                end else begin
+                    l1_reads++;
+                    if (dut.Memory.hit_l1) l1_rd_hits++; else l1_rd_miss++;
+                    // L2 read: cada load miss de L1 baja a L2; en este ciclo
+                    // alu_result es la direccion del load y hit_l2 el veredicto
+                    if (!dut.Memory.hit_l1) begin
+                        l2_acc++;
+                        if (dut.Memory.hit_l2) begin
+                            l2_hits++;
+                        end else begin
+                            l2_miss++;
+                            mem_acc++;   // load miss en L2 -> burst a RAM
+                        end
+                    end
+                end
+            end
+
+            // L2 writes: un WB_COMMIT (1 ciclo) por store drenado
+            if (dut.Memory.L2Con.wb_state == 2'b10) begin
+                l2_acc++;
+                if (dut.Memory.hit_l2_wb) l2_hits++; else l2_miss++;
+                mem_acc++;       // write-through: todo store drenado va a RAM
+            end
+
+            // diagnostico: bursts reales en el bus (incluye trafico no atribuible)
+            if (dut.Memory.burst_active && !prev_burst)
+                mem_bursts++;
+        end
+
+        prev_mem_op  <= mem_op && !reset;
+        prev_wr      <= mem_wr_op;
+        prev_addr    <= dut.Memory.alu_result;
+        prev_burst   <= dut.Memory.burst_active;
     end
 
     // ==========================================
@@ -145,23 +222,25 @@ module tb_topG;
     // ==========================================
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
+        bit done;
         timed_out = 0;
         cycles    = 0;
+        done      = 0;
 
-        forever begin
+        // while+flag en lugar de return: Icarus no soporta return en tasks
+        while (!done) begin
             @(posedge clk);
             cycles++;
 
-            if (`PC === HALT_PC) begin
+            if (`PC === halt_pc) begin
                 $display("[INFO]  HALT en PC=%h  (ciclo %0d)", `PC, cycles);
-                return;
+                done = 1;
             end
-
-            if (cycles >= MAX_CYCLES) begin
+            else if (cycles >= max_cycles) begin
                 $display("[ERROR] Timeout tras %0d ciclos - último PC: %h",
-                          MAX_CYCLES, `PC);
+                          max_cycles, `PC);
                 timed_out = 1;
-                return;
+                done = 1;
             end
         end
     endtask
@@ -215,6 +294,52 @@ module tb_topG;
         stall_diag("POST-RST");
     endtask
 
+    // ==========================================
+    //  Task: reporte de metricas (CSV + stdout parseable)
+    // ==========================================
+    task automatic report_metrics(input string test_name);
+        real cpi, l1_hr, l1_mr, l2_hr, l2_mr;
+        longint l1_total;
+
+        cpi = (instr_count != 0)
+            ? (1.0 * cycle_count) / instr_count
+            : 0.0;
+
+        l1_total = l1_reads + l1_writes;
+        l1_hr = (l1_total != 0) ? 100.0 * (l1_rd_hits + l1_wr_hits) / l1_total : 0.0;
+        l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
+        l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
+        l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
+
+        $fwrite(csv_fd,
+                "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d\n",
+                test_name, cycle_count, instr_count, cpi,
+                l1_reads, l1_writes,
+                l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
+                l1_hr, l1_mr,
+                l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                mem_acc);
+
+        $display("\n  --- Performance ---");
+        $display("  Ciclos        : %0d", cycle_count-1);
+        $display("  Instrucciones : %0d", instr_count);
+        $display("  CPI           : %f", cpi);
+        $display("  L1: reads=%0d writes=%0d | rd h/m=%0d/%0d wr h/m=%0d/%0d | hit=%.2f%%",
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr);
+        $display("  L2: acc=%0d hits=%0d miss=%0d | hit=%.2f%%",
+                 l2_acc, l2_hits, l2_miss, l2_hr);
+        $display("  Mem: accesos=%0d (bursts en bus=%0d)", mem_acc, mem_bursts);
+
+        // linea parseable para scripts/benchmarks.py
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_bursts=%0d",
+                 test_name, cycle_count, instr_count, cpi,
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
+                 l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                 mem_acc, mem_bursts);
+    endtask
+
     task automatic run_test(
         input string test_name,
         input string rom_file,
@@ -230,6 +355,11 @@ module tb_topG;
         instr_count = 0;
         halt_detected = 0;
 
+        l1_reads = 0; l1_writes = 0;
+        l1_rd_hits = 0; l1_rd_miss = 0; l1_wr_hits = 0; l1_wr_miss = 0;
+        l2_acc = 0; l2_hits = 0; l2_miss = 0;
+        mem_acc = 0; mem_bursts = 0;
+
         load_and_reset(rom_file, ram_file);
         wait_for_finish(timed_out);
 
@@ -239,43 +369,35 @@ module tb_topG;
             stall_diag("TIMEOUT");
             dump_regs();
             tests_failed++;
-            return;
         end
-
-        begin
-            int quiet;
-             while (quiet < 8) begin
-                @(posedge clk);
-                if (!dut.stall_mem) quiet++;
-                else quiet = 0;
+        else begin
+            begin
+                int quiet;
+                quiet = 0;
+                while (quiet < 8) begin
+                    @(posedge clk);
+                    if (!dut.stall_mem) quiet++;
+                    else quiet = 0;
+                end
             end
-        end
-        repeat (4) @(posedge clk);
+            repeat (4) @(posedge clk);
 
-        $display("\n  --- Registros clave ---");
-        check_reg(11, 32'h00000005, "x11");
-        check_reg( 3, 32'h00000005, "x3");
-        check_reg( 5, 32'h00000005, "x5");
-        check_reg( 2, 32'h00007ff0, "x2");
+            if (use_expect) begin
+                // benchmark generico: el resultado queda en x11
+                $display("\n  --- Registro de resultado ---");
+                check_reg(11, expect_x11, "x11");
+            end
+            else begin
+                // checks del programa default (while 0-5)
+                $display("\n  --- Registros clave ---");
+                check_reg(11, 32'h00000005, "x11");
+                check_reg( 3, 32'h00000005, "x3");
+                check_reg( 5, 32'h00000005, "x5");
+                check_reg( 2, 32'h00007ff0, "x2");
+            end
 
-        begin
-            real cpi;
-
-            cpi = (instr_count != 0)
-                ? (1.0 * cycle_count) / instr_count
-                : 0.0;
-
-            $fwrite(csv_fd,
-                    "%s,%0d,%0d,%f\n",
-                    test_name,
-                    cycle_count,
-                    instr_count,
-                    cpi);
-
-            $display("\n  --- Performance ---");
-            $display("  Ciclos        : %0d", cycle_count-1);
-            $display("  Instrucciones : %0d", instr_count);
-            $display("  CPI           : %f", cpi);
+            dump_regs();
+            report_metrics(test_name);
         end
 
     endtask
@@ -295,7 +417,7 @@ module tb_topG;
             $finish;
         end
 
-        $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI\n");
+        $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses\n");
 
         if (!$value$plusargs("FILE_ROM=%s", FILE_ROM)) begin
             $display("ERROR: no se pasó la ROM");
@@ -307,7 +429,14 @@ module tb_topG;
             $finish;
         end
 
-        run_test("while loop x<5 (return x=5)", FILE_ROM, FILE_RAM);
+        // opcionales: nombre del test y valor esperado en x11 (benchmarks)
+        if (!$value$plusargs("TEST_NAME=%s", TEST_NAME))
+            TEST_NAME = "while loop x<5 (return x=5)";
+        use_expect = $value$plusargs("EXPECT_X11=%h", expect_x11) ? 1'b1 : 1'b0;
+        if ($value$plusargs("HALT_PC=%h", halt_pc)) begin end
+        if ($value$plusargs("MAX_CYCLES=%d", max_cycles)) begin end
+
+        run_test(TEST_NAME, FILE_ROM, FILE_RAM);
 
         $display("\n============================================================");
         $display("  REPORTE FINAL");

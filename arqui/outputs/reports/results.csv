@@ -1,2 +1,2 @@
-Test Ejecutado,Ciclos,Instr,CPI
-while loop x<5 (return x=5),277,103,2.689320
+Test Ejecutado,Ciclos,Instr,CPI,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses
+while loop x<5,277,103,2.689320,20,12,19,1,11,1,93.75,6.25,4,4,0,100.00,0.00,3
