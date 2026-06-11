@@ -85,6 +85,9 @@ module tb_topG;
     longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
     longint l2_acc,     l2_hits,    l2_miss;
     longint mem_acc,    mem_bursts;
+    longint stall_mem_cycles;   // ciclos con pipeline congelado por memoria
+    longint ctrl_stalls;        // ciclos de fetch perdidos por branch tomado
+    longint mem_xfer_cycles;    // ciclos con el bus de RAM ocupado
 
     // acceso nuevo = cambia direccion o tipo respecto al ciclo anterior
     // (durante stall el pipeline retiene la misma op en MEM: no recontar)
@@ -131,6 +134,14 @@ module tb_topG;
             // diagnostico: bursts reales en el bus (incluye trafico no atribuible)
             if (dut.Memory.burst_active && !prev_burst)
                 mem_bursts++;
+
+            // metricas de procesador / memoria (spec seccion 5)
+            if (dut.stall_mem)
+                stall_mem_cycles++;
+            if (dut.flushD)
+                ctrl_stalls++;
+            if (dut.Memory.burst_active || dut.Memory.ram_we)
+                mem_xfer_cycles++;
         end
 
         prev_mem_op  <= mem_op && !reset;
@@ -336,7 +347,7 @@ module tb_topG;
     //  Task: reporte de metricas (CSV + stdout parseable)
     // ==========================================
     task automatic report_metrics(input string test_name);
-        real cpi, l1_hr, l1_mr, l2_hr, l2_mr;
+        real cpi, l1_hr, l1_mr, l2_hr, l2_mr, bw_util;
         longint l1_total;
 
         cpi = (instr_count != 0)
@@ -348,34 +359,39 @@ module tb_topG;
         l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
         l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
         l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
+        bw_util = (cycle_count != 0) ? 100.0 * mem_xfer_cycles / cycle_count : 0.0;
 
         $fwrite(csv_fd,
-                "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d\n",
+                "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%.2f\n",
                 test_name, cycle_count, instr_count, cpi,
+                stall_mem_cycles, ctrl_stalls,
                 l1_reads, l1_writes,
                 l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
                 l1_hr, l1_mr,
                 l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
-                mem_acc);
+                mem_acc, mem_xfer_cycles, bw_util);
 
         $display("\n  --- Performance ---");
         $display("  Ciclos        : %0d", cycle_count-1);
         $display("  Instrucciones : %0d", instr_count);
         $display("  CPI           : %f", cpi);
+        $display("  Stalls mem    : %0d ciclos | flush control: %0d", stall_mem_cycles, ctrl_stalls);
         $display("  L1: reads=%0d writes=%0d | rd h/m=%0d/%0d wr h/m=%0d/%0d | hit=%.2f%%",
                  l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
                  l1_wr_hits, l1_wr_miss, l1_hr);
         $display("  L2: acc=%0d hits=%0d miss=%0d | hit=%.2f%%",
                  l2_acc, l2_hits, l2_miss, l2_hr);
-        $display("  Mem: accesos=%0d (bursts en bus=%0d)", mem_acc, mem_bursts);
+        $display("  Mem: accesos=%0d xfer=%0d ciclos bw=%.2f%% (bursts=%0d)",
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
 
         // linea parseable para scripts/benchmarks.py
-        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_bursts=%0d",
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d",
                  test_name, cycle_count, instr_count, cpi,
+                 stall_mem_cycles, ctrl_stalls,
                  l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
                  l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
                  l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
-                 mem_acc, mem_bursts);
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
     endtask
 
     task automatic run_test(
@@ -397,6 +413,7 @@ module tb_topG;
         l1_rd_hits = 0; l1_rd_miss = 0; l1_wr_hits = 0; l1_wr_miss = 0;
         l2_acc = 0; l2_hits = 0; l2_miss = 0;
         mem_acc = 0; mem_bursts = 0;
+        stall_mem_cycles = 0; ctrl_stalls = 0; mem_xfer_cycles = 0;
 
         load_and_reset(rom_file, ram_file);
         wait_for_finish(timed_out);
@@ -455,7 +472,7 @@ module tb_topG;
             $finish;
         end
 
-        $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses\n");
+        $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util\n");
 
         if (!$value$plusargs("FILE_ROM=%s", FILE_ROM)) begin
             $display("ERROR: no se pasó la ROM");

@@ -30,22 +30,25 @@ BENCHMARKS = [
 
 CSV_COLS = [
     "Test Ejecutado", "Ciclos", "Instr", "CPI",
+    "Stalls_Mem", "Stalls_Control",
     "L1_Reads", "L1_Writes", "L1_Read_Hits", "L1_Read_Misses",
     "L1_Write_Hits", "L1_Write_Misses", "L1_Hit_Rate", "L1_Miss_Rate",
     "L2_Accesses", "L2_Hits", "L2_Misses", "L2_Hit_Rate", "L2_Miss_Rate",
-    "Memory_Accesses",
+    "Memory_Accesses", "Mem_Transfer_Cycles", "BW_Util",
 ]
 
 # campo del [METRICS] -> columna CSV
 FIELD_MAP = {
     "cycles": "Ciclos", "instr": "Instr", "cpi": "CPI",
+    "stall_mem_cyc": "Stalls_Mem", "ctrl_stalls": "Stalls_Control",
     "l1_reads": "L1_Reads", "l1_writes": "L1_Writes",
     "l1_rd_hits": "L1_Read_Hits", "l1_rd_miss": "L1_Read_Misses",
     "l1_wr_hits": "L1_Write_Hits", "l1_wr_miss": "L1_Write_Misses",
     "l1_hit_rate": "L1_Hit_Rate", "l1_miss_rate": "L1_Miss_Rate",
     "l2_acc": "L2_Accesses", "l2_hits": "L2_Hits", "l2_miss": "L2_Misses",
     "l2_hit_rate": "L2_Hit_Rate", "l2_miss_rate": "L2_Miss_Rate",
-    "mem_acc": "Memory_Accesses",
+    "mem_acc": "Memory_Accesses", "mem_xfer_cyc": "Mem_Transfer_Cycles",
+    "bw_util": "BW_Util",
 }
 
 
@@ -166,8 +169,16 @@ def formulas_section():
 <div class="f"><b>L2 Hit Rate</b><pre>   L2 Hits
 ------------- x 100
  L2 Accesses</pre></div>
-<div class="f"><b>Memory Accesses</b><pre>L2 Read Misses + stores drenados (write-through)</pre></div>
-</div></section>
+<div class="f"><b>Memory Accesses</b><pre>Numero total de accesos a memoria principal</pre></div>
+<div class="f"><b>BW Util</b><pre>Mem Transfer Cycles
+-------------------- x 100
+   Ciclos totales</pre></div>
+</div>
+<p class="nota"><b>Nota sobre Memory Accesses:</b> no coincide con L2_Misses
+porque la pol&iacute;tica es write-through: <i>todo</i> store drenado llega a RAM
+aunque haya sido hit en L2 (se actualizan ambos niveles). Por eso
+Memory_Accesses = misses de lectura en L2 + total de stores drenados.</p>
+</section>
 """
 
 
@@ -181,7 +192,8 @@ def scatter_section(rows):
             pts.append((r["Test Ejecutado"], cpi, mr))
     if not pts:
         return ""
-    max_cpi = max(p[1] for p in pts) * 1.15
+    import math
+    max_cpi = math.ceil(max(p[1] for p in pts)) + 1   # eje X en enteros
     dots = ""
     for name, cpi, mr in pts:
         x = 100.0 * cpi / max_cpi
@@ -190,6 +202,10 @@ def scatter_section(rows):
             f'<div class="dot" style="left:{x:.1f}%;bottom:{y:.1f}%"></div>'
             f'<div class="dotlbl" style="left:{x:.1f}%;bottom:{y:.1f}%">{name}</div>\n'
         )
+    xticks = "".join(
+        f'<div class="xtick" style="left:{100.0 * i / max_cpi:.1f}%">{i}</div>'
+        for i in range(0, max_cpi + 1)
+    )
     return f"""
 <section><h2>Correlaci&oacute;n: L1 Miss Rate vs CPI</h2>
 <p class="nota">A mayor tasa de fallos en cach&eacute;, mayor CPI.</p>
@@ -199,22 +215,25 @@ def scatter_section(rows):
    <div class="ytick" style="bottom:100%">100</div>
    <div class="ytick" style="bottom:50%">50</div>
    <div class="ytick" style="bottom:0%">0</div>
+   {xticks}
  </div>
 </div>
-<div class="xlab">CPI (0 &rarr; {max_cpi:.1f})</div>
+<div class="xlab">CPI</div>
 </section>
 """
 
 
-def bar_section(title, rows, col, unit=""):
-    """Seccion HTML con barras horizontales comparando una metrica."""
+def bar_section(title, rows, col, unit="", fixed_max=None):
+    """Seccion HTML con barras horizontales comparando una metrica.
+    fixed_max fija la escala (p.ej. 100 para porcentajes); sin el,
+    escala relativa al maximo observado."""
     vals = []
     for r in rows:
         try:
             vals.append(float(r.get(col, 0)))
         except ValueError:
             vals.append(0.0)
-    top = max(vals) if vals and max(vals) > 0 else 1.0
+    top = fixed_max if fixed_max else (max(vals) if vals and max(vals) > 0 else 1.0)
     items = ""
     for r, v in zip(rows, vals):
         pct = 100.0 * v / top
@@ -228,22 +247,26 @@ def bar_section(title, rows, col, unit=""):
 
 
 def render_html(rows, path):
+    # columna Status solo si hubo algun fallo
+    show_status = any(r.get("_status", "OK") != "OK" for r in rows)
+    status_th = '<th rowspan="2">Status</th>' if show_status else ""
+
     # cabecera en dos filas: bloques (CPU / L1 / L2 / Memoria) + metricas
-    head = """
+    head = f"""
 <tr>
  <th rowspan="2">Benchmark</th>
- <th colspan="3" class="grp">CPU</th>
+ <th colspan="5" class="grp">CPU</th>
  <th colspan="8" class="grp">L1</th>
  <th colspan="5" class="grp">L2</th>
- <th colspan="1" class="grp">Memoria</th>
- <th rowspan="2">Status</th>
+ <th colspan="3" class="grp">Memoria</th>
+ {status_th}
 </tr>
 <tr>
- <th>Ciclos</th><th>Instr</th><th>CPI</th>
+ <th>Ciclos</th><th>Instr</th><th>CPI</th><th>St.Mem</th><th>St.Ctl</th>
  <th>Reads</th><th>Writes</th><th>R.Hits</th><th>R.Miss</th>
  <th>W.Hits</th><th>W.Miss</th><th>Hit %</th><th>Miss %</th>
  <th>Acc</th><th>Hits</th><th>Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th>
+ <th>Acc</th><th>Xfer cy</th><th>BW %</th>
 </tr>"""
 
     body = ""
@@ -258,7 +281,8 @@ def render_html(rows, path):
             elif c in ("L1_Miss_Rate", "L2_Miss_Rate"):
                 style = f' style="background:{heat_color(v, invert=True)};color:#fff"'
             cells += f"<td{style}>{v}</td>"
-        cells += f"<td>{r.get('_status', '')}</td>"
+        if show_status:
+            cells += f"<td>{r.get('_status', '')}</td>"
         body += f'<tr style="background:{band}">{cells}</tr>\n'
 
     legend = """
@@ -272,11 +296,13 @@ def render_html(rows, path):
         bar_section("Ciclos totales", rows, "Ciclos")
         + bar_section("CPI", rows, "CPI")
         + bar_section("Instrucciones ejecutadas", rows, "Instr")
-        + bar_section("L1 Hit Rate", rows, "L1_Hit_Rate", "%")
-        + bar_section("L1 Miss Rate", rows, "L1_Miss_Rate", "%")
-        + bar_section("L2 Hit Rate", rows, "L2_Hit_Rate", "%")
-        + bar_section("L2 Miss Rate", rows, "L2_Miss_Rate", "%")
+        + bar_section("Stalls por memoria (ciclos)", rows, "Stalls_Mem")
+        + bar_section("L1 Hit Rate", rows, "L1_Hit_Rate", "%", fixed_max=100)
+        + bar_section("L1 Miss Rate", rows, "L1_Miss_Rate", "%", fixed_max=100)
+        + bar_section("L2 Hit Rate", rows, "L2_Hit_Rate", "%", fixed_max=100)
+        + bar_section("L2 Miss Rate", rows, "L2_Miss_Rate", "%", fixed_max=100)
         + bar_section("Accesos a memoria principal", rows, "Memory_Accesses")
+        + bar_section("Utilizacion de ancho de banda", rows, "BW_Util", "%", fixed_max=100)
     )
 
     html = f"""<!DOCTYPE html>
@@ -314,7 +340,9 @@ def render_html(rows, path):
             transform: translate(8px, 50%); white-space: nowrap; }}
  .ytick {{ position: absolute; left: -26px; font-size: 0.72em; color: #777;
            transform: translateY(50%); }}
- .xlab {{ font-size: 0.8em; color: #555; margin-left: 40px; }}
+ .xtick {{ position: absolute; bottom: -18px; font-size: 0.72em; color: #777;
+           transform: translateX(-50%); }}
+ .xlab {{ font-size: 0.8em; color: #555; margin-left: 40px; margin-top: 14px; }}
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; metricas de cache</h1>
 {summary_section(rows)}
