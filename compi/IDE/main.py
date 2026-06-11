@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QPushButton,
     QSplitter,
     QTabBar,
@@ -484,6 +485,7 @@ class MainWindow(QMainWindow):
         self.error_demo_index = 0
         self.error_demo_path: Path | None = None
         self._loading_editor = False
+        self.current_optimization_label = "Sin optimizaciones"
 
         self.setWindowTitle(APP_TITLE)
         self.setMinimumSize(QSize(1100, 720))
@@ -573,7 +575,19 @@ class MainWindow(QMainWindow):
         self.compile_button = QPushButton("Compilar")
         self.compile_button.setObjectName("PrimaryButton")
         self.compile_button.setCursor(Qt.PointingHandCursor)
-        self.compile_button.clicked.connect(self.compile_current_file)
+        compile_menu = QMenu(self.compile_button)
+        for label, optimization in (
+            ("Sin optimizaciones", "-O0"),
+            ("O1", "-O1"),
+            ("O2", "-O2"),
+            ("O3", "-O3"),
+        ):
+            action = compile_menu.addAction(label)
+            action.triggered.connect(
+                lambda _checked=False, level=optimization, name=label:
+                    self.compile_current_file(level, name)
+            )
+        self.compile_button.setMenu(compile_menu)
         layout.addWidget(self.compile_button)
 
         bar.setFixedHeight(52)
@@ -853,7 +867,11 @@ class MainWindow(QMainWindow):
         self._update_tab_title(editor)
         self._set_state(f"Guardado {path.name}")
 
-    def compile_current_file(self) -> None:
+    def compile_current_file(
+        self,
+        optimization: str = "-O0",
+        optimization_label: str = "Sin optimizaciones",
+    ) -> None:
         editor = self.current_editor()
         if editor is None:
             self._set_state("No hay archivo activo")
@@ -872,7 +890,8 @@ class MainWindow(QMainWindow):
         self._set_problem_count(0)
         self.artifacts_panel.setPlainText("Compilando...")
         self.output_tabs.setCurrentWidget(self.output_panel)
-        self.compiler.compile(path)
+        self.current_optimization_label = optimization_label
+        self.compiler.compile(path, optimization)
 
     def close_editor(self, editor: CodeEditor) -> None:
         index = self.editor_tabs.indexOf(editor)
@@ -1487,8 +1506,9 @@ class MainWindow(QMainWindow):
 
     def _handle_compile_started(self) -> None:
         self.compile_button.setEnabled(False)
-        self._set_state("Compilando...")
-        self.sidebar_status.setText("Compilando...")
+        status = f"Compilando: {self.current_optimization_label}"
+        self._set_state(status)
+        self.sidebar_status.setText(status)
 
     def _append_compiler_output(self, text: str) -> None:
         self.output_panel.moveCursor(QTextCursor.End)
@@ -1509,8 +1529,9 @@ class MainWindow(QMainWindow):
 
         if exit_code == 0:
             self._set_problem_count(0)
-            self.sidebar_status.setText("Compilado correctamente")
-            self._set_state("Compilado correctamente")
+            status = f"Compilado correctamente: {self.current_optimization_label}"
+            self.sidebar_status.setText(status)
+            self._set_state(status)
         else:
             if self.problems_panel.toPlainText() == NO_PROBLEMS_TEXT:
                 details = self.output_panel.toPlainText().strip()

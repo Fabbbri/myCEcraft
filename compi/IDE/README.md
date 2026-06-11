@@ -14,7 +14,7 @@ activo usando el compilador del proyecto.
   activos; si hay errores en el editor, la salida deja de mostrar `Listo para
   compilar`.
 - Guarda el archivo activo.
-- Ejecuta `compi/main.py -r -b <archivo.craft>` desde el boton Compilar.
+- El boton Compilar permite elegir entre `-O0`, `-O1`, `-O2` y `-O3`.
 - Muestra salida, problemas y artefactos generados.
 
 ## Requisitos

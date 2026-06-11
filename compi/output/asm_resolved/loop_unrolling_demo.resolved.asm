@@ -1,4 +1,22 @@
 ; ==================================================
+; Fase 5 - saltos y referencias resueltas
+; Convencion: offset relativo en bytes = target_pc - current_pc
+; ==================================================
+
+; Tabla de etiquetas
+;   .L_codegen_0_enderExit = 0x0018
+;   main = 0x0018
+;   .L0_while_start = 0x0050
+;   .L1_while_end = 0x00A0
+;   .L_codegen_1_main_end = 0x00AC
+
+; Referencias resueltas
+;   pc=0x0000 portalv -> .L_codegen_0_enderExit (addr=0x0018, offset=24)
+;   pc=0x0058 bge -> .L1_while_end (addr=0x00A0, offset=72)
+;   pc=0x009C jal -> .L0_while_start (addr=0x0050, offset=-76)
+;   pc=0x00A8 jal -> .L_codegen_1_main_end (addr=0x00AC, offset=4)
+
+; ==================================================
 ; Ensamblador generado para Craft21
 ; Fase 4 - versión inicial
 ; ==================================================
@@ -6,7 +24,7 @@
 .text
 
     ; @EnterCraftWorld
-    portalv x0, x0, .L_codegen_0_enderExit              ; pc=0x0000
+    portalv x0, x0, 24                                  ; pc=0x0000 ; target=.L_codegen_0_enderExit ; addr=0x0018
     lwv v0, 0(v0)                                       ; pc=0x0004
     sleep ; stall RAW                                   ; pc=0x0008
     sleep ; stall RAW                                   ; pc=0x000C
@@ -37,7 +55,7 @@ main:
 .L0_while_start:
     lw x3, -4(x17) ; i                                  ; pc=0x0050
     addi x4, x0, 8                                      ; pc=0x0054
-    bge x3, x4, .L1_while_end                           ; pc=0x0058
+    bge x3, x4, 72                                      ; pc=0x0058 ; target=.L1_while_end ; addr=0x00A0
     lw x4, -8(x17) ; suma                               ; pc=0x005C
     lw x3, -4(x17) ; i                                  ; pc=0x0060
     add x5, x4, x3                                      ; pc=0x0064
@@ -54,12 +72,12 @@ main:
     addi x3, x0, 1                                      ; pc=0x0090
     add x4, x5, x3                                      ; pc=0x0094
     sw x4, -4(x17) ; i                                  ; pc=0x0098
-    jal x0, .L0_while_start                             ; pc=0x009C
+    jal x0, -76                                         ; pc=0x009C ; target=.L0_while_start ; addr=0x0050
 .L1_while_end:
 
     lw x4, -16(x17) ; total                             ; pc=0x00A0
     add x11, x4, x0                                     ; pc=0x00A4
-    jal x0, .L_codegen_1_main_end                       ; pc=0x00A8
+    jal x0, 4                                           ; pc=0x00A8 ; target=.L_codegen_1_main_end ; addr=0x00AC
 .L_codegen_1_main_end:
     ; epilogue
     lw x17, 4(x2)                                       ; pc=0x00AC

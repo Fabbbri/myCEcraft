@@ -23,15 +23,20 @@ class CompilerRunner(QObject):
     def is_running(self) -> bool:
         return self.process.state() != QProcess.NotRunning
 
-    def compile(self, source_path: Path) -> None:
+    def compile(self, source_path: Path, optimization: str = "-O0") -> None:
         if self.is_running():
             return
+
+        if optimization not in {"-O0", "-O1", "-O2", "-O3"}:
+            raise ValueError(f"nivel de optimizacion no soportado: {optimization}")
 
         args = [
             str(self.compiler_path),
             "-m",
             "-r",
             "-b",
+            "-i",
+            optimization,
             str(source_path),
         ]
         self.process.setWorkingDirectory(str(self.repo_root))

@@ -102,6 +102,22 @@ QMainWindow {
     border-color: #5A5A5A;
 }
 
+QMenu {
+    background: #252526;
+    border: 1px solid #4A4A4A;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 7px 22px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background: #3A3D41;
+    color: #FFFFFF;
+}
+
 #RunButton {
     background: #16825D;
     color: #FFFFFF;
