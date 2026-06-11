@@ -116,12 +116,18 @@ logic [2:0]  burst_counter;
 logic [31:0] burst_rdata;
 logic [31:0] ram_rdata_wire;
 
-// req_to_mem: activa mem_controller solo cuando hay un miss real
-//   Load:  miss_l2 ya está gateado por l2_con (load_state==ACCESS & ~hit_l2)
-//   Store: write-through, pero solo si L1 ya evaluó el acceso (~hit_l1 confirma miss L1)
+// req_to_mem: activa mem_controller solo cuando hay un request real
+//   Load:  un pulso por miss_l2 (flanco; miss_l2 se sostiene durante ACCESS
+//          y empujaria entradas duplicadas a la request queue)
+//   Store: el pulso wb_write del drain de l2_con (write-through a RAM)
+logic miss_l2_d;
+always_ff @(posedge clk) begin
+    if (reset) miss_l2_d <= 1'b0;
+    else       miss_l2_d <= miss_l2;
+end
+
 logic req_to_mem;
-assign req_to_mem = is_write ? (miss_l1 & ~hit_l1)
-                             : miss_l2;
+assign req_to_mem = wb_write | (miss_l2 & ~miss_l2_d);
 
 // ==========================================================
 //  L1D CACHE
@@ -156,11 +162,16 @@ l1_con L1Con(
     .clk                 (clk),
     .reset               (reset),
     .is_write            (we_mem),
-    .addr                (alu_result),
+    // direccion del request SERVIDO (head de la cola de l2_con), no la
+    // instruccion actual en MEM: el fill de un burst tardio con la addr
+    // actual escribia la linea en set/tag equivocados (cache envenenado)
+    .addr                (addr_l2),
     .size                ({size, 1'b0}),
     .wdata               (rd2),
     .fill_line           (fill_line_to_caches),
-    .block_offset_counter(burst_counter),
+    // gateado por burst_active: el contador queda en 7 tras el burst y
+    // sin el gate l1_con hace fills espurios (linea ajena, tag actual)
+    .block_offset_counter(burst_active ? burst_counter : 3'b000),
     .hit_l1              (hit_l1),
     .l1_data_out         (l1_data_out),
     .fill_en             (fill_en_l1),
@@ -214,11 +225,21 @@ l2_cache L2(
 //  L2 CONTROLADOR
 //  FIX 3: fill_line_out → fill_line_l2_raw (no fill_line_to_caches)
 // ==========================================================
+// op de memoria real en MEM (load=result_src 01, store=we_mem):
+// hit/miss de L1 son combinacionales sobre alu_result aunque la instruccion
+// no sea de memoria; sin este filtro cualquier ALU op encola requests fantasma
+logic is_load_mem;
+assign is_load_mem = (result_src == 2'b01);
+
 l2_con L2Con(
     .clk                (clk),
     .reset              (reset),
+    .mem_busy           (stall_mc),
     .is_write           (we_mem),
-    .miss_l1            (miss_l1),
+    // loads: solo en miss real. stores: SIEMPRE (write-through; un store
+    // hit actualiza L1 inline pero igual debe propagarse a L2/RAM, si no
+    // una eviction pierde el dato)
+    .miss_l1            ((miss_l1 & is_load_mem) | we_mem),
     .hit_l1             (hit_l1),
     .addr               (alu_result),
     .size               ({size, 1'b0}),
@@ -261,8 +282,10 @@ mem_controller MemCtrl(
     .clk_mem            (clk_mem),
     .req                (req_to_mem),
     .we                 (wb_write),
-    .addr               (addr_l2),
-    .size               (size_l2),
+    // los writes llevan SU direccion/size (antes recibian la del load
+    // y el write-through nunca llegaba bien a RAM)
+    .addr               (wb_write ? wb_addr_mem : addr_l2),
+    .size               (wb_write ? wb_size_mem : size_l2),
     .wdata              (wb_data_mem),
     .ram_we             (ram_we),
     .ram_size           (ram_size),
@@ -326,8 +349,12 @@ neather_ram VaultRam(
 
 // ==========================================================
 //  STALL
+//  Un load sin dato valido (ni L1 ni L2) retiene el pipeline hasta
+//  que el refill lo resuelva; antes el stall dependia solo del FSM
+//  y llegaba tarde: el load se retiraba con basura.
 // ==========================================================
-assign stall_mem = stall_l2 | stall_mc;
+assign stall_mem = stall_l2 | stall_mc
+                 | (is_load_mem & ~hit_l1 & ~hit_l2);
 
 // ==========================================================
 //  SEÑALES DE PASO

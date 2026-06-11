@@ -180,7 +180,9 @@ wb_drain WB_DRAIN (
 // ==========================================================
 always_comb
     if (burst_addr)
-        ram_addr = lat_req_addr + (burst_count << 2);
+        // base de LINEA (32B alineada): el burst debe traer la linea
+        // completa, no 8 palabras desde la direccion del load
+        ram_addr = {lat_req_addr[31:5], 5'b00000} + (burst_count << 2);
     else
         ram_addr = wbd_addr;
 

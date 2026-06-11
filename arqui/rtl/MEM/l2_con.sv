@@ -16,6 +16,10 @@ module l2_con (
     input  logic        clk,
     input  logic        reset,
 
+    // backpressure del mem_controller: si su cola esta llena, el drain
+    // debe esperar (un commit con cola llena pierde la escritura)
+    input  logic        mem_busy,
+
     // Desde l1_con
     input  logic        is_write,
     input  logic        miss_l1,
@@ -154,11 +158,12 @@ request_queue #(
     .empty    (rq_empty)
 );
 
-// No encolar nuevas requests mientras la FSM está procesando una (ACCESS o DONE).
-// Durante stall el pipeline mantiene miss_l1=1 continuamente; sin este gate
-// la cola se llenaría antes de que el burst de RAM termine.
+// Un solo request en vuelo: encolar solo con la cola vacia y FSM en IDLE.
+// Evita duplicados durante el stall (miss_l1 sostenido) y reintenta solo
+// si el load sigue pendiente tras servirse la entrada anterior.
 assign rq_push = miss_l1 & ~is_write & ~rq_full
-               & (load_state == IDLE);
+               & (load_state == IDLE)
+               & rq_empty;
 
 // ==========================================================
 // Write Buffer: stores llegan aquí directamente (bypass RQ)
@@ -185,7 +190,24 @@ write_buffer #(
     .empty     (wb_empty)
 );
 
-assign wb_push = miss_l1 & is_write & ~wb_full;
+// un push por store: si el store queda retenido en MEM por un stall,
+// el nivel sostenido empujaba copias duplicadas al write buffer
+logic        wb_pushed;
+logic [31:0] wb_last_addr;
+always_ff @(posedge clk) begin
+    if (reset) begin
+        wb_pushed    <= 1'b0;
+        wb_last_addr <= '0;
+    end else if (wb_push) begin
+        wb_pushed    <= 1'b1;
+        wb_last_addr <= addr;
+    end else if (~(miss_l1 & is_write)) begin
+        wb_pushed    <= 1'b0;
+    end
+end
+
+assign wb_push = miss_l1 & is_write & ~wb_full
+               & (~wb_pushed | (addr != wb_last_addr));
 
 // ==========================================================
 // Acumulador de fill_line desde burst_rdata
@@ -231,14 +253,29 @@ end
 always_comb begin
     load_next = load_state;
     case (load_state)
-        IDLE:    if (!rq_empty)          load_next = ACCESS;
-        ACCESS:  if (load_cnt == 4'd7)   load_next = DONE;
-        DONE:    if (~burst_active)              load_next = IDLE;
-        default:                         load_next = IDLE;
+        // wb_empty: drenar stores pendientes antes de leer (orden RAW
+        // hacia memoria; sin esto un load puede leer RAM vieja)
+        IDLE:    if (!rq_empty && wb_empty)  load_next = ACCESS;
+        // hit L2: se sirve tras el hit time (8 ciclos).
+        // miss L2: esperar el fill real del burst (fill_en); salir a los
+        // 8 ciclos fijos popeaba el request antes de servirlo y el load
+        // re-encolaba duplicados cuyos bursts tardios envenenaban L1
+        ACCESS:  if (load_cnt >= 4'd7 && hit_l2) load_next = DONE;
+                 else if (fill_en)               load_next = DONE;
+        DONE:    if (~burst_active)          load_next = IDLE;
+        default:                             load_next = IDLE;
     endcase
 end
 
-assign rq_pop = (load_state == DONE);
+// pop de UN ciclo: DONE puede durar varios ciclos (espera ~burst_active)
+// y un pop sostenido des-balancea la cola
+logic rq_pop_d;
+always_ff @(posedge clk) begin
+    if (reset) rq_pop_d <= 1'b0;
+    else       rq_pop_d <= (load_state == DONE);
+end
+
+assign rq_pop = (load_state == DONE) & ~rq_pop_d & ~rq_empty;
 
 // ==========================================================
 // FSM Write Buffer Drain: WB_IDLE → WB_DRAIN (7 ciclos) → WB_COMMIT
@@ -265,7 +302,8 @@ always_comb begin
     case (wb_state)
         WB_IDLE:  if (!wb_empty && (load_state != ACCESS) && ~fill_en)
                       wb_next = WB_DRAIN;
-        WB_DRAIN: if (wb_cnt == 3'd6)
+        // mem_busy: reintenta hasta que el mem_controller acepte el push
+        WB_DRAIN: if (wb_cnt == 3'd6 && !mem_busy)
                       wb_next = WB_COMMIT;
         WB_COMMIT:    wb_next = WB_IDLE;
         default:      wb_next = WB_IDLE;
@@ -308,7 +346,13 @@ assign store_data_out = wb_wdata;
 // Hacia CPU/pipeline
 // ==========================================================
 assign dato_cpu = l2_data_out;
-assign stall    = (load_state == ACCESS) | rq_full;
+// is_write & wb_full: un store con write buffer lleno debe esperar,
+// si no el push se pierde y la escritura nunca llega a memoria.
+// load miss con WB no vacio: drenar antes de confiar en hit_l2/RAM
+// (orden read-after-write hacia abajo)
+assign stall    = (load_state == ACCESS) | rq_full
+                | (is_write & wb_full)
+                | (miss_l1 & ~is_write & ~wb_empty);
 
 // ==========================================================
 // Hacia mem_con
