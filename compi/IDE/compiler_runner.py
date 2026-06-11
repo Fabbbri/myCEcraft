@@ -23,12 +23,21 @@ class CompilerRunner(QObject):
     def is_running(self) -> bool:
         return self.process.state() != QProcess.NotRunning
 
-    def compile(self, source_path: Path, optimization: str = "-O0") -> None:
+    def compile(
+        self,
+        source_path: Path,
+        optimization: str = "-O0",
+        unroll_factor: int | None = None,
+    ) -> None:
         if self.is_running():
             return
 
         if optimization not in {"-O0", "-O1", "-O2", "-O3"}:
             raise ValueError(f"nivel de optimizacion no soportado: {optimization}")
+        if unroll_factor is not None and not 1 <= unroll_factor <= 64:
+            raise ValueError(
+                f"factor de loop unrolling no soportado: {unroll_factor}"
+            )
 
         args = [
             str(self.compiler_path),
@@ -37,8 +46,11 @@ class CompilerRunner(QObject):
             "-b",
             "-i",
             optimization,
-            str(source_path),
         ]
+        if unroll_factor is not None:
+            args.extend(["--unroll-factor", str(unroll_factor)])
+        args.append(str(source_path))
+
         self.process.setWorkingDirectory(str(self.repo_root))
         self.started.emit()
         self.process.start(sys.executable, args)

@@ -1,0 +1,103 @@
+main:
+  i__v1__x3 = 0
+  suma__v1__x4 = 0
+  mezcla__v1__x5 = 1
+  total__v1__x6 = 0
+  commit i = i__v1__x3
+  commit suma = suma__v1__x4
+  commit mezcla = mezcla__v1__x5
+  commit total = total__v1__x6
+L_while_start_0:
+  t5__x7 = i < 8
+  ifFalse t5__x7 goto L_while_end_1
+  t6__x8 = suma + i
+  suma__v2__x9 = t6__x8
+  t7__x10 = mezcla * 2
+  mezcla__v2__x3 = t7__x10
+  t8__x4 = total + suma__v2__x9
+  total__v2__x5 = t8__x4
+  t9__x6 = suma__v2__x9 + (i + 1)
+  suma__v3__x7 = t9__x6
+  t10__x8 = mezcla__v2__x3 * 2
+  mezcla__v3__x9 = t10__x8
+  t11__x10 = total__v2__x5 + suma__v3__x7
+  total__v3__x3 = t11__x10
+  t12__x4 = suma__v3__x7 + (i + 2)
+  suma__v4__x5 = t12__x4
+  t13__x6 = mezcla__v3__x9 * 2
+  mezcla__v4__x7 = t13__x6
+  t14__x8 = total__v3__x3 + suma__v4__x5
+  total__v4__x9 = t14__x8
+  t15__x10 = suma__v4__x5 + (i + 3)
+  suma__v5__x3 = t15__x10
+  t16__x4 = mezcla__v4__x7 * 2
+  mezcla__v5__x5 = t16__x4
+  t17__x6 = total__v4__x9 + suma__v5__x3
+  total__v5__x7 = t17__x6
+  t18__x8 = i + 4
+  i__v2__x9 = t18__x8
+  commit suma = suma__v5__x3
+  commit mezcla = mezcla__v5__x5
+  commit total = total__v5__x7
+  commit i = i__v2__x9
+  goto L_while_start_0
+L_while_end_1:
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+  main:
+    i__v1__x3 = 0
+    suma__v1__x4 = 0
+    mezcla__v1__x5 = 1
+    total__v1__x6 = 0
+    commit i = i__v1__x3
+    commit suma = suma__v1__x4
+    commit mezcla = mezcla__v1__x5
+    commit total = total__v1__x6
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+  L_while_start_0:
+    t5__x7 = i < 8
+    ifFalse t5__x7 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    t6__x8 = suma + i
+    suma__v2__x9 = t6__x8
+    t7__x10 = mezcla * 2
+    mezcla__v2__x3 = t7__x10
+    t8__x4 = total + suma__v2__x9
+    total__v2__x5 = t8__x4
+    t9__x6 = suma__v2__x9 + (i + 1)
+    suma__v3__x7 = t9__x6
+    t10__x8 = mezcla__v2__x3 * 2
+    mezcla__v3__x9 = t10__x8
+    t11__x10 = total__v2__x5 + suma__v3__x7
+    total__v3__x3 = t11__x10
+    t12__x4 = suma__v3__x7 + (i + 2)
+    suma__v4__x5 = t12__x4
+    t13__x6 = mezcla__v3__x9 * 2
+    mezcla__v4__x7 = t13__x6
+    t14__x8 = total__v3__x3 + suma__v4__x5
+    total__v4__x9 = t14__x8
+    t15__x10 = suma__v4__x5 + (i + 3)
+    suma__v5__x3 = t15__x10
+    t16__x4 = mezcla__v4__x7 * 2
+    mezcla__v5__x5 = t16__x4
+    t17__x6 = total__v4__x9 + suma__v5__x3
+    total__v5__x7 = t17__x6
+    t18__x8 = i + 4
+    i__v2__x9 = t18__x8
+    commit suma = suma__v5__x3
+    commit mezcla = mezcla__v5__x5
+    commit total = total__v5__x7
+    commit i = i__v2__x9
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  L_while_end_1:
+    return total

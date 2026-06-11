@@ -4,34 +4,16 @@ main:
   mezcla = 1
   total = 0
 L_while_start_0:
-  t5 = i < 8
-  ifFalse t5 goto L_while_end_1
-  t6 = suma + i
-  suma = t6
-  t7 = mezcla * 2
-  mezcla = t7
-  t8 = total + suma
-  total = t8
-  t9 = suma + (i + 1)
-  suma = t9
-  t10 = mezcla * 2
-  mezcla = t10
-  t11 = total + suma
-  total = t11
-  t12 = suma + (i + 2)
-  suma = t12
-  t13 = mezcla * 2
-  mezcla = t13
-  t14 = total + suma
-  total = t14
-  t15 = suma + (i + 3)
-  suma = t15
-  t16 = mezcla * 2
-  mezcla = t16
-  t17 = total + suma
-  total = t17
-  t18 = i + 4
-  i = t18
+  t0 = i < 8
+  ifFalse t0 goto L_while_end_1
+  t1 = suma + i
+  suma = t1
+  t2 = mezcla * 2
+  mezcla = t2
+  t3 = total + suma
+  total = t3
+  t4 = i + 1
+  i = t4
   goto L_while_start_0
 L_while_end_1:
   return total
@@ -49,37 +31,19 @@ L_while_end_1:
 [B_label_L_while_start_0]
   -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
   L_while_start_0:
-    t5 = i < 8
-    ifFalse t5 goto L_while_end_1
+    t0 = i < 8
+    ifFalse t0 goto L_while_end_1
 
 [B_fallthrough_2]
   -> Sucesores: B_label_L_while_start_0
-    t6 = suma + i
-    suma = t6
-    t7 = mezcla * 2
-    mezcla = t7
-    t8 = total + suma
-    total = t8
-    t9 = suma + (i + 1)
-    suma = t9
-    t10 = mezcla * 2
-    mezcla = t10
-    t11 = total + suma
-    total = t11
-    t12 = suma + (i + 2)
-    suma = t12
-    t13 = mezcla * 2
-    mezcla = t13
-    t14 = total + suma
-    total = t14
-    t15 = suma + (i + 3)
-    suma = t15
-    t16 = mezcla * 2
-    mezcla = t16
-    t17 = total + suma
-    total = t17
-    t18 = i + 4
-    i = t18
+    t1 = suma + i
+    suma = t1
+    t2 = mezcla * 2
+    mezcla = t2
+    t3 = total + suma
+    total = t3
+    t4 = i + 1
+    i = t4
     goto L_while_start_0
 
 [B_label_L_while_end_1]

@@ -6,6 +6,7 @@ from PySide6.QtGui import (
     QColor,
     QFont,
     QIcon,
+    QIntValidator,
     QPainter,
     QPen,
     QPixmap,
@@ -486,6 +487,7 @@ class MainWindow(QMainWindow):
         self.error_demo_path: Path | None = None
         self._loading_editor = False
         self.current_optimization_label = "Sin optimizaciones"
+        self.current_unroll_label = "Automatico"
 
         self.setWindowTitle(APP_TITLE)
         self.setMinimumSize(QSize(1100, 720))
@@ -571,6 +573,20 @@ class MainWindow(QMainWindow):
             layout.addWidget(button)
             if label == "Demo errores":
                 self.error_demo_button = button
+
+        unroll_label = QLabel("Loop unrolling")
+        unroll_label.setObjectName("TopControlLabel")
+        layout.addWidget(unroll_label)
+
+        self.unroll_factor_input = QLineEdit()
+        self.unroll_factor_input.setObjectName("TopNumberInput")
+        self.unroll_factor_input.setPlaceholderText("Auto")
+        self.unroll_factor_input.setValidator(QIntValidator(1, 64, self))
+        self.unroll_factor_input.setToolTip(
+            "Escriba un factor entre 1 y 64. Deje el campo vacio para usar Automatico."
+        )
+        self.unroll_factor_input.setMaximumWidth(72)
+        layout.addWidget(self.unroll_factor_input)
 
         self.compile_button = QPushButton("Compilar")
         self.compile_button.setObjectName("PrimaryButton")
@@ -891,7 +907,17 @@ class MainWindow(QMainWindow):
         self.artifacts_panel.setPlainText("Compilando...")
         self.output_tabs.setCurrentWidget(self.output_panel)
         self.current_optimization_label = optimization_label
-        self.compiler.compile(path, optimization)
+        unroll_text = self.unroll_factor_input.text().strip()
+        unroll_factor = int(unroll_text) if unroll_text else None
+        if unroll_factor is not None and not 1 <= unroll_factor <= 64:
+            self._set_state("El factor de loop unrolling debe estar entre 1 y 64")
+            self.unroll_factor_input.setFocus()
+            self.unroll_factor_input.selectAll()
+            return
+        self.current_unroll_label = (
+            "Automatico" if unroll_factor is None else str(unroll_factor)
+        )
+        self.compiler.compile(path, optimization, unroll_factor)
 
     def close_editor(self, editor: CodeEditor) -> None:
         index = self.editor_tabs.indexOf(editor)
@@ -1506,7 +1532,11 @@ class MainWindow(QMainWindow):
 
     def _handle_compile_started(self) -> None:
         self.compile_button.setEnabled(False)
-        status = f"Compilando: {self.current_optimization_label}"
+        self.unroll_factor_input.setEnabled(False)
+        status = (
+            f"Compilando: {self.current_optimization_label}, "
+            f"unroll {self.current_unroll_label}"
+        )
         self._set_state(status)
         self.sidebar_status.setText(status)
 
@@ -1524,12 +1554,16 @@ class MainWindow(QMainWindow):
 
     def _handle_compile_finished(self, exit_code: int) -> None:
         self.compile_button.setEnabled(True)
+        self.unroll_factor_input.setEnabled(True)
         editor = self.current_editor()
         path = self.editor_paths.get(editor) if editor is not None else None
 
         if exit_code == 0:
             self._set_problem_count(0)
-            status = f"Compilado correctamente: {self.current_optimization_label}"
+            status = (
+                f"Compilado correctamente: {self.current_optimization_label}, "
+                f"unroll {self.current_unroll_label}"
+            )
             self.sidebar_status.setText(status)
             self._set_state(status)
         else:
