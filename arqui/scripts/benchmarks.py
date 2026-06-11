@@ -24,8 +24,9 @@ ARQUI = Path(__file__).resolve().parent.parent
 BENCHMARKS = [
     {"name": "while loop x<5",  "rom": "program.hex",      "halt": "6C",  "x11": None,   "max": 20000},
     {"name": "bench_seq",       "rom": "bench_seq.hex",    "halt": "E4",  "x11": "7F80", "max": 300000},
-    {"name": "bench_stride",    "rom": "bench_stride.hex", "halt": "E4",  "x11": "F80",  "max": 300000},
-    {"name": "bench_mmul",      "rom": "bench_mmul.hex",   "halt": "264", "x11": "3F00", "max": 600000},
+    {"name": "bench_stride",    "rom": "bench_stride.hex", "halt": "E4",  "x11": "F80",   "max": 300000},
+    {"name": "bench_random",    "rom": "bench_random.hex", "halt": "124", "x11": "1C110", "max": 600000},
+    {"name": "bench_mmul",      "rom": "bench_mmul.hex",   "halt": "264", "x11": "3F00",  "max": 600000},
 ]
 
 CSV_COLS = [
