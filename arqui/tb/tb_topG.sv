@@ -139,6 +139,44 @@ module tb_topG;
         prev_burst   <= dut.Memory.burst_active;
     end
 
+    // DEBUG temporal: trafico hacia/desde RAM y write path
+    logic dbg_on = 0;
+    initial if ($value$plusargs("DBG=%d", dbg_on)) begin end
+    always @(posedge clk) begin
+        if (dbg_on && !reset) begin
+            if (dut.Memory.wb_write)
+                $display("[DBG t=%0t] wb_write addr=%h data=%h size=%b",
+                    $time, dut.Memory.wb_addr_mem, dut.Memory.wb_data_mem, dut.Memory.wb_size_mem);
+            if (dut.Memory.MemCtrl.rq_wr_en)
+                $display("[DBG t=%0t] rq_push we=%b addr=%h wdata=%h",
+                    $time, dut.Memory.MemCtrl.rq_data_in[66],
+                    dut.Memory.MemCtrl.rq_data_in[65:34], dut.Memory.MemCtrl.rq_data_in[31:0]);
+            if (dut.Memory.ram_we)
+                $display("[DBG t=%0t] RAM_WR addr=%h data=%h size=%b",
+                    $time, dut.Memory.ram_addr, dut.Memory.ram_wdata, dut.Memory.ram_size);
+            if (dut.Memory.burst_active)
+                $display("[DBG t=%0t] BURST cnt=%0d addr=%h rdata=%h",
+                    $time, dut.Memory.burst_counter, dut.Memory.ram_addr, dut.Memory.burst_rdata);
+            if (mem_rd_op && !dut.stall_mem)
+                $display("[DBG t=%0t] LOAD_DONE addr=%h hit_l1=%b hit_l2=%b rdata=%h",
+                    $time, dut.Memory.alu_result, dut.Memory.hit_l1,
+                    dut.Memory.hit_l2, dut.Memory.rMemData);
+            if (dut.Memory.L2Con.rq_push)
+                $display("[DBG t=%0t] L2RQ_PUSH addr=%h we_mem=%b rsrc=%b PC=%h",
+                    $time, dut.Memory.alu_result, dut.Memory.we_mem,
+                    dut.Memory.result_src, `PC);
+            if (dut.Memory.L2Con.wb_push)
+                $display("[DBG t=%0t] L2WB_PUSH addr=%h data=%h full=%b",
+                    $time, dut.Memory.alu_result, dut.Memory.rd2,
+                    dut.Memory.L2Con.wb_full);
+            if (dut.Memory.we_mem && !dut.Memory.L2Con.wb_push)
+                $display("[DBG t=%0t] ST_BLOCK addr=%h full=%b pushed=%b last=%h stall=%b",
+                    $time, dut.Memory.alu_result, dut.Memory.L2Con.wb_full,
+                    dut.Memory.L2Con.wb_pushed, dut.Memory.L2Con.wb_last_addr,
+                    dut.stall_mem);
+        end
+    end
+
     // ==========================================
     // Task para aplicar reset
     // ==========================================
