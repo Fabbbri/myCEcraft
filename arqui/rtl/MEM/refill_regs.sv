@@ -58,7 +58,10 @@ module refill_regs (
             endcase
     end
 
-    assign fill_line_out = hit_l2 ? reg_l2 : reg_mem;
+    // reg_l2 nunca se escribe (l2_refill_active no tiene driver en memory.sv)
+    // y hit_l2 se levanta justo al final del burst: el mux entregaba una
+    // linea de ceros que pisaba el fill bueno. Siempre la linea del burst.
+    assign fill_line_out = reg_mem;
 
     assign fill_line_ready = hit_l2 ? (l2_word_counter == 3'b111 && l2_refill_active)
                                     : (burst_counter    == 3'b111 && burst_active);

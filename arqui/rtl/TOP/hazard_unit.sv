@@ -53,8 +53,11 @@ assign stallD = stall || stall_mem;
 // Para riesgos de control, es necesario limpiar las instrucciones incorrectas
 // ========================================================================
 
-assign flushD = pc_src_exOUT;
-assign flushE = stall | pc_src_exOUT;
+// ~stall_mem: con el pipeline congelado por memoria, un flush destruia
+// la instruccion retenida en el registro (flush gana sobre stall en los
+// pipes). Se suprime durante el stall y se aplica al liberarse.
+assign flushD = pc_src_exOUT & ~stall_mem;
+assign flushE = (stall | pc_src_exOUT) & ~stall_mem;
 
 // stall_mem=1: el LW en MEM espera datos (burst en progreso o write buffer sin drenar).
 // stallM - congela EX/MEM: el LW se queda en MEM hasta que rdata sea válido.
