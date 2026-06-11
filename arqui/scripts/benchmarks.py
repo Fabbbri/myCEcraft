@@ -18,6 +18,32 @@ import webbrowser
 from pathlib import Path
 
 ARQUI = Path(__file__).resolve().parent.parent
+SIM_VVP = ARQUI / "sim" / "build" / "tb_topG_bench.vvp"
+
+# mismos directorios de fuentes que el Makefile (sin make: funciona igual
+# desde PowerShell, cmd o bash, y compila UNA sola vez para toda la suite)
+SRC_DIRS = ["rtl", "rtl/async_fifo", "rtl/IF", "rtl/DE", "rtl/MEM",
+            "rtl/utils", "rtl/TOP"]
+
+
+def build_sim():
+    """Compila el testbench una vez con iverilog. Devuelve True si compilo."""
+    for d in ("sim/build", "sim/waves", "outputs/reports"):
+        (ARQUI / d).mkdir(parents=True, exist_ok=True)
+
+    srcs = []
+    for d in SRC_DIRS:
+        srcs.extend(sorted((ARQUI / d).glob("*.sv")))
+    srcs.append(ARQUI / "tb" / "tb_topG.sv")
+
+    cmd = ["iverilog", "-g2012", "-o", str(SIM_VVP)] + [str(s) for s in srcs]
+    print(f"[BUILD] iverilog ({len(srcs)} fuentes)")
+    proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("[ERROR] fallo la compilacion:")
+        print("\n".join((proc.stdout + proc.stderr).strip().splitlines()[-8:]))
+        return False
+    return True
 
 # Registro de benchmarks: nombre, rom, halt_pc (PC del freeze), x11 esperado.
 # halt_pc se obtiene de la linea del 00600000 en el .hex: (linea-1)*4
@@ -56,10 +82,16 @@ FIELD_MAP = {
 def run_benchmark(b):
     """Corre una simulacion y devuelve (fila_dict | None, status_str)."""
     safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", b["name"])
-    flags = f"+TEST_NAME={safe_name} +HALT_PC={b['halt']} +MAX_CYCLES={b['max']}"
+    cmd = [
+        "vvp", str(SIM_VVP),
+        f"+TEST_NAME={safe_name}",
+        f"+HALT_PC={b['halt']}",
+        f"+MAX_CYCLES={b['max']}",
+        f"+FILE_ROM=programs/{b['rom']}",
+        "+FILE_RAM=programs/data.hex",
+    ]
     if b["x11"]:
-        flags += f" +EXPECT_X11={b['x11']}"
-    cmd = ["make", "run", "TOP=tb_topG", f"ROM={b['rom']}", f"VVP_FLAGS={flags}"]
+        cmd.append(f"+EXPECT_X11={b['x11']}")
     print(f"[RUN ] {b['name']}  ({b['rom']})")
     proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
     out = proc.stdout + proc.stderr
@@ -67,6 +99,9 @@ def run_benchmark(b):
     row = parse_metrics(out)
     if row is None:
         status = "TIMEOUT/ERROR"
+        # mostrar el final de la salida para diagnosticar
+        tail = "\n".join(out.strip().splitlines()[-4:])
+        print(f"       ultima salida:\n{tail}")
     elif "[FAIL]" in out:
         status = "FAIL (registros)"
     else:
@@ -373,6 +408,9 @@ def main():
     todo = [b for b in BENCHMARKS if not args.only or b["name"] == args.only]
     if not todo:
         print(f"No existe el benchmark '{args.only}'. Usa --list.")
+        return 1
+
+    if not build_sim():
         return 1
 
     rows, failures = [], 0
