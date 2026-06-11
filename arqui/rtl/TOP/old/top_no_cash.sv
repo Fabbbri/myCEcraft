@@ -1,4 +1,4 @@
-module top(
+module top_no_cash(
     input logic clk,
     input logic reset
 );
@@ -67,6 +67,7 @@ logic [4:0]  instrDWB_fb;
 // Hazard Unit Salidas
 logic stallIF;
 logic stallD, flushD, flushE;
+logic stallE, stallM, stallW;
 
 logic [4:0] rs1DEX, rs2DEX;// intermedio
 
@@ -87,6 +88,7 @@ logic result_src_0;
 
 logic [4:0] rdWB;
 logic we_reg_wb;
+logic stall_mem;
 
 // ==========================================================
 //                       ISSUE
@@ -207,6 +209,7 @@ id_ex_pipe id_ex(
     .rs2DIN(rs2DE),
 
     .flushE(flushE),
+    .stallE(stallE),
 
     .jumpOUT(jumpEX), 
     .bltOUT(bltEX), 
@@ -308,6 +311,7 @@ execute Exec(
 ex_mem_pipe ex_mem(
     .clk(clk),
     .reset(reset),
+    .stallM(stallM),
 
     .result_src(result_srcEX_out),
     .neather_wreg_src(neather_wreg_srcEX_out), 
@@ -342,9 +346,9 @@ ex_mem_pipe ex_mem(
 //                       MEM
 // ==========================================================
 
-memory mem(
+memory Memory(
     .clk(clk),
-
+    .reset(reset),
     .w_memv(w_memvMEM), 
     .we_mem(we_memMEM), 
     .size(sizeMEM),
@@ -369,7 +373,8 @@ memory mem(
 
     .instrMOUT_hz(rdMEM),
     .we_reg_MEM_hz(we_reg_mem),
-    .ex_mem(ex_mem_hz)
+    .ex_mem(ex_mem_hz),
+    .stall_mem(stall_mem)
 );
 
 // ==========================================================
@@ -380,6 +385,7 @@ memory mem(
 mem_wb_pipe mem_wb(
     .clk(clk),
     .reset(reset),
+    .stallW(stallW),
 
     // señales de control vienen directo de ex_mem_pipe (no pasan por memory)
     .result_src(result_srcMEM), 
@@ -479,13 +485,17 @@ hazard_unit HazardUnit(
     .pc_src_exOUT(pc_srcEX), 
     .we_reg_mem(we_reg_mem), 
     .we_reg_wb(we_reg_wb),
+    .stall_mem(stall_mem),
 
-    .forwardA(forwardA), 
+    .forwardA(forwardA),
     .forwardB(forwardB),
     .stallIF(stallIF),
     .stallD(stallD),
     .flushD(flushD),
-    .flushE(flushE)
+    .flushE(flushE),
+    .stallE(stallE),
+    .stallM(stallM),
+    .stallW(stallW)
 );
 
 endmodule

@@ -35,8 +35,8 @@ module tb_tea_loader;
     `define VREGS dut.Decode.RegVBank.regs
     `define PC    dut.Issue.addr_aux
     `define ROM   dut.Issue.ROM.memory
-    `define NRAM  dut.mem.VaultRam.mem
-    `define DRAM  dut.mem.NormalRam.mem
+    `define NRAM  dut.Memory.VaultRam.mem
+    `define DRAM  dut.Memory.NormalRam.mem
 
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
@@ -59,6 +59,8 @@ module tb_tea_loader;
     endtask
 
     task automatic wait_for_finish(output bit timed_out);
+        // begin:body + disable en lugar de return (compat Icarus)
+        begin : wf_body
         int cycles;
         timed_out = 0;
         cycles    = 0;
@@ -71,15 +73,16 @@ module tb_tea_loader;
                 $display("[INFO]  FREEZE detectado en PC=%h (ciclo %0d)",
                           `PC, cycles);
                 repeat (5) @(posedge clk);
-                return;
+                disable wf_body;
             end
 
             if (cycles >= MAX_CYCLES) begin
                 $display("[ERROR] Timeout tras %0d ciclos - ultimo PC: %h",
                           MAX_CYCLES, `PC);
                 timed_out = 1;
-                return;
+                disable wf_body;
             end
+        end
         end
     endtask
 
@@ -211,22 +214,23 @@ module tb_tea_loader;
             int address;
             address = data_base + i;
 
+            // if/else en lugar de continue: Icarus no lo soporta en loops
             if (is_tea_result_byte(address)) begin
                 skipped++;
-                continue;
             end
-
-            checked++;
-            if (`DRAM[address] !== loader_mem[data_offset + i]) begin
-                if (mismatches < 8) begin
-                    $display(
-                        "  [FAIL] DATA byte DRAM[%04h] esperado=%02h obtenido=%02h",
-                        address,
-                        loader_mem[data_offset + i],
-                        `DRAM[address]
-                    );
+            else begin
+                checked++;
+                if (`DRAM[address] !== loader_mem[data_offset + i]) begin
+                    if (mismatches < 8) begin
+                        $display(
+                            "  [FAIL] DATA byte DRAM[%04h] esperado=%02h obtenido=%02h",
+                            address,
+                            loader_mem[data_offset + i],
+                            `DRAM[address]
+                        );
+                    end
+                    mismatches++;
                 end
-                mismatches++;
             end
         end
 
@@ -324,6 +328,7 @@ module tb_tea_loader;
         logic [31:0] instruction_count;
         logic [31:0] flags;
 
+        begin : lli_body
         load_failed = 0;
 
         for (int i = 0; i < RAM_DEPTH; i++) begin
@@ -383,7 +388,7 @@ module tb_tea_loader;
             tests_failed++;
             load_failed = 1;
             $display("[ERROR] tea_loader.hex no cabe o tiene flags inesperados");
-            return;
+            disable lli_body;
         end
 
         for (int i = 0; i < instruction_count; i++) begin
@@ -407,19 +412,22 @@ module tb_tea_loader;
         $display("[LOAD]  DATA  : %0d bytes hacia DRAM[0x%04h]",
                   data_size, data_base[15:0]);
         $display("[LOAD]  VAULT : %s", VAULT_HEX);
+        end
     endtask
 
     task automatic load_and_reset(output bit load_failed);
+        begin : lr_body
         #1;
         load_loader_image(load_failed);
         if (load_failed) begin
-            return;
+            disable lr_body;
         end
 
         apply_reset();
 
         @(negedge clk);
         dut.Decode.SM.sm = 1'b0;
+        end
     endtask
 
     initial begin

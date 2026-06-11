@@ -1,0 +1,19 @@
+@EnterCraftWorld
+craft:int main() {
+    arr:chest[int, 256];
+    i:int = 0;
+    suma:int = 0;
+
+    while (i < 256) {
+        arr[i] = i;
+        i = i + 8;
+    }
+
+    i = 0;
+    while (i < 256) {
+        suma = suma + arr[i];
+        i = i + 8;
+    }
+
+    return suma;
+}

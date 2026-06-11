@@ -1,4 +1,4 @@
-module memory(
+module memory_old(
     input logic clk,
 
     input logic [1:0] result_src, 
