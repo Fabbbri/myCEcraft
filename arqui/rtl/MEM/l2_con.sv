@@ -63,7 +63,6 @@ module l2_con (
 
     // Hacia mem_con: loads
     output logic        miss_l2_out,
-    output logic        hit_l2_out,
     output logic [31:0] addr_out,
     output logic [1:0]  size_out,
 
@@ -357,7 +356,6 @@ assign stall    = (load_state == ACCESS) | rq_full
 // ==========================================================
 // Hacia mem_con
 // ==========================================================
-assign hit_l2_out  = hit_l2;
 // Gateado por ACCESS: solo válido cuando la FSM tiene una request en vuelo.
 // Evita que mem_controller arranque en ciclo 0 por caché fría (hit_l2=0).
 assign miss_l2_out = (load_state == ACCESS) & ~hit_l2;

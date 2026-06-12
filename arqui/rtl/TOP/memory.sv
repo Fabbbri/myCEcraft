@@ -259,7 +259,6 @@ l2_con L2Con(
     .dato_cpu           (dato_cpu_l2),
     .stall              (stall_l2),
     .miss_l2_out        (miss_l2),
-    .hit_l2_out         (),
     .addr_out           (addr_l2),
     .size_out           (size_l2),
     .wb_write_out       (wb_write),
