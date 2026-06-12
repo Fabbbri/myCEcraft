@@ -49,6 +49,10 @@ IVERILOG = iverilog
 VVP = vvp
 VVP_FLAGS ?=
 
+# Suite de benchmarks (Python). Ej: make benchmarks BENCH_ARGS=--compile
+PYTHON ?= python
+BENCH_ARGS ?=
+
 # =========================
 # Usar surfer o wave según OS
 # =========================
@@ -82,6 +86,12 @@ compile: dirs
 run: compile
 	$(VVP) $(OUT) $(VVP_FLAGS) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
+# correr la suite de benchmarks (compila el sim por dentro y genera CSV + HTML)
+# ej: make benchmarks            -> usa los .hex versionados + sidecar
+#     make benchmarks BENCH_ARGS=--compile   -> recompila O0/O1 y captura metricas del compilador
+benchmarks:
+	-$(PYTHON) scripts/benchmarks.py $(BENCH_ARGS)
+
 # iniciar simulacion con waves
 wave:
 	@if [ ! -f $(VCD) ]; then \
@@ -105,4 +115,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run wave run-all clean print
+.PHONY: all dirs compile run benchmarks wave run-all clean print

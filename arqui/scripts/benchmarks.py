@@ -14,6 +14,7 @@ import csv
 import re
 import subprocess
 import sys
+import time
 import webbrowser
 from pathlib import Path
 
@@ -45,23 +46,159 @@ def build_sim():
         return False
     return True
 
-# Registro de benchmarks: nombre, rom, halt_pc (PC del freeze), x11 esperado.
-# halt_pc se obtiene de la linea del 00600000 en el .hex: (linea-1)*4
+# Rutas de programas y del compilador propio (compi).
+PROG = ARQUI / "programs"
+SRC = PROG / "src"
+COMPILER = ARQUI.parent / "compi" / "main.py"
+COMPI_OUT = ARQUI.parent / "compi" / "output" / "bin_output"
+
+# Registro de benchmarks. Los de cache (con fuente .craft) se corren en dos
+# niveles de optimizacion del compilador: O0 (sin optimizar) y O1. El HALT_PC
+# se calcula en runtime escaneando la instruccion freeze (00600000) del .hex,
+# asi sigue valido aunque se recompile y cambie el layout. x11 es el mismo en
+# O0 y O1 (la optimizacion preserva el resultado): sirve de oraculo.
 BENCHMARKS = [
-    {"name": "while loop x<5",  "rom": "program.hex",      "halt": "6C",  "x11": None,   "max": 20000},
-    {"name": "bench_seq",       "rom": "bench_seq.hex",    "halt": "E4",  "x11": "7F80", "max": 300000},
-    {"name": "bench_stride",    "rom": "bench_stride.hex", "halt": "E4",  "x11": "F80",   "max": 300000},
-    {"name": "bench_random",    "rom": "bench_random.hex", "halt": "124", "x11": "1C110", "max": 600000},
-    {"name": "bench_mmul",      "rom": "bench_mmul.hex",   "halt": "264", "x11": "3F00",  "max": 600000},
+    {"name": "while loop x<5", "rom": "program.hex", "x11": None,    "max": 20000},
+    {"name": "bench_seq",    "src": "bench_seq",    "x11": "7F80",  "max": 300000, "opts": ["O0", "O1"]},
+    {"name": "bench_stride", "src": "bench_stride", "x11": "F80",   "max": 300000, "opts": ["O0", "O1"]},
+    {"name": "bench_random", "src": "bench_random", "x11": "1C110", "max": 600000, "opts": ["O0", "O1"]},
+    {"name": "bench_mmul",   "src": "bench_mmul",   "x11": "3F00",  "max": 600000, "opts": ["O0", "O1"]},
 ]
+
+
+def rom_name(base, opt):
+    """O0 -> base.hex ; O1 -> base.O1.hex (igual que nombra el compilador)."""
+    return f"{base}.hex" if opt == "O0" else f"{base}.{opt}.hex"
+
+
+def expand_runs(todo):
+    """Expande el registro a corridas concretas: cada benchmark con fuente
+    genera una corrida por nivel de optimizacion."""
+    runs = []
+    for b in todo:
+        if "src" not in b:
+            runs.append({"name": b["name"], "rom": b["rom"], "x11": b.get("x11"),
+                         "max": b["max"], "base": None, "opt": None})
+        else:
+            for opt in b.get("opts", ["O0"]):
+                runs.append({"name": f'{b["name"]} ({opt})',
+                             "rom": rom_name(b["src"], opt), "x11": b.get("x11"),
+                             "max": b["max"], "base": b["name"], "opt": opt})
+    return runs
+
+
+def freeze_halt(rom_path):
+    """HALT_PC (hex) = indice de la instruccion freeze (00600000) por 4."""
+    try:
+        words = [l.strip() for l in rom_path.read_text().splitlines() if l.strip()]
+    except OSError:
+        return None
+    for i, w in enumerate(words):
+        if w.lower() == "00600000":
+            return f"{i * 4:X}"
+    return None
+
+
+def code_size_bytes(rom):
+    """Tamano de codigo = (# palabras del .hex) x 4 bytes."""
+    try:
+        n = sum(1 for l in rom.read_text().splitlines() if l.strip())
+    except OSError:
+        return None
+    return n * 4
+
+
+# sidecar con las metricas que solo se conocen al compilar (--compile)
+COMPILE_STATS_COLS = ["base", "opt", "Compile_ms", "Opt_Unrolled",
+                      "Opt_DCE_Removed", "Opt_Reordered", "Opt_Renamed"]
+COMPILE_STATS_CSV = ARQUI / "outputs" / "reports" / "compile_stats.csv"
+
+
+def parse_opt_stats(stdout, compile_ms):
+    """Extrae del stdout del compilador los contadores de optimizacion
+    (formato IROptimizationStats.summary()). Solo O1/O2/O3 imprimen la linea;
+    en O0 los contadores quedan en 0, pero el tiempo siempre se registra."""
+    def field(name):
+        m = re.search(rf"{name}=(\d+)", stdout)
+        return int(m.group(1)) if m else 0
+    return {
+        "Compile_ms":      f"{compile_ms:.0f}",
+        "Opt_Unrolled":    field("unrolled"),
+        "Opt_DCE_Removed": field("dce_removed"),
+        "Opt_Reordered":   field("reordered_ir"),
+        "Opt_Renamed":     field("renamed_static_registers"),
+    }
+
+
+def save_compile_stats(stats):
+    """Persiste {(base,opt): {...}} al sidecar para que las columnas del
+    compilador aparezcan tambien en corridas sin --compile."""
+    COMPILE_STATS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(COMPILE_STATS_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=COMPILE_STATS_COLS)
+        w.writeheader()
+        for (base, opt), d in sorted(stats.items()):
+            row = {"base": base, "opt": opt}
+            row.update(d)
+            w.writerow(row)
+    print(f"[STATS] {COMPILE_STATS_CSV}")
+
+
+def load_compile_stats():
+    """Lee el sidecar -> {(base,opt): {Compile_ms, Opt_*}}. {} si no existe."""
+    stats = {}
+    if not COMPILE_STATS_CSV.exists():
+        return stats
+    try:
+        with open(COMPILE_STATS_CSV, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                stats[(r["base"], r["opt"])] = {
+                    k: r.get(k, "") for k in COMPILE_STATS_COLS[2:]}
+    except (OSError, KeyError):
+        pass
+    return stats
+
+
+def compile_programs():
+    """Recompila los ROM de los benchmarks desde su fuente .craft con el
+    compilador propio (O0 y O1) y los copia a programs/. Esto es lo que 'mete
+    el compilador' en la suite; sin --compile se usan los .hex versionados."""
+    import shutil
+    ok = True
+    stats = {}   # (base, opt) -> metricas del compilador (tiempo + transformaciones)
+    for b in BENCHMARKS:
+        if "src" not in b:
+            continue
+        for opt in b.get("opts", ["O0"]):
+            src = SRC / f'{b["src"]}.craft'
+            cmd = [sys.executable, str(COMPILER), "-r", "-b", f"-{opt}", str(src)]
+            t0 = time.perf_counter()
+            proc = subprocess.run(cmd, cwd=COMPILER.parent.parent,
+                                  capture_output=True, text=True)
+            ms = (time.perf_counter() - t0) * 1000.0
+            stem = b["src"] if opt == "O0" else f'{b["src"]}.{opt}'
+            out = COMPI_OUT / f"{stem}.hex"
+            if proc.returncode == 0 and out.exists():
+                shutil.copy(out, PROG / rom_name(b["src"], opt))
+                stats[(b["name"], opt)] = parse_opt_stats(proc.stdout, ms)
+                print(f"[COMPILE] {rom_name(b['src'], opt)}  ({ms:.0f} ms)")
+            else:
+                print(f"[ERROR] no compilo {b['src']} {opt}")
+                ok = False
+    save_compile_stats(stats)
+    return ok, stats
 
 CSV_COLS = [
     "Test Ejecutado", "Ciclos", "Instr", "CPI",
     "Stalls_Mem", "Stalls_Control",
     "L1_Reads", "L1_Writes", "L1_Read_Hits", "L1_Read_Misses",
     "L1_Write_Hits", "L1_Write_Misses", "L1_Hit_Rate", "L1_Miss_Rate",
-    "L2_Accesses", "L2_Hits", "L2_Misses", "L2_Hit_Rate", "L2_Miss_Rate",
+    "L2_Accesses", "L2_Reads", "L2_Writes", "L2_Hits", "L2_Misses",
+    "L2_Hit_Rate", "L2_Miss_Rate",
     "Memory_Accesses", "Mem_Transfer_Cycles", "BW_Util",
+    # derivadas (spec 5.1/5.2) + del compilador (spec 6); se anexan al final
+    "IPC", "AMAT", "Code_Size_Bytes",
+    "Compile_ms", "Opt_Unrolled", "Opt_DCE_Removed", "Opt_Reordered", "Opt_Renamed",
 ]
 
 # campo del [METRICS] -> columna CSV
@@ -72,27 +209,34 @@ FIELD_MAP = {
     "l1_rd_hits": "L1_Read_Hits", "l1_rd_miss": "L1_Read_Misses",
     "l1_wr_hits": "L1_Write_Hits", "l1_wr_miss": "L1_Write_Misses",
     "l1_hit_rate": "L1_Hit_Rate", "l1_miss_rate": "L1_Miss_Rate",
-    "l2_acc": "L2_Accesses", "l2_hits": "L2_Hits", "l2_miss": "L2_Misses",
+    "l2_acc": "L2_Accesses", "l2_reads": "L2_Reads", "l2_writes": "L2_Writes",
+    "l2_hits": "L2_Hits", "l2_miss": "L2_Misses",
     "l2_hit_rate": "L2_Hit_Rate", "l2_miss_rate": "L2_Miss_Rate",
     "mem_acc": "Memory_Accesses", "mem_xfer_cyc": "Mem_Transfer_Cycles",
     "bw_util": "BW_Util",
 }
 
 
-def run_benchmark(b):
-    """Corre una simulacion y devuelve (fila_dict | None, status_str)."""
-    safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", b["name"])
+def run_benchmark(run):
+    """Corre una corrida ya expandida (programa + nivel) y devuelve
+    (fila_dict | None, status_str). El HALT_PC se calcula del .hex."""
+    rom_path = PROG / run["rom"]
+    halt = freeze_halt(rom_path)
+    if halt is None:
+        print(f"[FAIL] {run['name']}: sin freeze en {run['rom']}")
+        return None, "SIN HALT"
+    safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", run["name"])
     cmd = [
         "vvp", str(SIM_VVP),
         f"+TEST_NAME={safe_name}",
-        f"+HALT_PC={b['halt']}",
-        f"+MAX_CYCLES={b['max']}",
-        f"+FILE_ROM=programs/{b['rom']}",
+        f"+HALT_PC={halt}",
+        f"+MAX_CYCLES={run['max']}",
+        f"+FILE_ROM=programs/{run['rom']}",
         "+FILE_RAM=programs/data.hex",
     ]
-    if b["x11"]:
-        cmd.append(f"+EXPECT_X11={b['x11']}")
-    print(f"[RUN ] {b['name']}  ({b['rom']})")
+    if run["x11"]:
+        cmd.append(f"+EXPECT_X11={run['x11']}")
+    print(f"[RUN ] {run['name']}  ({run['rom']})")
     proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
     out = proc.stdout + proc.stderr
 
@@ -106,10 +250,12 @@ def run_benchmark(b):
         status = "FAIL (registros)"
     else:
         status = "OK"
-    print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {b['name']}: {status}")
+    print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {run['name']}: {status}")
     if row is not None:
-        row["Test Ejecutado"] = b["name"]
+        row["Test Ejecutado"] = run["name"]
         row["_status"] = status
+        row["_base"] = run["base"]
+        row["_opt"] = run["opt"]
     return row, status
 
 
@@ -171,26 +317,102 @@ def row_band(row):
     return "#fde8e6"
 
 
-def summary_section(rows):
-    """Resumen: totales y promedios sobre las corridas con datos."""
-    ok = sum(1 for r in rows if r.get("_status") == "OK")
-    with_data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+def load_no_cache():
+    """Corrida sin cache (iteracion 2) como referencia, si existe.
+    Devuelve {nombre: {'Ciclos':.., 'CPI':..}}. El nombre del while puede
+    venir con sufijo, se normaliza por prefijo."""
+    path = ARQUI / "outputs" / "reports" / "results_no_cash.csv"
+    ref = {}
+    if not path.exists():
+        return ref
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                name = r.get("Test Ejecutado", "")
+                key = "while loop x<5" if name.startswith("while") else name
+                ref[key] = {"Ciclos": r.get("Ciclos"), "CPI": r.get("CPI")}
+    except (OSError, KeyError):
+        pass
+    return ref
 
-    def avg(col):
-        vals = [_fnum(r.get(col)) for r in with_data]
-        vals = [v for v in vals if v is not None]
-        return f"{sum(vals) / len(vals):.2f}" if vals else "&mdash;"
 
+def _stall_pct(r):
+    """% de ciclos congelado esperando memoria (la 'pared de memoria')."""
+    cyc, st = _fnum(r.get("Ciclos")), _fnum(r.get("Stalls_Mem"))
+    if cyc and st is not None and cyc > 0:
+        return 100.0 * st / cyc
+    return None
+
+
+def _ipc(r):
+    """IPC = Instrucciones / Ciclos (la metrica que nombra el spec)."""
+    cyc, instr = _fnum(r.get("Ciclos")), _fnum(r.get("Instr"))
+    return instr / cyc if (cyc and instr is not None and cyc > 0) else None
+
+
+def _amat(miss_l1, miss_l2):
+    """AMAT = hitL1 + missL1*(hitL2 + missL2*penal_mem), con hitL1=1, hitL2=8,
+    penalidad a memoria=25. miss_l1/miss_l2 en fraccion (0-1)."""
+    return 1.0 + miss_l1 * (8.0 + miss_l2 * 25.0)
+
+
+def _amat_row(r):
+    """AMAT por benchmark a partir de sus miss rates (en %)."""
+    m1, m2 = _fnum(r.get("L1_Miss_Rate")), _fnum(r.get("L2_Miss_Rate"))
+    if m1 is None or m2 is None:
+        return None
+    return _amat(m1 / 100.0, m2 / 100.0)
+
+
+def enrich_row(row, run, stats):
+    """Agrega las metricas derivadas (IPC, AMAT, tamano de codigo) y las del
+    compilador (desde el sidecar o la captura de --compile) a una fila."""
+    ipc = _ipc(row)
+    if ipc is not None:
+        row["IPC"] = f"{ipc:.4f}"
+    amat = _amat_row(row)
+    if amat is not None:
+        row["AMAT"] = f"{amat:.2f}"
+    cs = code_size_bytes(PROG / run["rom"])
+    if cs is not None:
+        row["Code_Size_Bytes"] = cs
+    st = stats.get((run.get("base"), run.get("opt"))) if run.get("base") else None
+    if st:
+        row.update(st)
+
+
+def _card(title, big, sub):
+    return (f'<div class="card"><div class="ct">{title}</div>'
+            f'<div class="cb">{big}</div><div class="cs">{sub}</div></div>')
+
+
+def verdict_section(rows, no_cache):
+    """Veredicto: la tesis en una linea + 3 tarjetas con lo esencial
+    (mejor CPI, peor CPI, aceleracion del cache vs sin cache)."""
+    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+    cards = ""
+    if data:
+        best = min(data, key=lambda r: _fnum(r.get("CPI")))
+        worst = max(data, key=lambda r: _fnum(r.get("CPI")))
+        cards += _card("Mejor CPI", f'{_fnum(best.get("CPI")):.2f}',
+                       f'{best["Test Ejecutado"]} &mdash; alta localidad')
+        cards += _card("Peor CPI", f'{_fnum(worst.get("CPI")):.2f}',
+                       f'{worst["Test Ejecutado"]} &mdash; sin localidad espacial')
+        for r in data:
+            ref = no_cache.get(r["Test Ejecutado"])
+            rc, c = (_fnum(ref.get("CPI")) if ref else None), _fnum(r.get("CPI"))
+            if rc and c:
+                cards += _card("Acelera el cach&eacute;", f"{rc / c:.1f}&times;",
+                               f'{r["Test Ejecutado"]}: {rc:.2f} &rarr; {c:.2f} CPI')
+                break
     return f"""
-<section class="resumen"><h2>Resumen</h2>
-<ul>
- <li>Benchmarks ejecutados: <b>{len(rows)}</b></li>
- <li>Exitosos: <b>{ok}</b></li>
- <li>Con fallos: <b>{len(rows) - ok}</b></li>
- <li>Promedio L1 Hit Rate: <b>{avg('L1_Hit_Rate')}%</b></li>
- <li>Promedio L2 Hit Rate: <b>{avg('L2_Hit_Rate')}%</b></li>
- <li>Promedio CPI: <b>{avg('CPI')}</b></li>
-</ul></section>
+<section class="verdict">
+ <h2>Veredicto</h2>
+ <p class="thesis">El rendimiento lo decide la <b>localidad</b> del acceso a
+   memoria: a m&aacute;s aciertos en cach&eacute;, menos esperas y menor CPI.
+   Mismo hardware, distinto patr&oacute;n de acceso.</p>
+ <div class="cards">{cards}</div>
+</section>
 """
 
 
@@ -198,7 +420,10 @@ def formulas_section():
     return """
 <section><h2>F&oacute;rmulas</h2>
 <div class="formulas">
-<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones</pre></div>
+<div class="f"><b>IPC</b><pre>Instrucciones / Ciclos</pre></div>
+<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones  (= 1/IPC)</pre></div>
+<div class="f"><b>AMAT</b><pre>1 + missL1 x (8 + missL2 x 25)
+hit L1=1, hit L2=8, mem=25 ciclos</pre></div>
 <div class="f"><b>L1 Hit Rate</b><pre>(Hits lectura + Hits escritura)
 -------------------------------- x 100
         (Reads + Writes)</pre></div>
@@ -218,176 +443,289 @@ Memory_Accesses = misses de lectura en L2 + total de stores drenados.</p>
 """
 
 
-def scatter_section(rows):
-    """Correlacion CPI vs L1 Miss Rate (puntos posicionados con CSS)."""
-    pts = []
-    for r in rows:
-        cpi = _fnum(r.get("CPI"))
-        mr = _fnum(r.get("L1_Miss_Rate"))
-        if cpi is not None and mr is not None:
-            pts.append((r["Test Ejecutado"], cpi, mr))
-    if not pts:
+def causal_chain(rows):
+    """Vista integrada: por benchmark (del mas rapido al mas lento) la cadena
+    L1 aciertos -> espera de memoria -> CPI, en tabla. Mas verde (aciertos) y
+    menos rojo (espera) = menor CPI."""
+    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+    if not data:
         return ""
-    import math
-    max_cpi = math.ceil(max(p[1] for p in pts)) + 1   # eje X en enteros
-    dots = ""
-    for name, cpi, mr in pts:
-        x = 100.0 * cpi / max_cpi
-        y = mr  # 0-100 directo
-        dots += (
-            f'<div class="dot" style="left:{x:.1f}%;bottom:{y:.1f}%"></div>'
-            f'<div class="dotlbl" style="left:{x:.1f}%;bottom:{y:.1f}%">{name}</div>\n'
-        )
-    xticks = "".join(
-        f'<div class="xtick" style="left:{100.0 * i / max_cpi:.1f}%">{i}</div>'
-        for i in range(0, max_cpi + 1)
-    )
+    data = sorted(data, key=lambda r: _fnum(r.get("CPI")))
+    body = ""
+    for r in data:
+        hit = r.get("L1_Hit_Rate")
+        stall = _stall_pct(r)
+        body += (
+            f'<tr><td>{r["Test Ejecutado"]}</td>'
+            f'<td style="background:{heat_color(hit)};color:#fff">{_num(hit, 1, "%")}</td>'
+            f'<td style="background:{heat_color(stall, invert=True)}">{_num(stall, 1, "%")}</td>'
+            f'<td>{_num(r.get("CPI"), 2)}</td></tr>\n')
     return f"""
-<section><h2>Correlaci&oacute;n: L1 Miss Rate vs CPI</h2>
-<p class="nota">A mayor tasa de fallos en cach&eacute;, mayor CPI.</p>
-<div class="scatter-wrap">
- <div class="ylab">L1 Miss Rate (%)</div>
- <div class="scatter">{dots}
-   <div class="ytick" style="bottom:100%">100</div>
-   <div class="ytick" style="bottom:50%">50</div>
-   <div class="ytick" style="bottom:0%">0</div>
-   {xticks}
- </div>
-</div>
-<div class="xlab">CPI</div>
+<section><h2>Cadena causal: localidad &rarr; aciertos &rarr; esperas &rarr; CPI</h2>
+<p class="nota">Del m&aacute;s r&aacute;pido (arriba) al m&aacute;s lento (abajo).
+ M&aacute;s aciertos en L1 (verde) y menos espera de memoria (rojo) &rarr; menor CPI.
+ Es la misma cadena para todos: el patr&oacute;n de acceso manda.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>L1 aciertos</th><th>Espera mem</th><th>CPI</th>
+</tr></thead><tbody>{body}</tbody></table>
 </section>
 """
 
 
-def bar_section(title, rows, col, unit="", fixed_max=None):
-    """Seccion HTML con barras horizontales comparando una metrica.
-    fixed_max fija la escala (p.ej. 100 para porcentajes); sin el,
-    escala relativa al maximo observado."""
-    vals = []
+def _num(v, dec=0, suffix=""):
+    """Formatea un valor numerico de la fila; '&mdash;' si no es numero."""
+    f = _fnum(v)
+    if f is None:
+        return "&mdash;"
+    return (f"{f:.{dec}f}" if dec else f"{int(f):,}") + suffix
+
+
+def compiler_section(rows):
+    """Compara cada benchmark en O0 vs O1: cuanto acelera el compilador y como
+    afecta al cache. El resultado (x11) valida cada corrida; una O1 que rompe
+    el resultado se marca y no cuenta como aceleracion."""
+    bases = {}
     for r in rows:
-        try:
-            vals.append(float(r.get(col, 0)))
-        except ValueError:
-            vals.append(0.0)
-    top = fixed_max if fixed_max else (max(vals) if vals and max(vals) > 0 else 1.0)
-    items = ""
-    for r, v in zip(rows, vals):
-        pct = 100.0 * v / top
-        label = f"{v:,.2f}" if "." in str(r.get(col, "")) else f"{int(v):,}"
-        items += (
-            f'<div class="row"><div class="lbl">{r["Test Ejecutado"]}</div>'
-            f'<div class="track"><div class="bar" style="width:{pct:.1f}%"></div></div>'
-            f'<div class="val">{label}{unit}</div></div>\n'
-        )
-    return f'<section><h2>{title}</h2>{items}</section>\n'
+        if r.get("_base") and r.get("_opt"):
+            bases.setdefault(r["_base"], {})[r["_opt"]] = r
+    pairs = sorted((b, v) for b, v in bases.items() if "O0" in v and "O1" in v)
+    if not pairs:
+        return ""
+    # tabla A: efecto en rendimiento
+    perf = ""
+    for base, v in pairs:
+        o0, o1 = v["O0"], v["O1"]
+        broke = o1.get("_status", "OK") != "OK" or _fnum(o1.get("Ciclos")) is None
+        c0, c1 = _fnum(o0.get("Ciclos")), _fnum(o1.get("Ciclos"))
+        speed = f"{c0 / c1:.2f}&times;" if (c0 and c1 and not broke) else "&mdash;"
+        name = base + (' <span class="bad">&#10007; resultado incorrecto</span>'
+                       if broke else "")
+        perf += (
+            f"<tr><td>{name}</td>"
+            f"<td>{_num(o0.get('Ciclos'))}</td><td>{_num(o1.get('Ciclos'))}</td>"
+            f"<td>{speed}</td>"
+            f"<td>{_num(o0.get('IPC'), 3)}</td><td>{_num(o1.get('IPC'), 3)}</td>"
+            f"<td>{_num(o0.get('CPI'), 2)}</td><td>{_num(o1.get('CPI'), 2)}</td>"
+            f"<td>{_num(o0.get('L1_Hit_Rate'), 1, '%')}</td>"
+            f"<td>{_num(o1.get('L1_Hit_Rate'), 1, '%')}</td></tr>\n")
+    # tabla B: transformaciones del compilador + costo (spec seccion 6)
+    transf = ""
+    for base, v in pairs:
+        o0, o1 = v["O0"], v["O1"]
+        transf += (
+            f"<tr><td>{base}</td>"
+            f"<td>{_num(o0.get('Instr'))}</td><td>{_num(o1.get('Instr'))}</td>"
+            f"<td>{_num(o0.get('Code_Size_Bytes'))}</td>"
+            f"<td>{_num(o1.get('Code_Size_Bytes'))}</td>"
+            f"<td>{_num(o0.get('Ciclos'))}</td><td>{_num(o1.get('Ciclos'))}</td>"
+            f"<td>{_num(o1.get('Compile_ms'))}</td>"
+            f"<td>{_num(o1.get('Opt_Unrolled'))}</td>"
+            f"<td>{_num(o1.get('Opt_DCE_Removed'))}</td>"
+            f"<td>{_num(o1.get('Opt_Reordered'))}</td>"
+            f"<td>{_num(o1.get('Opt_Renamed'))}</td></tr>\n")
+    return f"""
+<section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
+<p class="nota"><b>O0</b> = el programa compilado <b>sin optimizar</b>;
+ <b>O1</b> = el mismo programa <b>optimizado</b> por el compilador (desenrolla
+ bucles y renombra registros). Se comparan los dos para ver cu&aacute;nto ayuda el
+ compilador. Cada corrida se valida con el resultado esperado en <code>x11</code>.</p>
+<h3>Rendimiento &mdash; qu&eacute; tan r&aacute;pido corre</h3>
+<p class="nota"><b>Acelera</b> = veces m&aacute;s r&aacute;pido (Ciclos O0 / Ciclos O1).
+ O1 baja los ciclos, pero a veces baja el hit rate de L1: al eliminar las
+ instrucciones baratas del control del bucle, los fallos obligatorios de
+ cach&eacute; quedan como mayor fracci&oacute;n.
+ <span class="bad">&#10007; resultado incorrecto</span> significa que la versi&oacute;n
+ O1 dio un valor distinto al esperado en x11: la optimizaci&oacute;n rompi&oacute; ese
+ programa (es un bug del compilador, no del cach&eacute;), por eso no se mide su
+ aceleraci&oacute;n.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
+ <th>IPC O0</th><th>IPC O1</th><th>CPI O0</th><th>CPI O1</th>
+ <th>L1 Hit O0</th><th>L1 Hit O1</th>
+</tr></thead><tbody>{perf}</tbody></table>
+<h3>Transformaciones del compilador y costo (Secci&oacute;n 6 del enunciado)</h3>
+<table><thead><tr>
+ <th>Benchmark</th><th>Instr O0</th><th>Instr O1</th>
+ <th>C&oacute;digo O0 (B)</th><th>C&oacute;digo O1 (B)</th>
+ <th>Ciclos O0</th><th>Ciclos O1</th><th>Compilaci&oacute;n (ms)</th>
+ <th>Unrolled</th><th>DCE</th><th>Reord.</th><th>Renamed</th>
+</tr></thead><tbody>{transf}</tbody></table>
+<p class="nota">C&oacute;digo en bytes = #instrucciones &times; 4. Unrolled/DCE/Reord./Renamed:
+ instrucciones desenrolladas / eliminadas / reordenadas / renombradas por el
+ compilador (de su salida). Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+</section>
+"""
 
 
-def render_html(rows, path):
-    # columna Status solo si hubo algun fallo
-    show_status = any(r.get("_status", "OK") != "OK" for r in rows)
-    status_th = '<th rowspan="2">Status</th>' if show_status else ""
+def _sorted_rows(rows):
+    """Filas con datos, ordenadas del mejor CPI (mas rapido) al peor."""
+    return sorted([r for r in rows if _fnum(r.get("CPI")) is not None],
+                  key=lambda r: _fnum(r.get("CPI")))
 
-    # cabecera en dos filas: bloques (CPU / L1 / L2 / Memoria) + metricas
-    head = f"""
-<tr>
- <th rowspan="2">Benchmark</th>
- <th colspan="5" class="grp">CPU</th>
- <th colspan="8" class="grp">L1</th>
- <th colspan="5" class="grp">L2</th>
- <th colspan="3" class="grp">Memoria</th>
- {status_th}
-</tr>
-<tr>
- <th>Ciclos</th><th>Instr</th><th>CPI</th><th>St.Mem</th><th>St.Ctl</th>
- <th>Reads</th><th>Writes</th><th>R.Hits</th><th>R.Miss</th>
- <th>W.Hits</th><th>W.Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Hits</th><th>Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Xfer cy</th><th>BW %</th>
-</tr>"""
 
+def processor_section(rows):
+    """5.1 Metricas del procesador (Cuadro 1 del enunciado)."""
     body = ""
-    for r in rows:
-        band = row_band(r)
-        cells = f'<td>{r.get("Test Ejecutado", "")}</td>'
-        for c in CSV_COLS[1:]:
-            v = r.get(c, "")
-            style = ""
-            if c in ("L1_Hit_Rate", "L2_Hit_Rate"):
-                style = f' style="background:{heat_color(v)};color:#fff"'
-            elif c in ("L1_Miss_Rate", "L2_Miss_Rate"):
-                style = f' style="background:{heat_color(v, invert=True)};color:#fff"'
-            cells += f"<td{style}>{v}</td>"
-        if show_status:
-            cells += f"<td>{r.get('_status', '')}</td>"
-        body += f'<tr style="background:{band}">{cells}</tr>\n'
+    for r in _sorted_rows(rows):
+        body += (f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
+                 f'<td>{_num(r.get("Ciclos"))}</td>'
+                 f'<td>{_num(r.get("Instr"))}</td>'
+                 f'<td>{_num(r.get("IPC"), 3)}</td>'
+                 f'<td>{_num(r.get("CPI"), 2)}</td>'
+                 f'<td>{_num(r.get("Stalls_Mem"))}</td>'
+                 f'<td>{_num(r.get("Stalls_Control"))}</td></tr>\n')
+    return f"""
+<section><h2>5.1 M&eacute;tricas del procesador</h2>
+<p class="nota">IPC = Instrucciones/Ciclos (mayor es mejor); CPI = 1/IPC (menor es
+ mejor, base de la narrativa). Stalls MEM = ciclos perdidos en la etapa MEM
+ (loads/stores); Stalls control = ciclos de fetch perdidos por branch tomado.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos</th><th>Instr</th><th>IPC</th><th>CPI</th>
+ <th>Stalls MEM</th><th>Stalls control</th>
+</tr></thead><tbody>{body}</tbody></table>
+</section>
+"""
 
-    legend = """
-<p class="nota">Color de fila seg&uacute;n L1 Hit Rate:
- <span class="chip" style="background:#e3f4e4">&gt;95% muy bueno</span>
- <span class="chip" style="background:#fdf6dd">80&ndash;95% medio</span>
- <span class="chip" style="background:#fde8e6">&lt;80% malo</span>
- <span class="chip" style="background:#f0f0f0">sin datos</span></p>"""
 
-    sections = (
-        bar_section("Ciclos totales", rows, "Ciclos")
-        + bar_section("CPI", rows, "CPI")
-        + bar_section("Instrucciones ejecutadas", rows, "Instr")
-        + bar_section("Stalls por memoria (ciclos)", rows, "Stalls_Mem")
-        + bar_section("L1 Hit Rate", rows, "L1_Hit_Rate", "%", fixed_max=100)
-        + bar_section("L1 Miss Rate", rows, "L1_Miss_Rate", "%", fixed_max=100)
-        + bar_section("L2 Hit Rate", rows, "L2_Hit_Rate", "%", fixed_max=100)
-        + bar_section("L2 Miss Rate", rows, "L2_Miss_Rate", "%", fixed_max=100)
-        + bar_section("Accesos a memoria principal", rows, "Memory_Accesses")
-        + bar_section("Utilizacion de ancho de banda", rows, "BW_Util", "%", fixed_max=100)
-    )
+def cache_section(rows):
+    """5.2 Metricas de la jerarquia de cache (Cuadro 2): conteos crudos + tasas
+    + AMAT por benchmark, y un AMAT global con los miss rates promediados."""
+    data = _sorted_rows(rows)
+    body = ""
+    for r in data:
+        l1h, l1m = r.get("L1_Hit_Rate"), r.get("L1_Miss_Rate")
+        l2h, l2m = r.get("L2_Hit_Rate"), r.get("L2_Miss_Rate")
+        body += (
+            f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
+            f'<td>{_num(r.get("L1_Reads"))}</td><td>{_num(r.get("L1_Writes"))}</td>'
+            f'<td>{_num(r.get("L1_Read_Hits"))}</td><td>{_num(r.get("L1_Read_Misses"))}</td>'
+            f'<td>{_num(r.get("L1_Write_Hits"))}</td><td>{_num(r.get("L1_Write_Misses"))}</td>'
+            f'<td style="background:{heat_color(l1h)};color:#fff">{_num(l1h, 2)}</td>'
+            f'<td>{_num(l1m, 2)}</td>'
+            f'<td>{_num(r.get("L2_Reads"))}</td><td>{_num(r.get("L2_Writes"))}</td>'
+            f'<td>{_num(r.get("L2_Accesses"))}</td><td>{_num(r.get("L2_Hits"))}</td>'
+            f'<td>{_num(r.get("L2_Misses"))}</td>'
+            f'<td style="background:{heat_color(l2h)};color:#fff">{_num(l2h, 2)}</td>'
+            f'<td>{_num(l2m, 2)}</td>'
+            f'<td>{_num(_amat_row(r), 2)}</td></tr>\n')
+    m1 = [_fnum(r.get("L1_Miss_Rate")) for r in data]
+    m2 = [_fnum(r.get("L2_Miss_Rate")) for r in data]
+    m1 = [x for x in m1 if x is not None]
+    m2 = [x for x in m2 if x is not None]
+    amat_g = ""
+    if m1 and m2:
+        a1, a2 = sum(m1) / len(m1), sum(m2) / len(m2)
+        g = _amat(a1 / 100.0, a2 / 100.0)
+        amat_g = (f'<p class="nota"><b>AMAT global</b> (miss rates promediados: '
+                  f'L1 {a1:.2f}%, L2 {a2:.2f}%) = <b>{g:.2f} ciclos</b>.</p>')
+    return f"""
+<section><h2>5.2 M&eacute;tricas de la jerarqu&iacute;a de cach&eacute;</h2>
+<p class="nota">Los conteos crudos (los datos que se usaron) junto a las tasas.
+ AMAT por benchmark = 1 + missL1&middot;(8 + missL2&middot;25).</p>
+<div class="tablewrap"><table class="metrics"><thead>
+<tr><th rowspan="2">Benchmark</th><th colspan="8" class="grp">L1-D</th>
+ <th colspan="7" class="grp">L2</th><th rowspan="2">AMAT</th></tr>
+<tr><th>Reads</th><th>Writes</th><th>R-Hit</th><th>R-Miss</th><th>W-Hit</th>
+ <th>W-Miss</th><th>Hit%</th><th>Miss%</th>
+ <th>Reads</th><th>Writes</th><th>Acc</th><th>Hits</th><th>Miss</th><th>Hit%</th><th>Miss%</th></tr>
+</thead><tbody>{body}</tbody></table></div>
+{amat_g}
+</section>
+"""
+
+
+def memory_section(rows):
+    """5.3 Metricas de memoria principal + trafico con vs sin cache."""
+    data = _sorted_rows(rows)
+    body = ""
+    for r in data:
+        body += (f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
+                 f'<td>{_num(r.get("Memory_Accesses"))}</td>'
+                 f'<td>{_num(r.get("Mem_Transfer_Cycles"))}</td>'
+                 f'<td>{_num(r.get("BW_Util"), 2)}</td></tr>\n')
+    # Trafico al bus: sin cache (modelo) cada acceso del programa baja a RAM
+    # = L1 Reads + Writes; con cache solo Memory_Accesses (misses + write-through).
+    traffic = ""
+    for r in data:
+        rd, wr = _fnum(r.get("L1_Reads")), _fnum(r.get("L1_Writes"))
+        acc, instr = _fnum(r.get("Memory_Accesses")), _fnum(r.get("Instr"))
+        nocache = (rd + wr) if (rd is not None and wr is not None) else None
+        red = f"{nocache / acc:.1f}&times;" if (nocache and acc) else "&mdash;"
+        api_no = f"{nocache / instr:.3f}" if (nocache is not None and instr) else "&mdash;"
+        api_si = f"{acc / instr:.3f}" if (acc is not None and instr) else "&mdash;"
+        traffic += (f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
+                    f'<td>{_num(nocache)}</td><td>{_num(acc)}</td>'
+                    f'<td><b>{red}</b></td><td>{api_no}</td><td>{api_si}</td></tr>\n')
+    return f"""
+<section><h2>5.3 M&eacute;tricas de memoria principal</h2>
+<p class="nota">Accesos = misses de lectura de L2 + stores drenados (write-through).
+ BW = fracci&oacute;n del <b>ancho de banda te&oacute;rico m&aacute;ximo</b> del bus
+ (0.5 palabras/ciclo: memoria a 50 MHz, burst de 8) usada con cach&eacute;.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
+ <th>BW %</th>
+</tr></thead><tbody>{body}</tbody></table>
+
+<h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
+<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa
+ baja a RAM &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla
+ (Memory_Accesses). La <b>Reducci&oacute;n</b> es cu&aacute;ntas veces menos tr&aacute;fico
+ pone el cach&eacute; en el bus. <i>Acc/instr</i> = transacciones a memoria por
+ instrucci&oacute;n.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
+ <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
+</tr></thead><tbody>{traffic}</tbody></table>
+</section>
+"""
+
+
+def render_html(rows, path, no_cache):
+    # Las tablas 5.1/5.2/5.3 usan el baseline sin optimizar (O0); las variantes
+    # O1 viven en la seccion del compilador y en el CSV completo.
+    base_rows = [r for r in rows if r.get("_opt") in (None, "O0")]
 
     html = f"""<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Benchmarks - metricas de cache</title>
+<title>Benchmarks - rendimiento de cache</title>
 <style>
- body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; }}
- h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 18px 0 6px; }}
- table {{ border-collapse: collapse; font-size: 0.82em; }}
+ body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1000px; }}
+ h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 20px 0 6px; }}
+ h3 {{ font-size: 0.92em; margin: 12px 0 4px; color: #334; }}
+ table {{ border-collapse: collapse; font-size: 0.86em; }}
+ table.metrics {{ font-size: 0.78em; }}
  th, td {{ border: 1px solid #ccc; padding: 4px 8px; text-align: right; }}
  th {{ background: #f0f0f0; }}  td:first-child, th:first-child {{ text-align: left; }}
  th.grp {{ background: #e2e8f0; text-align: center; }}
- section {{ max-width: 760px; }}
- .resumen ul {{ margin: 4px 0; padding-left: 20px; }}
- .resumen li {{ margin: 2px 0; }}
+ .tablewrap {{ overflow-x: auto; }}
+ code {{ background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }}
  .nota {{ font-size: 0.85em; color: #555; }}
- .chip {{ padding: 1px 8px; border-radius: 3px; border: 1px solid #ccc; margin-right: 4px; }}
+ .verdict {{ border: 1px solid #d7e0ea; background: #f7fafc; border-radius: 6px; padding: 10px 16px; }}
+ .thesis {{ margin: 4px 0 12px; }}
+ .cards {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+ .card {{ border: 1px solid #d7e0ea; background: #fff; border-radius: 6px; padding: 8px 16px; min-width: 150px; }}
+ .ct {{ font-size: 0.76em; color: #667; text-transform: uppercase; letter-spacing: .04em; }}
+ .cb {{ font-size: 1.6em; font-weight: 600; color: #1f3a5f; }}
+ .cs {{ font-size: 0.78em; color: #556; }}
+ .cblock {{ margin: 10px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
+ .cname {{ font-weight: 600; font-size: 0.9em; margin-bottom: 3px; }}
+ .row {{ display: flex; align-items: center; margin: 3px 0; }}
+ .lbl {{ width: 110px; font-size: 0.82em; color: #555; }}
+ .track {{ flex: 1; background: #eee; border-radius: 3px; height: 16px; max-width: 440px; }}
+ .bar {{ height: 100%; border-radius: 3px; }}
+ .val {{ width: 70px; text-align: right; font-size: 0.82em; padding-left: 8px; }}
  .formulas {{ display: flex; flex-wrap: wrap; gap: 14px; }}
  .f {{ border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }}
  .f pre {{ margin: 4px 0 0; font-size: 0.8em; }}
- .row {{ display: flex; align-items: center; margin: 3px 0; }}
- .lbl {{ width: 150px; font-size: 0.85em; }}
- .track {{ flex: 1; background: #eee; border-radius: 3px; height: 18px; }}
- .bar {{ background: #4575b4; height: 100%; border-radius: 3px; }}
- .val {{ width: 110px; text-align: right; font-size: 0.85em; padding-left: 8px; }}
- .scatter-wrap {{ display: flex; align-items: stretch; }}
- .ylab {{ writing-mode: vertical-rl; transform: rotate(180deg);
-          font-size: 0.8em; color: #555; padding-right: 4px; }}
- .scatter {{ position: relative; width: 480px; height: 260px;
-             border-left: 2px solid #444; border-bottom: 2px solid #444;
-             background: #fafafa; margin: 8px 0 4px 8px; }}
- .dot {{ position: absolute; width: 10px; height: 10px; border-radius: 50%;
-         background: #4575b4; transform: translate(-50%, 50%); }}
- .dotlbl {{ position: absolute; font-size: 0.75em; color: #333;
-            transform: translate(8px, 50%); white-space: nowrap; }}
- .ytick {{ position: absolute; left: -26px; font-size: 0.72em; color: #777;
-           transform: translateY(50%); }}
- .xtick {{ position: absolute; bottom: -18px; font-size: 0.72em; color: #777;
-           transform: translateX(-50%); }}
- .xlab {{ font-size: 0.8em; color: #555; margin-left: 40px; margin-top: 14px; }}
+ .bad {{ color: #b00; font-size: 0.8em; font-weight: 600; }}
 </style></head><body>
-<h1>Benchmarks del procesador &mdash; metricas de cache</h1>
-{summary_section(rows)}
-<h2>Tabla de m&eacute;tricas</h2>
-<table><thead>{head}</thead><tbody>{body}</tbody></table>
-{legend}
+<h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
+{processor_section(base_rows)}
+{cache_section(base_rows)}
+{memory_section(base_rows)}
+{causal_chain(base_rows)}
+{compiler_section(rows)}
 {formulas_section()}
-{scatter_section(rows)}
-{sections}
 </body></html>"""
     path.write_text(html, encoding="utf-8")
     print(f"[HTML] {path}")
@@ -398,11 +736,14 @@ def main():
     ap.add_argument("--only", help="correr solo el benchmark con este nombre")
     ap.add_argument("--list", action="store_true", help="listar benchmarks")
     ap.add_argument("--no-open", action="store_true", help="no abrir el HTML")
+    ap.add_argument("--compile", action="store_true",
+                    help="recompilar los ROM desde .craft con el compilador (O0 y O1)")
     args = ap.parse_args()
 
     if args.list:
         for b in BENCHMARKS:
-            print(f"  {b['name']:20s} rom={b['rom']}")
+            opts = "/".join(b["opts"]) if "src" in b else "pre-construido"
+            print(f"  {b['name']:20s} {opts}")
         return 0
 
     todo = [b for b in BENCHMARKS if not args.only or b["name"] == args.only]
@@ -410,16 +751,25 @@ def main():
         print(f"No existe el benchmark '{args.only}'. Usa --list.")
         return 1
 
+    if args.compile:
+        ok, stats = compile_programs()
+        if not ok:
+            return 1
+    else:
+        stats = load_compile_stats()   # del sidecar de una corrida previa con --compile
+
     if not build_sim():
         return 1
 
     rows, failures = [], 0
-    for b in todo:
-        row, status = run_benchmark(b)
+    for run in expand_runs(todo):
+        row, status = run_benchmark(run)
         if row is None:
-            rows.append({"Test Ejecutado": b["name"], "_status": status})
+            rows.append({"Test Ejecutado": run["name"], "_status": status,
+                         "_base": run["base"], "_opt": run["opt"]})
             failures += 1
         else:
+            enrich_row(row, run, stats)
             rows.append(row)
             if status != "OK":
                 failures += 1
@@ -428,7 +778,7 @@ def main():
     reports.mkdir(parents=True, exist_ok=True)
     write_csv(rows, reports / "results.csv")
     html_path = reports / "results.html"
-    render_html(rows, html_path)
+    render_html(rows, html_path, load_no_cache())
 
     if not args.no_open:
         webbrowser.open(html_path.as_uri())

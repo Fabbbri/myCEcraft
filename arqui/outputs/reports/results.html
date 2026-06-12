@@ -1,86 +1,167 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Benchmarks - metricas de cache</title>
+<title>Benchmarks - rendimiento de cache</title>
 <style>
- body { font-family: system-ui, sans-serif; margin: 24px; color: #222; }
- h1 { font-size: 1.4em; }  h2 { font-size: 1.05em; margin: 18px 0 6px; }
- table { border-collapse: collapse; font-size: 0.82em; }
+ body { font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1000px; }
+ h1 { font-size: 1.4em; }  h2 { font-size: 1.05em; margin: 20px 0 6px; }
+ h3 { font-size: 0.92em; margin: 12px 0 4px; color: #334; }
+ table { border-collapse: collapse; font-size: 0.86em; }
+ table.metrics { font-size: 0.78em; }
  th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; }
  th { background: #f0f0f0; }  td:first-child, th:first-child { text-align: left; }
  th.grp { background: #e2e8f0; text-align: center; }
- section { max-width: 760px; }
- .resumen ul { margin: 4px 0; padding-left: 20px; }
- .resumen li { margin: 2px 0; }
+ .tablewrap { overflow-x: auto; }
+ code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
  .nota { font-size: 0.85em; color: #555; }
- .chip { padding: 1px 8px; border-radius: 3px; border: 1px solid #ccc; margin-right: 4px; }
+ .verdict { border: 1px solid #d7e0ea; background: #f7fafc; border-radius: 6px; padding: 10px 16px; }
+ .thesis { margin: 4px 0 12px; }
+ .cards { display: flex; flex-wrap: wrap; gap: 12px; }
+ .card { border: 1px solid #d7e0ea; background: #fff; border-radius: 6px; padding: 8px 16px; min-width: 150px; }
+ .ct { font-size: 0.76em; color: #667; text-transform: uppercase; letter-spacing: .04em; }
+ .cb { font-size: 1.6em; font-weight: 600; color: #1f3a5f; }
+ .cs { font-size: 0.78em; color: #556; }
+ .cblock { margin: 10px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+ .cname { font-weight: 600; font-size: 0.9em; margin-bottom: 3px; }
+ .row { display: flex; align-items: center; margin: 3px 0; }
+ .lbl { width: 110px; font-size: 0.82em; color: #555; }
+ .track { flex: 1; background: #eee; border-radius: 3px; height: 16px; max-width: 440px; }
+ .bar { height: 100%; border-radius: 3px; }
+ .val { width: 70px; text-align: right; font-size: 0.82em; padding-left: 8px; }
  .formulas { display: flex; flex-wrap: wrap; gap: 14px; }
  .f { border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }
  .f pre { margin: 4px 0 0; font-size: 0.8em; }
- .row { display: flex; align-items: center; margin: 3px 0; }
- .lbl { width: 150px; font-size: 0.85em; }
- .track { flex: 1; background: #eee; border-radius: 3px; height: 18px; }
- .bar { background: #4575b4; height: 100%; border-radius: 3px; }
- .val { width: 110px; text-align: right; font-size: 0.85em; padding-left: 8px; }
- .scatter-wrap { display: flex; align-items: stretch; }
- .ylab { writing-mode: vertical-rl; transform: rotate(180deg);
-          font-size: 0.8em; color: #555; padding-right: 4px; }
- .scatter { position: relative; width: 480px; height: 260px;
-             border-left: 2px solid #444; border-bottom: 2px solid #444;
-             background: #fafafa; margin: 8px 0 4px 8px; }
- .dot { position: absolute; width: 10px; height: 10px; border-radius: 50%;
-         background: #4575b4; transform: translate(-50%, 50%); }
- .dotlbl { position: absolute; font-size: 0.75em; color: #333;
-            transform: translate(8px, 50%); white-space: nowrap; }
- .ytick { position: absolute; left: -26px; font-size: 0.72em; color: #777;
-           transform: translateY(50%); }
- .xtick { position: absolute; bottom: -18px; font-size: 0.72em; color: #777;
-           transform: translateX(-50%); }
- .xlab { font-size: 0.8em; color: #555; margin-left: 40px; margin-top: 14px; }
+ .bad { color: #b00; font-size: 0.8em; font-weight: 600; }
 </style></head><body>
-<h1>Benchmarks del procesador &mdash; metricas de cache</h1>
+<h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 
-<section class="resumen"><h2>Resumen</h2>
-<ul>
- <li>Benchmarks ejecutados: <b>5</b></li>
- <li>Exitosos: <b>5</b></li>
- <li>Con fallos: <b>0</b></li>
- <li>Promedio L1 Hit Rate: <b>88.74%</b></li>
- <li>Promedio L2 Hit Rate: <b>71.60%</b></li>
- <li>Promedio CPI: <b>2.81</b></li>
-</ul></section>
+<section><h2>5.1 M&eacute;tricas del procesador</h2>
+<p class="nota">IPC = Instrucciones/Ciclos (mayor es mejor); CPI = 1/IPC (menor es
+ mejor, base de la narrativa). Stalls MEM = ciclos perdidos en la etapa MEM
+ (loads/stores); Stalls control = ciclos de fetch perdidos por branch tomado.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos</th><th>Instr</th><th>IPC</th><th>CPI</th>
+ <th>Stalls MEM</th><th>Stalls control</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>45,396</td><td>20,743</td><td>0.457</td><td>2.19</td><td>21,100</td><td>788</td></tr>
+<tr><td>while loop x<5</td><td>179</td><td>71</td><td>0.397</td><td>2.52</td><td>96</td><td>7</td></tr>
+<tr><td>bench_seq (O0)</td><td>21,992</td><td>8,232</td><td>0.374</td><td>2.67</td><td>11,713</td><td>515</td></tr>
+<tr><td>bench_random (O0)</td><td>57,509</td><td>20,469</td><td>0.356</td><td>2.81</td><td>32,241</td><td>1,443</td></tr>
+<tr><td>bench_stride (O0)</td><td>4,085</td><td>1,064</td><td>0.261</td><td>3.84</td><td>2,798</td><td>67</td></tr>
+</tbody></table>
+</section>
 
-<h2>Tabla de m&eacute;tricas</h2>
-<table><thead>
-<tr>
- <th rowspan="2">Benchmark</th>
- <th colspan="5" class="grp">CPU</th>
- <th colspan="8" class="grp">L1</th>
- <th colspan="5" class="grp">L2</th>
- <th colspan="3" class="grp">Memoria</th>
- 
-</tr>
-<tr>
- <th>Ciclos</th><th>Instr</th><th>CPI</th><th>St.Mem</th><th>St.Ctl</th>
- <th>Reads</th><th>Writes</th><th>R.Hits</th><th>R.Miss</th>
- <th>W.Hits</th><th>W.Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Hits</th><th>Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Xfer cy</th><th>BW %</th>
-</tr></thead><tbody><tr style="background:#fdf6dd"><td>while loop x<5</td><td>179</td><td>71</td><td>2.521127</td><td>96</td><td>7</td><td>12</td><td>8</td><td>11</td><td>1</td><td>5</td><td>3</td><td style="background:#91cf60;color:#fff">80.00</td><td style="background:#91cf60;color:#fff">20.00</td><td>9</td><td>5</td><td>4</td><td style="background:#fee08b;color:#fff">55.56</td><td style="background:#fee08b;color:#fff">44.44</td><td>9</td><td>104</td><td>58.10</td></tr>
-<tr style="background:#fdf6dd"><td>bench_seq</td><td>21992</td><td>8232</td><td>2.671526</td><td>11713</td><td>515</td><td>2051</td><td>1030</td><td>2018</td><td>33</td><td>773</td><td>257</td><td style="background:#1a9850;color:#fff">90.59</td><td style="background:#1a9850;color:#fff">9.41</td><td>1063</td><td>773</td><td>290</td><td style="background:#91cf60;color:#fff">72.72</td><td style="background:#91cf60;color:#fff">27.28</td><td>1063</td><td>18978</td><td>86.30</td></tr>
-<tr style="background:#fdf6dd"><td>bench_stride</td><td>4085</td><td>1064</td><td>3.839286</td><td>2798</td><td>67</td><td>259</td><td>134</td><td>227</td><td>32</td><td>98</td><td>36</td><td style="background:#91cf60;color:#fff">82.70</td><td style="background:#91cf60;color:#fff">17.30</td><td>166</td><td>98</td><td>68</td><td style="background:#fee08b;color:#fff">59.04</td><td style="background:#fee08b;color:#fff">40.96</td><td>166</td><td>2888</td><td>70.70</td></tr>
-<tr style="background:#fdf6dd"><td>bench_random</td><td>57509</td><td>20469</td><td>2.809566</td><td>32241</td><td>1443</td><td>5144</td><td>2749</td><td>5083</td><td>61</td><td>2267</td><td>482</td><td style="background:#1a9850;color:#fff">93.12</td><td style="background:#1a9850;color:#fff">6.88</td><td>2810</td><td>2267</td><td>543</td><td style="background:#91cf60;color:#fff">80.68</td><td style="background:#91cf60;color:#fff">19.32</td><td>2810</td><td>50282</td><td>87.43</td></tr>
-<tr style="background:#e3f4e4"><td>bench_mmul</td><td>45396</td><td>20743</td><td>2.188497</td><td>21100</td><td>788</td><td>6116</td><td>2216</td><td>6090</td><td>26</td><td>2018</td><td>198</td><td style="background:#1a9850;color:#fff">97.31</td><td style="background:#1a9850;color:#fff">2.69</td><td>2242</td><td>2018</td><td>224</td><td style="background:#1a9850;color:#fff">90.01</td><td style="background:#1a9850;color:#fff">9.99</td><td>2242</td><td>40165</td><td>88.48</td></tr>
+
+<section><h2>5.2 M&eacute;tricas de la jerarqu&iacute;a de cach&eacute;</h2>
+<p class="nota">Los conteos crudos (los datos que se usaron) junto a las tasas.
+ AMAT por benchmark = 1 + missL1&middot;(8 + missL2&middot;25).</p>
+<div class="tablewrap"><table class="metrics"><thead>
+<tr><th rowspan="2">Benchmark</th><th colspan="8" class="grp">L1-D</th>
+ <th colspan="7" class="grp">L2</th><th rowspan="2">AMAT</th></tr>
+<tr><th>Reads</th><th>Writes</th><th>R-Hit</th><th>R-Miss</th><th>W-Hit</th>
+ <th>W-Miss</th><th>Hit%</th><th>Miss%</th>
+ <th>Reads</th><th>Writes</th><th>Acc</th><th>Hits</th><th>Miss</th><th>Hit%</th><th>Miss%</th></tr>
+</thead><tbody><tr><td>bench_mmul (O0)</td><td>6,116</td><td>2,216</td><td>6,090</td><td>26</td><td>2,018</td><td>198</td><td style="background:#1a9850;color:#fff">97.31</td><td>2.69</td><td>26</td><td>2,216</td><td>2,242</td><td>2,018</td><td>224</td><td style="background:#1a9850;color:#fff">90.01</td><td>9.99</td><td>1.28</td></tr>
+<tr><td>while loop x<5</td><td>12</td><td>8</td><td>11</td><td>1</td><td>5</td><td>3</td><td style="background:#91cf60;color:#fff">80.00</td><td>20.00</td><td>1</td><td>8</td><td>9</td><td>5</td><td>4</td><td style="background:#fee08b;color:#fff">55.56</td><td>44.44</td><td>4.82</td></tr>
+<tr><td>bench_seq (O0)</td><td>2,051</td><td>1,030</td><td>2,018</td><td>33</td><td>773</td><td>257</td><td style="background:#1a9850;color:#fff">90.59</td><td>9.41</td><td>33</td><td>1,030</td><td>1,063</td><td>773</td><td>290</td><td style="background:#91cf60;color:#fff">72.72</td><td>27.28</td><td>2.39</td></tr>
+<tr><td>bench_random (O0)</td><td>5,144</td><td>2,749</td><td>5,083</td><td>61</td><td>2,267</td><td>482</td><td style="background:#1a9850;color:#fff">93.12</td><td>6.88</td><td>61</td><td>2,749</td><td>2,810</td><td>2,267</td><td>543</td><td style="background:#91cf60;color:#fff">80.68</td><td>19.32</td><td>1.88</td></tr>
+<tr><td>bench_stride (O0)</td><td>259</td><td>134</td><td>227</td><td>32</td><td>98</td><td>36</td><td style="background:#91cf60;color:#fff">82.70</td><td>17.30</td><td>32</td><td>134</td><td>166</td><td>98</td><td>68</td><td style="background:#fee08b;color:#fff">59.04</td><td>40.96</td><td>4.16</td></tr>
+</tbody></table></div>
+<p class="nota"><b>AMAT global</b> (miss rates promediados: L1 11.26%, L2 28.40%) = <b>2.70 ciclos</b>.</p>
+</section>
+
+
+<section><h2>5.3 M&eacute;tricas de memoria principal</h2>
+<p class="nota">Accesos = misses de lectura de L2 + stores drenados (write-through).
+ BW = fracci&oacute;n del <b>ancho de banda te&oacute;rico m&aacute;ximo</b> del bus
+ (0.5 palabras/ciclo: memoria a 50 MHz, burst de 8) usada con cach&eacute;.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
+ <th>BW %</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>2,242</td><td>40,165</td><td>88.48</td></tr>
+<tr><td>while loop x<5</td><td>9</td><td>104</td><td>58.10</td></tr>
+<tr><td>bench_seq (O0)</td><td>1,063</td><td>18,978</td><td>86.30</td></tr>
+<tr><td>bench_random (O0)</td><td>2,810</td><td>50,282</td><td>87.43</td></tr>
+<tr><td>bench_stride (O0)</td><td>166</td><td>2,888</td><td>70.70</td></tr>
 </tbody></table>
 
-<p class="nota">Color de fila seg&uacute;n L1 Hit Rate:
- <span class="chip" style="background:#e3f4e4">&gt;95% muy bueno</span>
- <span class="chip" style="background:#fdf6dd">80&ndash;95% medio</span>
- <span class="chip" style="background:#fde8e6">&lt;80% malo</span>
- <span class="chip" style="background:#f0f0f0">sin datos</span></p>
+<h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
+<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa
+ baja a RAM &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla
+ (Memory_Accesses). La <b>Reducci&oacute;n</b> es cu&aacute;ntas veces menos tr&aacute;fico
+ pone el cach&eacute; en el bus. <i>Acc/instr</i> = transacciones a memoria por
+ instrucci&oacute;n.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
+ <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>8,332</td><td>2,242</td><td><b>3.7&times;</b></td><td>0.402</td><td>0.108</td></tr>
+<tr><td>while loop x<5</td><td>20</td><td>9</td><td><b>2.2&times;</b></td><td>0.282</td><td>0.127</td></tr>
+<tr><td>bench_seq (O0)</td><td>3,081</td><td>1,063</td><td><b>2.9&times;</b></td><td>0.374</td><td>0.129</td></tr>
+<tr><td>bench_random (O0)</td><td>7,893</td><td>2,810</td><td><b>2.8&times;</b></td><td>0.386</td><td>0.137</td></tr>
+<tr><td>bench_stride (O0)</td><td>393</td><td>166</td><td><b>2.4&times;</b></td><td>0.369</td><td>0.156</td></tr>
+</tbody></table>
+</section>
+
+
+<section><h2>Cadena causal: localidad &rarr; aciertos &rarr; esperas &rarr; CPI</h2>
+<p class="nota">Del m&aacute;s r&aacute;pido (arriba) al m&aacute;s lento (abajo).
+ M&aacute;s aciertos en L1 (verde) y menos espera de memoria (rojo) &rarr; menor CPI.
+ Es la misma cadena para todos: el patr&oacute;n de acceso manda.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>L1 aciertos</th><th>Espera mem</th><th>CPI</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td style="background:#1a9850;color:#fff">97.3%</td><td style="background:#fee08b">46.5%</td><td>2.19</td></tr>
+<tr><td>while loop x<5</td><td style="background:#91cf60;color:#fff">80.0%</td><td style="background:#fc8d59">53.6%</td><td>2.52</td></tr>
+<tr><td>bench_seq (O0)</td><td style="background:#1a9850;color:#fff">90.6%</td><td style="background:#fc8d59">53.3%</td><td>2.67</td></tr>
+<tr><td>bench_random (O0)</td><td style="background:#1a9850;color:#fff">93.1%</td><td style="background:#fc8d59">56.1%</td><td>2.81</td></tr>
+<tr><td>bench_stride (O0)</td><td style="background:#91cf60;color:#fff">82.7%</td><td style="background:#fc8d59">68.5%</td><td>3.84</td></tr>
+</tbody></table>
+</section>
+
+
+<section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
+<p class="nota"><b>O0</b> = el programa compilado <b>sin optimizar</b>;
+ <b>O1</b> = el mismo programa <b>optimizado</b> por el compilador (desenrolla
+ bucles y renombra registros). Se comparan los dos para ver cu&aacute;nto ayuda el
+ compilador. Cada corrida se valida con el resultado esperado en <code>x11</code>.</p>
+<h3>Rendimiento &mdash; qu&eacute; tan r&aacute;pido corre</h3>
+<p class="nota"><b>Acelera</b> = veces m&aacute;s r&aacute;pido (Ciclos O0 / Ciclos O1).
+ O1 baja los ciclos, pero a veces baja el hit rate de L1: al eliminar las
+ instrucciones baratas del control del bucle, los fallos obligatorios de
+ cach&eacute; quedan como mayor fracci&oacute;n.
+ <span class="bad">&#10007; resultado incorrecto</span> significa que la versi&oacute;n
+ O1 dio un valor distinto al esperado en x11: la optimizaci&oacute;n rompi&oacute; ese
+ programa (es un bug del compilador, no del cach&eacute;), por eso no se mide su
+ aceleraci&oacute;n.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
+ <th>IPC O0</th><th>IPC O1</th><th>CPI O0</th><th>CPI O1</th>
+ <th>L1 Hit O0</th><th>L1 Hit O1</th>
+</tr></thead><tbody><tr><td>bench_mmul <span class="bad">&#10007; resultado incorrecto</span></td><td>45,396</td><td>108,787</td><td>&mdash;</td><td>0.457</td><td>0.264</td><td>2.19</td><td>3.78</td><td>97.3%</td><td>98.3%</td></tr>
+<tr><td>bench_random</td><td>57,509</td><td>51,813</td><td>1.11&times;</td><td>0.356</td><td>0.406</td><td>2.81</td><td>2.46</td><td>93.1%</td><td>89.0%</td></tr>
+<tr><td>bench_seq</td><td>21,992</td><td>13,681</td><td>1.61&times;</td><td>0.374</td><td>0.436</td><td>2.67</td><td>2.29</td><td>90.6%</td><td>76.2%</td></tr>
+<tr><td>bench_stride</td><td>4,085</td><td>3,020</td><td>1.35&times;</td><td>0.261</td><td>0.261</td><td>3.84</td><td>3.84</td><td>82.7%</td><td>56.6%</td></tr>
+</tbody></table>
+<h3>Transformaciones del compilador y costo (Secci&oacute;n 6 del enunciado)</h3>
+<table><thead><tr>
+ <th>Benchmark</th><th>Instr O0</th><th>Instr O1</th>
+ <th>C&oacute;digo O0 (B)</th><th>C&oacute;digo O1 (B)</th>
+ <th>Ciclos O0</th><th>Ciclos O1</th><th>Compilaci&oacute;n (ms)</th>
+ <th>Unrolled</th><th>DCE</th><th>Reord.</th><th>Renamed</th>
+</tr></thead><tbody><tr><td>bench_mmul</td><td>20,743</td><td>28,746</td><td>616</td><td>1,352</td><td>45,396</td><td>108,787</td><td>121</td><td>2</td><td>0</td><td>0</td><td>27</td></tr>
+<tr><td>bench_random</td><td>20,469</td><td>21,036</td><td>296</td><td>588</td><td>57,509</td><td>51,813</td><td>134</td><td>1</td><td>0</td><td>0</td><td>9</td></tr>
+<tr><td>bench_seq</td><td>8,232</td><td>5,967</td><td>232</td><td>636</td><td>21,992</td><td>13,681</td><td>122</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
+<tr><td>bench_stride</td><td>1,064</td><td>787</td><td>232</td><td>636</td><td>4,085</td><td>3,020</td><td>111</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
+</tbody></table>
+<p class="nota">C&oacute;digo en bytes = #instrucciones &times; 4. Unrolled/DCE/Reord./Renamed:
+ instrucciones desenrolladas / eliminadas / reordenadas / renombradas por el
+ compilador (de su salida). Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+</section>
+
 
 <section><h2>F&oacute;rmulas</h2>
 <div class="formulas">
-<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones</pre></div>
+<div class="f"><b>IPC</b><pre>Instrucciones / Ciclos</pre></div>
+<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones  (= 1/IPC)</pre></div>
+<div class="f"><b>AMAT</b><pre>1 + missL1 x (8 + missL2 x 25)
+hit L1=1, hit L2=8, mem=25 ciclos</pre></div>
 <div class="f"><b>L1 Hit Rate</b><pre>(Hits lectura + Hits escritura)
 -------------------------------- x 100
         (Reads + Writes)</pre></div>
@@ -96,87 +177,6 @@
 porque la pol&iacute;tica es write-through: <i>todo</i> store drenado llega a RAM
 aunque haya sido hit en L2 (se actualizan ambos niveles). Por eso
 Memory_Accesses = misses de lectura en L2 + total de stores drenados.</p>
-</section>
-
-
-<section><h2>Correlaci&oacute;n: L1 Miss Rate vs CPI</h2>
-<p class="nota">A mayor tasa de fallos en cach&eacute;, mayor CPI.</p>
-<div class="scatter-wrap">
- <div class="ylab">L1 Miss Rate (%)</div>
- <div class="scatter"><div class="dot" style="left:50.4%;bottom:20.0%"></div><div class="dotlbl" style="left:50.4%;bottom:20.0%">while loop x<5</div>
-<div class="dot" style="left:53.4%;bottom:9.4%"></div><div class="dotlbl" style="left:53.4%;bottom:9.4%">bench_seq</div>
-<div class="dot" style="left:76.8%;bottom:17.3%"></div><div class="dotlbl" style="left:76.8%;bottom:17.3%">bench_stride</div>
-<div class="dot" style="left:56.2%;bottom:6.9%"></div><div class="dotlbl" style="left:56.2%;bottom:6.9%">bench_random</div>
-<div class="dot" style="left:43.8%;bottom:2.7%"></div><div class="dotlbl" style="left:43.8%;bottom:2.7%">bench_mmul</div>
-
-   <div class="ytick" style="bottom:100%">100</div>
-   <div class="ytick" style="bottom:50%">50</div>
-   <div class="ytick" style="bottom:0%">0</div>
-   <div class="xtick" style="left:0.0%">0</div><div class="xtick" style="left:20.0%">1</div><div class="xtick" style="left:40.0%">2</div><div class="xtick" style="left:60.0%">3</div><div class="xtick" style="left:80.0%">4</div><div class="xtick" style="left:100.0%">5</div>
- </div>
-</div>
-<div class="xlab">CPI</div>
-</section>
-
-<section><h2>Ciclos totales</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:0.3%"></div></div><div class="val">179</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:38.2%"></div></div><div class="val">21,992</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:7.1%"></div></div><div class="val">4,085</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:100.0%"></div></div><div class="val">57,509</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:78.9%"></div></div><div class="val">45,396</div></div>
-</section>
-<section><h2>CPI</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:65.7%"></div></div><div class="val">2.52</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:69.6%"></div></div><div class="val">2.67</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:100.0%"></div></div><div class="val">3.84</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:73.2%"></div></div><div class="val">2.81</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:57.0%"></div></div><div class="val">2.19</div></div>
-</section>
-<section><h2>Instrucciones ejecutadas</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:0.3%"></div></div><div class="val">71</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:39.7%"></div></div><div class="val">8,232</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:5.1%"></div></div><div class="val">1,064</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:98.7%"></div></div><div class="val">20,469</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:100.0%"></div></div><div class="val">20,743</div></div>
-</section>
-<section><h2>Stalls por memoria (ciclos)</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:0.3%"></div></div><div class="val">96</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:36.3%"></div></div><div class="val">11,713</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:8.7%"></div></div><div class="val">2,798</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:100.0%"></div></div><div class="val">32,241</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:65.4%"></div></div><div class="val">21,100</div></div>
-</section>
-<section><h2>L1 Hit Rate</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:80.0%"></div></div><div class="val">80.00%</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:90.6%"></div></div><div class="val">90.59%</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:82.7%"></div></div><div class="val">82.70%</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:93.1%"></div></div><div class="val">93.12%</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:97.3%"></div></div><div class="val">97.31%</div></div>
-</section>
-<section><h2>L1 Miss Rate</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:20.0%"></div></div><div class="val">20.00%</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:9.4%"></div></div><div class="val">9.41%</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:17.3%"></div></div><div class="val">17.30%</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:6.9%"></div></div><div class="val">6.88%</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:2.7%"></div></div><div class="val">2.69%</div></div>
-</section>
-<section><h2>L2 Hit Rate</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:55.6%"></div></div><div class="val">55.56%</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:72.7%"></div></div><div class="val">72.72%</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:59.0%"></div></div><div class="val">59.04%</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:80.7%"></div></div><div class="val">80.68%</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:90.0%"></div></div><div class="val">90.01%</div></div>
-</section>
-<section><h2>L2 Miss Rate</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:44.4%"></div></div><div class="val">44.44%</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:27.3%"></div></div><div class="val">27.28%</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:41.0%"></div></div><div class="val">40.96%</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:19.3%"></div></div><div class="val">19.32%</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:10.0%"></div></div><div class="val">9.99%</div></div>
-</section>
-<section><h2>Accesos a memoria principal</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:0.3%"></div></div><div class="val">9</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:37.8%"></div></div><div class="val">1,063</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:5.9%"></div></div><div class="val">166</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:100.0%"></div></div><div class="val">2,810</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:79.8%"></div></div><div class="val">2,242</div></div>
-</section>
-<section><h2>Utilizacion de ancho de banda</h2><div class="row"><div class="lbl">while loop x<5</div><div class="track"><div class="bar" style="width:58.1%"></div></div><div class="val">58.10%</div></div>
-<div class="row"><div class="lbl">bench_seq</div><div class="track"><div class="bar" style="width:86.3%"></div></div><div class="val">86.30%</div></div>
-<div class="row"><div class="lbl">bench_stride</div><div class="track"><div class="bar" style="width:70.7%"></div></div><div class="val">70.70%</div></div>
-<div class="row"><div class="lbl">bench_random</div><div class="track"><div class="bar" style="width:87.4%"></div></div><div class="val">87.43%</div></div>
-<div class="row"><div class="lbl">bench_mmul</div><div class="track"><div class="bar" style="width:88.5%"></div></div><div class="val">88.48%</div></div>
 </section>
 
 </body></html>
