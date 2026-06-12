@@ -45,15 +45,82 @@ def build_sim():
         return False
     return True
 
-# Registro de benchmarks: nombre, rom, halt_pc (PC del freeze), x11 esperado.
-# halt_pc se obtiene de la linea del 00600000 en el .hex: (linea-1)*4
+# Rutas de programas y del compilador propio (compi).
+PROG = ARQUI / "programs"
+SRC = PROG / "src"
+COMPILER = ARQUI.parent / "compi" / "main.py"
+COMPI_OUT = ARQUI.parent / "compi" / "output" / "bin_output"
+
+# Registro de benchmarks. Los de cache (con fuente .craft) se corren en dos
+# niveles de optimizacion del compilador: O0 (sin optimizar) y O1. El HALT_PC
+# se calcula en runtime escaneando la instruccion freeze (00600000) del .hex,
+# asi sigue valido aunque se recompile y cambie el layout. x11 es el mismo en
+# O0 y O1 (la optimizacion preserva el resultado): sirve de oraculo.
 BENCHMARKS = [
-    {"name": "while loop x<5",  "rom": "program.hex",      "halt": "6C",  "x11": None,   "max": 20000},
-    {"name": "bench_seq",       "rom": "bench_seq.hex",    "halt": "E4",  "x11": "7F80", "max": 300000},
-    {"name": "bench_stride",    "rom": "bench_stride.hex", "halt": "E4",  "x11": "F80",   "max": 300000},
-    {"name": "bench_random",    "rom": "bench_random.hex", "halt": "124", "x11": "1C110", "max": 600000},
-    {"name": "bench_mmul",      "rom": "bench_mmul.hex",   "halt": "264", "x11": "3F00",  "max": 600000},
+    {"name": "while loop x<5", "rom": "program.hex", "x11": None,    "max": 20000},
+    {"name": "bench_seq",    "src": "bench_seq",    "x11": "7F80",  "max": 300000, "opts": ["O0", "O1"]},
+    {"name": "bench_stride", "src": "bench_stride", "x11": "F80",   "max": 300000, "opts": ["O0", "O1"]},
+    {"name": "bench_random", "src": "bench_random", "x11": "1C110", "max": 600000, "opts": ["O0", "O1"]},
+    {"name": "bench_mmul",   "src": "bench_mmul",   "x11": "3F00",  "max": 600000, "opts": ["O0", "O1"]},
 ]
+
+
+def rom_name(base, opt):
+    """O0 -> base.hex ; O1 -> base.O1.hex (igual que nombra el compilador)."""
+    return f"{base}.hex" if opt == "O0" else f"{base}.{opt}.hex"
+
+
+def expand_runs(todo):
+    """Expande el registro a corridas concretas: cada benchmark con fuente
+    genera una corrida por nivel de optimizacion."""
+    runs = []
+    for b in todo:
+        if "src" not in b:
+            runs.append({"name": b["name"], "rom": b["rom"], "x11": b.get("x11"),
+                         "max": b["max"], "base": None, "opt": None})
+        else:
+            for opt in b.get("opts", ["O0"]):
+                runs.append({"name": f'{b["name"]} ({opt})',
+                             "rom": rom_name(b["src"], opt), "x11": b.get("x11"),
+                             "max": b["max"], "base": b["name"], "opt": opt})
+    return runs
+
+
+def freeze_halt(rom_path):
+    """HALT_PC (hex) = indice de la instruccion freeze (00600000) por 4."""
+    try:
+        words = [l.strip() for l in rom_path.read_text().splitlines() if l.strip()]
+    except OSError:
+        return None
+    for i, w in enumerate(words):
+        if w.lower() == "00600000":
+            return f"{i * 4:X}"
+    return None
+
+
+def compile_programs():
+    """Recompila los ROM de los benchmarks desde su fuente .craft con el
+    compilador propio (O0 y O1) y los copia a programs/. Esto es lo que 'mete
+    el compilador' en la suite; sin --compile se usan los .hex versionados."""
+    import shutil
+    ok = True
+    for b in BENCHMARKS:
+        if "src" not in b:
+            continue
+        for opt in b.get("opts", ["O0"]):
+            src = SRC / f'{b["src"]}.craft'
+            cmd = [sys.executable, str(COMPILER), "-r", "-b", f"-{opt}", str(src)]
+            proc = subprocess.run(cmd, cwd=COMPILER.parent.parent,
+                                  capture_output=True, text=True)
+            stem = b["src"] if opt == "O0" else f'{b["src"]}.{opt}'
+            out = COMPI_OUT / f"{stem}.hex"
+            if proc.returncode == 0 and out.exists():
+                shutil.copy(out, PROG / rom_name(b["src"], opt))
+                print(f"[COMPILE] {rom_name(b['src'], opt)}")
+            else:
+                print(f"[ERROR] no compilo {b['src']} {opt}")
+                ok = False
+    return ok
 
 CSV_COLS = [
     "Test Ejecutado", "Ciclos", "Instr", "CPI",
@@ -79,20 +146,26 @@ FIELD_MAP = {
 }
 
 
-def run_benchmark(b):
-    """Corre una simulacion y devuelve (fila_dict | None, status_str)."""
-    safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", b["name"])
+def run_benchmark(run):
+    """Corre una corrida ya expandida (programa + nivel) y devuelve
+    (fila_dict | None, status_str). El HALT_PC se calcula del .hex."""
+    rom_path = PROG / run["rom"]
+    halt = freeze_halt(rom_path)
+    if halt is None:
+        print(f"[FAIL] {run['name']}: sin freeze en {run['rom']}")
+        return None, "SIN HALT"
+    safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", run["name"])
     cmd = [
         "vvp", str(SIM_VVP),
         f"+TEST_NAME={safe_name}",
-        f"+HALT_PC={b['halt']}",
-        f"+MAX_CYCLES={b['max']}",
-        f"+FILE_ROM=programs/{b['rom']}",
+        f"+HALT_PC={halt}",
+        f"+MAX_CYCLES={run['max']}",
+        f"+FILE_ROM=programs/{run['rom']}",
         "+FILE_RAM=programs/data.hex",
     ]
-    if b["x11"]:
-        cmd.append(f"+EXPECT_X11={b['x11']}")
-    print(f"[RUN ] {b['name']}  ({b['rom']})")
+    if run["x11"]:
+        cmd.append(f"+EXPECT_X11={run['x11']}")
+    print(f"[RUN ] {run['name']}  ({run['rom']})")
     proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
     out = proc.stdout + proc.stderr
 
@@ -106,10 +179,12 @@ def run_benchmark(b):
         status = "FAIL (registros)"
     else:
         status = "OK"
-    print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {b['name']}: {status}")
+    print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {run['name']}: {status}")
     if row is not None:
-        row["Test Ejecutado"] = b["name"]
+        row["Test Ejecutado"] = run["name"]
         row["_status"] = status
+        row["_base"] = run["base"]
+        row["_opt"] = run["opt"]
     return row, status
 
 
@@ -299,11 +374,65 @@ def causal_chain(rows):
 """
 
 
+def _num(v, dec=0, suffix=""):
+    """Formatea un valor numerico de la fila; '&mdash;' si no es numero."""
+    f = _fnum(v)
+    if f is None:
+        return "&mdash;"
+    return (f"{f:.{dec}f}" if dec else f"{int(f):,}") + suffix
+
+
+def compiler_section(rows):
+    """Compara cada benchmark en O0 vs O1: cuanto acelera el compilador y como
+    afecta al cache. El resultado (x11) valida cada corrida; una O1 que rompe
+    el resultado se marca y no cuenta como aceleracion."""
+    bases = {}
+    for r in rows:
+        if r.get("_base") and r.get("_opt"):
+            bases.setdefault(r["_base"], {})[r["_opt"]] = r
+    pairs = [(b, v) for b, v in bases.items() if "O0" in v and "O1" in v]
+    if not pairs:
+        return ""
+    body = ""
+    for base, v in sorted(pairs):
+        o0, o1 = v["O0"], v["O1"]
+        broke = o1.get("_status", "OK") != "OK" or _fnum(o1.get("Ciclos")) is None
+        c0, c1 = _fnum(o0.get("Ciclos")), _fnum(o1.get("Ciclos"))
+        speed = f"{c0 / c1:.2f}&times;" if (c0 and c1 and not broke) else "&mdash;"
+        name = base + (' <span class="bad">&#10007; O1 rompe el resultado</span>'
+                       if broke else "")
+        body += (
+            f"<tr><td>{name}</td>"
+            f"<td>{_num(o0.get('Ciclos'))}</td><td>{_num(o1.get('Ciclos'))}</td>"
+            f"<td>{speed}</td>"
+            f"<td>{_num(o0.get('Instr'))}</td><td>{_num(o1.get('Instr'))}</td>"
+            f"<td>{_num(o0.get('CPI'), 2)}</td><td>{_num(o1.get('CPI'), 2)}</td>"
+            f"<td>{_num(o0.get('L1_Hit_Rate'), 1, '%')}</td>"
+            f"<td>{_num(o1.get('L1_Hit_Rate'), 1, '%')}</td></tr>\n")
+    return f"""
+<section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
+<p class="nota">Mismo programa, compilado sin optimizar (O0) y optimizado (O1:
+ loop unrolling + renombrado de registros). O1 baja ciclos, pero suele bajar el
+ hit rate: al quitar los aciertos baratos del control del bucle, los misses
+ obligatorios quedan como mayor fracci&oacute;n. El or&aacute;culo de resultado
+ (x11) valida cada corrida.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
+ <th>Instr O0</th><th>Instr O1</th><th>CPI O0</th><th>CPI O1</th>
+ <th>L1 Hit O0</th><th>L1 Hit O1</th>
+</tr></thead><tbody>{body}</tbody></table>
+</section>
+"""
+
+
 def render_html(rows, path, no_cache):
-    show_status = any(r.get("_status", "OK") != "OK" for r in rows)
+    # La historia de localidad usa solo el baseline sin optimizar (O0); las
+    # variantes O1 viven en la seccion del compilador mas abajo.
+    base_rows = [r for r in rows if r.get("_opt") in (None, "O0")]
+    show_status = any(r.get("_status", "OK") != "OK" for r in base_rows)
     # orden de lectura: del mejor CPI (arriba) al peor; sin datos al final
-    display = sorted(rows, key=lambda r: (_fnum(r.get("CPI")) is None,
-                                          _fnum(r.get("CPI")) or 0.0))
+    display = sorted(base_rows, key=lambda r: (_fnum(r.get("CPI")) is None,
+                                               _fnum(r.get("CPI")) or 0.0))
 
     # tabla curada: solo las columnas que cuentan la historia.
     # El registro completo (22 columnas) vive en results.csv.
@@ -367,15 +496,17 @@ def render_html(rows, path, no_cache):
  .formulas {{ display: flex; flex-wrap: wrap; gap: 14px; }}
  .f {{ border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }}
  .f pre {{ margin: 4px 0 0; font-size: 0.8em; }}
+ .bad {{ color: #b00; font-size: 0.8em; font-weight: 600; }}
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
-{verdict_section(rows, no_cache)}
-<h2>Resumen por benchmark</h2>
+{verdict_section(base_rows, no_cache)}
+<h2>Resumen por benchmark (sin optimizar, O0)</h2>
 <p class="nota">Ordenado del m&aacute;s r&aacute;pido al m&aacute;s lento.
- Registro completo (22 columnas) en <code>results.csv</code>.</p>
+ Registro completo (22 columnas, O0 y O1) en <code>results.csv</code>.</p>
 <table><thead>{head}</thead><tbody>{body}</tbody></table>
 {legend}
-{causal_chain(rows)}
+{causal_chain(base_rows)}
+{compiler_section(rows)}
 {formulas_section()}
 </body></html>"""
     path.write_text(html, encoding="utf-8")
@@ -387,11 +518,14 @@ def main():
     ap.add_argument("--only", help="correr solo el benchmark con este nombre")
     ap.add_argument("--list", action="store_true", help="listar benchmarks")
     ap.add_argument("--no-open", action="store_true", help="no abrir el HTML")
+    ap.add_argument("--compile", action="store_true",
+                    help="recompilar los ROM desde .craft con el compilador (O0 y O1)")
     args = ap.parse_args()
 
     if args.list:
         for b in BENCHMARKS:
-            print(f"  {b['name']:20s} rom={b['rom']}")
+            opts = "/".join(b["opts"]) if "src" in b else "pre-construido"
+            print(f"  {b['name']:20s} {opts}")
         return 0
 
     todo = [b for b in BENCHMARKS if not args.only or b["name"] == args.only]
@@ -399,14 +533,18 @@ def main():
         print(f"No existe el benchmark '{args.only}'. Usa --list.")
         return 1
 
+    if args.compile and not compile_programs():
+        return 1
+
     if not build_sim():
         return 1
 
     rows, failures = [], 0
-    for b in todo:
-        row, status = run_benchmark(b)
+    for run in expand_runs(todo):
+        row, status = run_benchmark(run)
         if row is None:
-            rows.append({"Test Ejecutado": b["name"], "_status": status})
+            rows.append({"Test Ejecutado": run["name"], "_status": status,
+                         "_base": run["base"], "_opt": run["opt"]})
             failures += 1
         else:
             rows.append(row)
