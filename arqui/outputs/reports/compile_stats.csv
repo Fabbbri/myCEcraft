@@ -1,0 +1,9 @@
+base,opt,Compile_ms,Opt_Unrolled,Opt_DCE_Removed,Opt_Reordered,Opt_Renamed
+bench_mmul,O0,109,0,0,0,0
+bench_mmul,O1,121,2,0,0,27
+bench_random,O0,104,0,0,0,0
+bench_random,O1,134,1,0,0,9
+bench_seq,O0,116,0,0,0,0
+bench_seq,O1,122,2,0,0,12
+bench_stride,O0,115,0,0,0,0
+bench_stride,O1,111,2,0,0,12

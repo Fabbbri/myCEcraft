@@ -2,14 +2,17 @@
 <html lang="es"><head><meta charset="utf-8">
 <title>Benchmarks - rendimiento de cache</title>
 <style>
- body { font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 820px; }
+ body { font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1000px; }
  h1 { font-size: 1.4em; }  h2 { font-size: 1.05em; margin: 20px 0 6px; }
+ h3 { font-size: 0.92em; margin: 12px 0 4px; color: #334; }
  table { border-collapse: collapse; font-size: 0.86em; }
- th, td { border: 1px solid #ccc; padding: 4px 10px; text-align: right; }
+ table.metrics { font-size: 0.78em; }
+ th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; }
  th { background: #f0f0f0; }  td:first-child, th:first-child { text-align: left; }
+ th.grp { background: #e2e8f0; text-align: center; }
+ .tablewrap { overflow-x: auto; }
  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
  .nota { font-size: 0.85em; color: #555; }
- .chip { padding: 1px 8px; border-radius: 3px; border: 1px solid #ccc; margin-right: 4px; }
  .verdict { border: 1px solid #d7e0ea; background: #f7fafc; border-radius: 6px; padding: 10px 16px; }
  .thesis { margin: 4px 0 12px; }
  .cards { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -31,65 +34,134 @@
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 
-<section class="verdict">
- <h2>Veredicto</h2>
- <p class="thesis">El rendimiento lo decide la <b>localidad</b> del acceso a
-   memoria: a m&aacute;s aciertos en cach&eacute;, menos esperas y menor CPI.
-   Mismo hardware, distinto patr&oacute;n de acceso.</p>
- <div class="cards"><div class="card"><div class="ct">Mejor CPI</div><div class="cb">2.19</div><div class="cs">bench_mmul (O0) &mdash; alta localidad</div></div><div class="card"><div class="ct">Peor CPI</div><div class="cb">3.84</div><div class="cs">bench_stride (O0) &mdash; sin localidad espacial</div></div><div class="card"><div class="ct">Acelera el cach&eacute;</div><div class="cb">3.2&times;</div><div class="cs">while loop x<5: 8.19 &rarr; 2.52 CPI</div></div></div>
+<section><h2>5.1 M&eacute;tricas del procesador</h2>
+<p class="nota">IPC = Instrucciones/Ciclos (mayor es mejor); CPI = 1/IPC (menor es
+ mejor, base de la narrativa). Stalls MEM = ciclos perdidos en la etapa MEM
+ (loads/stores); Stalls control = ciclos de fetch perdidos por branch tomado.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Ciclos</th><th>Instr</th><th>IPC</th><th>CPI</th>
+ <th>Stalls MEM</th><th>Stalls control</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>45,396</td><td>20,743</td><td>0.457</td><td>2.19</td><td>21,100</td><td>788</td></tr>
+<tr><td>while loop x<5</td><td>179</td><td>71</td><td>0.397</td><td>2.52</td><td>96</td><td>7</td></tr>
+<tr><td>bench_seq (O0)</td><td>21,992</td><td>8,232</td><td>0.374</td><td>2.67</td><td>11,713</td><td>515</td></tr>
+<tr><td>bench_random (O0)</td><td>57,509</td><td>20,469</td><td>0.356</td><td>2.81</td><td>32,241</td><td>1,443</td></tr>
+<tr><td>bench_stride (O0)</td><td>4,085</td><td>1,064</td><td>0.261</td><td>3.84</td><td>2,798</td><td>67</td></tr>
+</tbody></table>
 </section>
 
-<h2>Resumen por benchmark (sin optimizar, O0)</h2>
-<p class="nota">Ordenado del m&aacute;s r&aacute;pido al m&aacute;s lento.
- Registro completo (22 columnas, O0 y O1) en <code>results.csv</code>.</p>
-<table><thead><tr><th>Benchmark</th><th>Ciclos</th><th>CPI</th><th>L1 Hit %</th><th>L2 Hit %</th><th>Espera mem %</th><th>BW %</th></tr></thead><tbody><tr style="background:#e3f4e4"><td>bench_mmul (O0)</td><td>45396</td><td>2.188497</td><td style="background:#1a9850;color:#fff">97.31</td><td style="background:#1a9850;color:#fff">90.01</td><td>46.5</td><td>88.48</td></tr>
-<tr style="background:#fdf6dd"><td>while loop x<5</td><td>179</td><td>2.521127</td><td style="background:#91cf60;color:#fff">80.00</td><td style="background:#fee08b;color:#fff">55.56</td><td>53.6</td><td>58.10</td></tr>
-<tr style="background:#fdf6dd"><td>bench_seq (O0)</td><td>21992</td><td>2.671526</td><td style="background:#1a9850;color:#fff">90.59</td><td style="background:#91cf60;color:#fff">72.72</td><td>53.3</td><td>86.30</td></tr>
-<tr style="background:#fdf6dd"><td>bench_random (O0)</td><td>57509</td><td>2.809566</td><td style="background:#1a9850;color:#fff">93.12</td><td style="background:#91cf60;color:#fff">80.68</td><td>56.1</td><td>87.43</td></tr>
-<tr style="background:#fdf6dd"><td>bench_stride (O0)</td><td>4085</td><td>3.839286</td><td style="background:#91cf60;color:#fff">82.70</td><td style="background:#fee08b;color:#fff">59.04</td><td>68.5</td><td>70.70</td></tr>
+
+<section><h2>5.2 M&eacute;tricas de la jerarqu&iacute;a de cach&eacute;</h2>
+<p class="nota">Los conteos crudos (los datos que se usaron) junto a las tasas.
+ AMAT por benchmark = 1 + missL1&middot;(8 + missL2&middot;25).</p>
+<div class="tablewrap"><table class="metrics"><thead>
+<tr><th rowspan="2">Benchmark</th><th colspan="8" class="grp">L1-D</th>
+ <th colspan="7" class="grp">L2</th><th rowspan="2">AMAT</th></tr>
+<tr><th>Reads</th><th>Writes</th><th>R-Hit</th><th>R-Miss</th><th>W-Hit</th>
+ <th>W-Miss</th><th>Hit%</th><th>Miss%</th>
+ <th>Reads</th><th>Writes</th><th>Acc</th><th>Hits</th><th>Miss</th><th>Hit%</th><th>Miss%</th></tr>
+</thead><tbody><tr><td>bench_mmul (O0)</td><td>6,116</td><td>2,216</td><td>6,090</td><td>26</td><td>2,018</td><td>198</td><td style="background:#1a9850;color:#fff">97.31</td><td>2.69</td><td>26</td><td>2,216</td><td>2,242</td><td>2,018</td><td>224</td><td style="background:#1a9850;color:#fff">90.01</td><td>9.99</td><td>1.28</td></tr>
+<tr><td>while loop x<5</td><td>12</td><td>8</td><td>11</td><td>1</td><td>5</td><td>3</td><td style="background:#91cf60;color:#fff">80.00</td><td>20.00</td><td>1</td><td>8</td><td>9</td><td>5</td><td>4</td><td style="background:#fee08b;color:#fff">55.56</td><td>44.44</td><td>4.82</td></tr>
+<tr><td>bench_seq (O0)</td><td>2,051</td><td>1,030</td><td>2,018</td><td>33</td><td>773</td><td>257</td><td style="background:#1a9850;color:#fff">90.59</td><td>9.41</td><td>33</td><td>1,030</td><td>1,063</td><td>773</td><td>290</td><td style="background:#91cf60;color:#fff">72.72</td><td>27.28</td><td>2.39</td></tr>
+<tr><td>bench_random (O0)</td><td>5,144</td><td>2,749</td><td>5,083</td><td>61</td><td>2,267</td><td>482</td><td style="background:#1a9850;color:#fff">93.12</td><td>6.88</td><td>61</td><td>2,749</td><td>2,810</td><td>2,267</td><td>543</td><td style="background:#91cf60;color:#fff">80.68</td><td>19.32</td><td>1.88</td></tr>
+<tr><td>bench_stride (O0)</td><td>259</td><td>134</td><td>227</td><td>32</td><td>98</td><td>36</td><td style="background:#91cf60;color:#fff">82.70</td><td>17.30</td><td>32</td><td>134</td><td>166</td><td>98</td><td>68</td><td style="background:#fee08b;color:#fff">59.04</td><td>40.96</td><td>4.16</td></tr>
+</tbody></table></div>
+<p class="nota"><b>AMAT global</b> (miss rates promediados: L1 11.26%, L2 28.40%) = <b>2.70 ciclos</b>.</p>
+</section>
+
+
+<section><h2>5.3 M&eacute;tricas de memoria principal</h2>
+<p class="nota">Accesos = misses de lectura de L2 + stores drenados (write-through).
+ BW = fracci&oacute;n del <b>ancho de banda te&oacute;rico m&aacute;ximo</b> del bus
+ (0.5 palabras/ciclo: memoria a 50 MHz, burst de 8) usada con cach&eacute;.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
+ <th>BW %</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>2,242</td><td>40,165</td><td>88.48</td></tr>
+<tr><td>while loop x<5</td><td>9</td><td>104</td><td>58.10</td></tr>
+<tr><td>bench_seq (O0)</td><td>1,063</td><td>18,978</td><td>86.30</td></tr>
+<tr><td>bench_random (O0)</td><td>2,810</td><td>50,282</td><td>87.43</td></tr>
+<tr><td>bench_stride (O0)</td><td>166</td><td>2,888</td><td>70.70</td></tr>
 </tbody></table>
 
-<p class="nota">Color de fila seg&uacute;n L1 Hit Rate:
- <span class="chip" style="background:#e3f4e4">&gt;95% muy bueno</span>
- <span class="chip" style="background:#fdf6dd">80&ndash;95% medio</span>
- <span class="chip" style="background:#fde8e6">&lt;80% malo</span>
- <span class="chip" style="background:#f0f0f0">sin datos</span></p>
+<h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
+<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa
+ baja a RAM &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla
+ (Memory_Accesses). La <b>Reducci&oacute;n</b> es cu&aacute;ntas veces menos tr&aacute;fico
+ pone el cach&eacute; en el bus. <i>Acc/instr</i> = transacciones a memoria por
+ instrucci&oacute;n.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
+ <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>8,332</td><td>2,242</td><td><b>3.7&times;</b></td><td>0.402</td><td>0.108</td></tr>
+<tr><td>while loop x<5</td><td>20</td><td>9</td><td><b>2.2&times;</b></td><td>0.282</td><td>0.127</td></tr>
+<tr><td>bench_seq (O0)</td><td>3,081</td><td>1,063</td><td><b>2.9&times;</b></td><td>0.374</td><td>0.129</td></tr>
+<tr><td>bench_random (O0)</td><td>7,893</td><td>2,810</td><td><b>2.8&times;</b></td><td>0.386</td><td>0.137</td></tr>
+<tr><td>bench_stride (O0)</td><td>393</td><td>166</td><td><b>2.4&times;</b></td><td>0.369</td><td>0.156</td></tr>
+</tbody></table>
+</section>
+
 
 <section><h2>Cadena causal: localidad &rarr; aciertos &rarr; esperas &rarr; CPI</h2>
-<p class="nota">Cada bloque es un benchmark, del m&aacute;s r&aacute;pido (arriba)
- al m&aacute;s lento (abajo). Barra verde larga (aciertos) + roja corta (espera)
- &rarr; CPI bajo. Es la misma cadena causal para todos: el patr&oacute;n de
- acceso manda.</p>
-<div class="cblock"><div class="cname">bench_mmul (O0)</div><div class="row"><div class="lbl">L1 aciertos</div><div class="track"><div class="bar" style="width:97.3%;background:#1a9850"></div></div><div class="val">97%</div></div><div class="row"><div class="lbl">Espera mem</div><div class="track"><div class="bar" style="width:46.5%;background:#d73027"></div></div><div class="val">46%</div></div><div class="row"><div class="lbl">CPI</div><div class="track"><div class="bar" style="width:57.0%;background:#4575b4"></div></div><div class="val">2.19</div></div></div>
-<div class="cblock"><div class="cname">while loop x<5</div><div class="row"><div class="lbl">L1 aciertos</div><div class="track"><div class="bar" style="width:80.0%;background:#1a9850"></div></div><div class="val">80%</div></div><div class="row"><div class="lbl">Espera mem</div><div class="track"><div class="bar" style="width:53.6%;background:#d73027"></div></div><div class="val">54%</div></div><div class="row"><div class="lbl">CPI</div><div class="track"><div class="bar" style="width:65.7%;background:#4575b4"></div></div><div class="val">2.52</div></div></div>
-<div class="cblock"><div class="cname">bench_seq (O0)</div><div class="row"><div class="lbl">L1 aciertos</div><div class="track"><div class="bar" style="width:90.6%;background:#1a9850"></div></div><div class="val">91%</div></div><div class="row"><div class="lbl">Espera mem</div><div class="track"><div class="bar" style="width:53.3%;background:#d73027"></div></div><div class="val">53%</div></div><div class="row"><div class="lbl">CPI</div><div class="track"><div class="bar" style="width:69.6%;background:#4575b4"></div></div><div class="val">2.67</div></div></div>
-<div class="cblock"><div class="cname">bench_random (O0)</div><div class="row"><div class="lbl">L1 aciertos</div><div class="track"><div class="bar" style="width:93.1%;background:#1a9850"></div></div><div class="val">93%</div></div><div class="row"><div class="lbl">Espera mem</div><div class="track"><div class="bar" style="width:56.1%;background:#d73027"></div></div><div class="val">56%</div></div><div class="row"><div class="lbl">CPI</div><div class="track"><div class="bar" style="width:73.2%;background:#4575b4"></div></div><div class="val">2.81</div></div></div>
-<div class="cblock"><div class="cname">bench_stride (O0)</div><div class="row"><div class="lbl">L1 aciertos</div><div class="track"><div class="bar" style="width:82.7%;background:#1a9850"></div></div><div class="val">83%</div></div><div class="row"><div class="lbl">Espera mem</div><div class="track"><div class="bar" style="width:68.5%;background:#d73027"></div></div><div class="val">68%</div></div><div class="row"><div class="lbl">CPI</div><div class="track"><div class="bar" style="width:100.0%;background:#4575b4"></div></div><div class="val">3.84</div></div></div>
-
+<p class="nota">Del m&aacute;s r&aacute;pido (arriba) al m&aacute;s lento (abajo).
+ M&aacute;s aciertos en L1 (verde) y menos espera de memoria (rojo) &rarr; menor CPI.
+ Es la misma cadena para todos: el patr&oacute;n de acceso manda.</p>
+<table><thead><tr>
+ <th>Benchmark</th><th>L1 aciertos</th><th>Espera mem</th><th>CPI</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td style="background:#1a9850;color:#fff">97.3%</td><td style="background:#fee08b">46.5%</td><td>2.19</td></tr>
+<tr><td>while loop x<5</td><td style="background:#91cf60;color:#fff">80.0%</td><td style="background:#fc8d59">53.6%</td><td>2.52</td></tr>
+<tr><td>bench_seq (O0)</td><td style="background:#1a9850;color:#fff">90.6%</td><td style="background:#fc8d59">53.3%</td><td>2.67</td></tr>
+<tr><td>bench_random (O0)</td><td style="background:#1a9850;color:#fff">93.1%</td><td style="background:#fc8d59">56.1%</td><td>2.81</td></tr>
+<tr><td>bench_stride (O0)</td><td style="background:#91cf60;color:#fff">82.7%</td><td style="background:#fc8d59">68.5%</td><td>3.84</td></tr>
+</tbody></table>
 </section>
 
 
 <section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
-<p class="nota">Mismo programa, compilado sin optimizar (O0) y optimizado (O1:
- loop unrolling + renombrado de registros). O1 baja ciclos, pero suele bajar el
- hit rate: al quitar los aciertos baratos del control del bucle, los misses
- obligatorios quedan como mayor fracci&oacute;n. El or&aacute;culo de resultado
- (x11) valida cada corrida.</p>
+<p class="nota"><b>O0</b> = el programa compilado <b>sin optimizar</b>;
+ <b>O1</b> = el mismo programa <b>optimizado</b> por el compilador (desenrolla
+ bucles y renombra registros). Se comparan los dos para ver cu&aacute;nto ayuda el
+ compilador. Cada corrida se valida con el resultado esperado en <code>x11</code>.</p>
+<h3>Rendimiento &mdash; qu&eacute; tan r&aacute;pido corre</h3>
+<p class="nota"><b>Acelera</b> = veces m&aacute;s r&aacute;pido (Ciclos O0 / Ciclos O1).
+ O1 baja los ciclos, pero a veces baja el hit rate de L1: al eliminar las
+ instrucciones baratas del control del bucle, los fallos obligatorios de
+ cach&eacute; quedan como mayor fracci&oacute;n.
+ <span class="bad">&#10007; resultado incorrecto</span> significa que la versi&oacute;n
+ O1 dio un valor distinto al esperado en x11: la optimizaci&oacute;n rompi&oacute; ese
+ programa (es un bug del compilador, no del cach&eacute;), por eso no se mide su
+ aceleraci&oacute;n.</p>
 <table><thead><tr>
  <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
- <th>Instr O0</th><th>Instr O1</th><th>CPI O0</th><th>CPI O1</th>
+ <th>IPC O0</th><th>IPC O1</th><th>CPI O0</th><th>CPI O1</th>
  <th>L1 Hit O0</th><th>L1 Hit O1</th>
-</tr></thead><tbody><tr><td>bench_mmul <span class="bad">&#10007; O1 rompe el resultado</span></td><td>45,396</td><td>108,787</td><td>&mdash;</td><td>20,743</td><td>28,746</td><td>2.19</td><td>3.78</td><td>97.3%</td><td>98.3%</td></tr>
-<tr><td>bench_random</td><td>57,509</td><td>51,813</td><td>1.11&times;</td><td>20,469</td><td>21,036</td><td>2.81</td><td>2.46</td><td>93.1%</td><td>89.0%</td></tr>
-<tr><td>bench_seq</td><td>21,992</td><td>13,681</td><td>1.61&times;</td><td>8,232</td><td>5,967</td><td>2.67</td><td>2.29</td><td>90.6%</td><td>76.2%</td></tr>
-<tr><td>bench_stride</td><td>4,085</td><td>3,020</td><td>1.35&times;</td><td>1,064</td><td>787</td><td>3.84</td><td>3.84</td><td>82.7%</td><td>56.6%</td></tr>
+</tr></thead><tbody><tr><td>bench_mmul <span class="bad">&#10007; resultado incorrecto</span></td><td>45,396</td><td>108,787</td><td>&mdash;</td><td>0.457</td><td>0.264</td><td>2.19</td><td>3.78</td><td>97.3%</td><td>98.3%</td></tr>
+<tr><td>bench_random</td><td>57,509</td><td>51,813</td><td>1.11&times;</td><td>0.356</td><td>0.406</td><td>2.81</td><td>2.46</td><td>93.1%</td><td>89.0%</td></tr>
+<tr><td>bench_seq</td><td>21,992</td><td>13,681</td><td>1.61&times;</td><td>0.374</td><td>0.436</td><td>2.67</td><td>2.29</td><td>90.6%</td><td>76.2%</td></tr>
+<tr><td>bench_stride</td><td>4,085</td><td>3,020</td><td>1.35&times;</td><td>0.261</td><td>0.261</td><td>3.84</td><td>3.84</td><td>82.7%</td><td>56.6%</td></tr>
 </tbody></table>
+<h3>Transformaciones del compilador y costo (Secci&oacute;n 6 del enunciado)</h3>
+<table><thead><tr>
+ <th>Benchmark</th><th>Instr O0</th><th>Instr O1</th>
+ <th>C&oacute;digo O0 (B)</th><th>C&oacute;digo O1 (B)</th>
+ <th>Ciclos O0</th><th>Ciclos O1</th><th>Compilaci&oacute;n (ms)</th>
+ <th>Unrolled</th><th>DCE</th><th>Reord.</th><th>Renamed</th>
+</tr></thead><tbody><tr><td>bench_mmul</td><td>20,743</td><td>28,746</td><td>616</td><td>1,352</td><td>45,396</td><td>108,787</td><td>121</td><td>2</td><td>0</td><td>0</td><td>27</td></tr>
+<tr><td>bench_random</td><td>20,469</td><td>21,036</td><td>296</td><td>588</td><td>57,509</td><td>51,813</td><td>134</td><td>1</td><td>0</td><td>0</td><td>9</td></tr>
+<tr><td>bench_seq</td><td>8,232</td><td>5,967</td><td>232</td><td>636</td><td>21,992</td><td>13,681</td><td>122</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
+<tr><td>bench_stride</td><td>1,064</td><td>787</td><td>232</td><td>636</td><td>4,085</td><td>3,020</td><td>111</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
+</tbody></table>
+<p class="nota">C&oacute;digo en bytes = #instrucciones &times; 4. Unrolled/DCE/Reord./Renamed:
+ instrucciones desenrolladas / eliminadas / reordenadas / renombradas por el
+ compilador (de su salida). Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
 </section>
 
 
 <section><h2>F&oacute;rmulas</h2>
 <div class="formulas">
-<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones</pre></div>
+<div class="f"><b>IPC</b><pre>Instrucciones / Ciclos</pre></div>
+<div class="f"><b>CPI</b><pre>Ciclos / Instrucciones  (= 1/IPC)</pre></div>
+<div class="f"><b>AMAT</b><pre>1 + missL1 x (8 + missL2 x 25)
+hit L1=1, hit L2=8, mem=25 ciclos</pre></div>
 <div class="f"><b>L1 Hit Rate</b><pre>(Hits lectura + Hits escritura)
 -------------------------------- x 100
         (Reads + Writes)</pre></div>
