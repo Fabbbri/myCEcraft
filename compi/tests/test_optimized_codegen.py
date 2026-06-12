@@ -13,7 +13,7 @@ if str(COMPI_ROOT) not in sys.path:
 from codegen.binary import BinaryEncoder
 from codegen.ir_assembly_generator import IRAssemblyGenerator
 from codegen.resolver import LabelResolver
-from IR.instructions import IRBinOp, IRCommit
+from IR.instructions import IRAssign, IRBinOp
 from IR.ir_generator import IRGenerator
 from lexer import Lexer
 from Optimizations import AUTO_UNROLL_FACTOR, optimize_ir
@@ -140,7 +140,9 @@ craft:int main() {
         self.assertNotEqual(normal_assembly, reordered_assembly)
         self.assertNotEqual(normal_binary, reordered_binary)
 
-    def test_static_register_renaming_changes_assembly_and_binary(self) -> None:
+    def test_static_register_renaming_hints_temporaries_without_versioning_variables(
+        self,
+    ) -> None:
         source = """
 @EnterCraftWorld
 craft:int main() {
@@ -149,20 +151,35 @@ craft:int main() {
     return first + second;
 }
 """
-
-        normal_assembly, normal_binary = self._compile_optimized(source)
-        renamed_assembly, renamed_binary = self._compile_optimized(
-            source,
+        tokens = Lexer(source, filename="<test>").tokenize()
+        program = Parser(tokens, filename="<test>").parse()
+        symbols = SemanticAnalyzer(filename="<test>").analyze(program)
+        instructions = IRGenerator().generate(program)
+        optimized, stats = optimize_ir(
+            instructions,
+            unroll_factor=1,
             rename_static_registers=True,
         )
 
-        self.assertNotEqual(normal_assembly, renamed_assembly)
-        self.assertNotEqual(normal_binary, renamed_binary)
+        defined_names = {
+            instruction.result
+            for instruction in optimized
+            if hasattr(instruction, "result")
+            and isinstance(instruction.result, str)
+        }
+        self.assertTrue(any(re.fullmatch(r"t\d+__x\d+", name) for name in defined_names))
+        self.assertFalse(any("__v" in name for name in defined_names))
+        self.assertGreater(stats.static_registers_renamed, 0)
+
+        assembly = IRAssemblyGenerator(symbols).generate(optimized)
+        resolved = LabelResolver().resolve(assembly)
+        binary = BinaryEncoder().encode(resolved.assembly).binary
+        self.assertTrue(binary)
         self.assertIn(
             "Las optimizaciones IR son la fuente del ejecutable",
-            renamed_assembly,
+            assembly,
         )
-        self.assertRegex(renamed_assembly, r"\badd x(?:[4-9]|10),")
+        self.assertRegex(assembly, r"\badd x(?:[3-9]|10),")
 
     def test_static_register_renaming_handles_computed_array_index(self) -> None:
         source = """
@@ -170,6 +187,7 @@ craft:int main() {
 craft:int main() {
     values:chest[int, 2] = [4, 9];
     index:int = 0;
+    values[index + 1] = values[index + 1] + 1;
     return values[index + 1];
 }
 """
@@ -182,7 +200,7 @@ craft:int main() {
         self.assertTrue(binary)
         self.assertIn("Las optimizaciones IR son la fuente del ejecutable", assembly)
 
-    def test_static_register_renaming_versions_war_and_waw_writes(self) -> None:
+    def test_static_register_renaming_preserves_war_and_waw_names(self) -> None:
         source = """
 @EnterCraftWorld
 craft:int main() {
@@ -204,37 +222,149 @@ craft:int main() {
             reorder_instructions=True,
         )
 
-        a_versions = {
-            instruction.result
+        writes = [
+            instruction
             for instruction in optimized
-            if hasattr(instruction, "result")
-            and isinstance(instruction.result, str)
-            and instruction.result.startswith("a__v")
-        }
-        a_reads = {
+            if isinstance(instruction, IRAssign) and instruction.result == "a"
+        ]
+        reads = [
             operand
             for instruction in optimized
             if isinstance(instruction, IRBinOp)
             for operand in (instruction.left, instruction.right)
-            if isinstance(operand, str) and operand.startswith("a__v")
-        }
-        commits = [
-            instruction
-            for instruction in optimized
-            if isinstance(instruction, IRCommit) and instruction.result == "a"
+            if operand == "a"
         ]
 
-        self.assertEqual(2, len(a_versions))
-        self.assertEqual(a_versions, a_reads)
-        self.assertTrue(commits)
+        self.assertEqual(2, len(writes))
+        self.assertEqual(2, len(reads))
+        self.assertFalse(
+            any(
+                "__v" in value
+                for instruction in optimized
+                for value in vars(instruction).values()
+                if isinstance(value, str)
+            )
+        )
         self.assertGreaterEqual(stats.static_registers_renamed, 2)
 
         assembly = IRAssemblyGenerator(symbols).generate(optimized)
         resolved = LabelResolver().resolve(assembly)
         binary = BinaryEncoder().encode(resolved.assembly).binary
         self.assertTrue(binary)
-        self.assertRegex(assembly, r"a__v1__x(?:[3-9]|10)")
-        self.assertRegex(assembly, r"a__v2__x(?:[3-9]|10)")
+
+    def test_dce_removes_loop_carried_dead_recurrence(self) -> None:
+        source = """
+@EnterCraftWorld
+craft:int main() {
+    i:int = 0;
+    total:int = 0;
+    dead:int = 7;
+    while (i < 8) {
+        total = total + i;
+        dead = dead * 3 + i;
+        i = i + 1;
+    }
+    return total;
+}
+"""
+        tokens = Lexer(source, filename="<test>").tokenize()
+        program = Parser(tokens, filename="<test>").parse()
+        SemanticAnalyzer(filename="<test>").analyze(program)
+        instructions = IRGenerator().generate(program)
+        optimized, stats = optimize_ir(
+            instructions,
+            unroll_factor=1,
+            rename_static_registers=False,
+            eliminate_dead_code=True,
+        )
+
+        self.assertGreater(stats.dead_code_eliminated, 0)
+        self.assertFalse(
+            any(
+                "dead" in value
+                for instruction in optimized
+                for value in vars(instruction).values()
+                if isinstance(value, str)
+            )
+        )
+
+    def test_dce_preserves_global_writes(self) -> None:
+        source = """
+global_value:int = 0;
+@EnterCraftWorld
+craft:int main() {
+    global_value = 9;
+    return 1;
+}
+"""
+        tokens = Lexer(source, filename="<test>").tokenize()
+        program = Parser(tokens, filename="<test>").parse()
+        SemanticAnalyzer(filename="<test>").analyze(program)
+        instructions = IRGenerator().generate(program)
+        optimized, _ = optimize_ir(
+            instructions,
+            unroll_factor=1,
+            rename_static_registers=False,
+            eliminate_dead_code=True,
+        )
+
+        writes = [
+            instruction
+            for instruction in optimized
+            if isinstance(instruction, IRAssign)
+            and instruction.result == "global_value"
+        ]
+        self.assertEqual(2, len(writes))
+
+    def test_register_promotion_keeps_scalar_loop_off_the_stack(self) -> None:
+        source = """
+@EnterCraftWorld
+craft:int main() {
+    i:int = 0;
+    total:int = 0;
+    while (i < 8) {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+"""
+        assembly, binary = self._compile_optimized(source, dce=True)
+        load_store_count = len(
+            re.findall(r"^\s+(?:lw|sw)\s", assembly, flags=re.MULTILINE)
+        )
+
+        self.assertTrue(binary)
+        self.assertLessEqual(load_store_count, 4)
+        self.assertIn("; promote i", assembly)
+        self.assertIn("; promote total", assembly)
+
+    def test_register_promotion_spills_live_values_across_calls(self) -> None:
+        source = """
+craft:int add_one(value:int) {
+    return value + 1;
+}
+
+@EnterCraftWorld
+craft:int main() {
+    base:int = 40;
+    result:int = summon:add_one(base);
+    return base + result;
+}
+"""
+        assembly, binary = self._compile_optimized(
+            source,
+            rename_static_registers=True,
+            dce=True,
+        )
+
+        self.assertTrue(binary)
+        main_body = assembly.split("main:", 1)[1].split("add_one:", 1)[0]
+        call_offset = main_body.index("jal x1, add_one")
+        before_call = main_body[:call_offset]
+        after_call = main_body[call_offset:]
+        self.assertRegex(before_call, r"\bsw x\d+, -\d+\(x17\) ; base")
+        self.assertRegex(after_call, r"\blw x\d+, -\d+\(x17\) ; base")
 
 
 if __name__ == "__main__":

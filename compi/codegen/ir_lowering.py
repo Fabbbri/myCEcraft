@@ -19,6 +19,7 @@ from IR.instructions import (
     IRUnaryOp,
     IRVaultInstruction,
 )
+from IR.ir_analysis import defs, uses
 from registers import ARG_REGISTERS, FP, RA, SP, TEMP_REGISTERS, V0, ZERO
 from symbol_table import (
     ChestType,
@@ -64,6 +65,9 @@ class IRLoweringBackend(EmitMixin):
         self._function_scope: Scope | None = None
         self._symbols: dict[str, Symbol] = {}
         self._temp_offsets: dict[str, int] = {}
+        self._register_assignments: dict[str, str] = {}
+        self._register_valid: set[str] = set()
+        self._register_dirty: set[str] = set()
         self._function_end_label: str | None = None
 
     def generate(self, instructions: list[IRInstruction]) -> str:
@@ -201,6 +205,16 @@ class IRLoweringBackend(EmitMixin):
         self._function_scope = function_scope
         self._symbols = self._collect_symbols(function_scope)
         self._temp_offsets = self._allocate_temp_slots(function.instructions, function_scope)
+        self._register_assignments = self._allocate_registers(function.instructions)
+        reserved_registers = set(self._register_assignments.values())
+        self._free_temps = [
+            register.asm()
+            for register in TEMP_REGISTERS
+            if register.asm() not in reserved_registers
+        ]
+        self._used_temps = []
+        self._register_valid = set()
+        self._register_dirty = set()
         self._function_end_label = self._new_label(f"{function.label.name}_end")
         local_size = self._required_local_size(function_scope, self._temp_offsets)
         frame_size = local_size + 8
@@ -234,12 +248,63 @@ class IRLoweringBackend(EmitMixin):
         self._function_scope = None
         self._symbols = {}
         self._temp_offsets = {}
+        self._register_assignments = {}
+        self._register_valid = set()
+        self._register_dirty = set()
+        self._free_temps = [register.asm() for register in TEMP_REGISTERS]
+        self._used_temps = []
         self._function_end_label = None
 
     def _emit_ir_instructions(self, instructions: list[IRInstruction]) -> None:
         index = 0
         while index < len(instructions):
             instruction = instructions[index]
+            next_instruction = (
+                instructions[index + 1]
+                if index + 1 < len(instructions)
+                else None
+            )
+
+            if (
+                isinstance(instruction, (IRBinOp, IRUnaryOp))
+                and isinstance(next_instruction, IRAssign)
+                and next_instruction.source == instruction.result
+                and self._is_simple_name(next_instruction.result)
+            ):
+                if isinstance(instruction, IRBinOp):
+                    self._emit_binop(
+                        IRBinOp(
+                            instruction.op,
+                            instruction.left,
+                            instruction.right,
+                            next_instruction.result,
+                        )
+                    )
+                else:
+                    self._emit_unary(
+                        IRUnaryOp(
+                            instruction.op,
+                            instruction.operand,
+                            next_instruction.result,
+                        )
+                    )
+                index += 2
+                continue
+
+            if (
+                isinstance(instruction, IRBinOp)
+                and isinstance(next_instruction, IRJumpIfFalse)
+                and next_instruction.condition == instruction.result
+            ):
+                self._emit_binop(instruction)
+                condition = self._load_operand(instruction.result)
+                self._emit(
+                    f"    beq {condition}, {ZERO.asm()}, {next_instruction.label}"
+                )
+                self._release_temp(condition)
+                index += 2
+                continue
+
             if (
                 isinstance(instruction, IRVaultInstruction)
                 and instruction.keyword == "enderPortal"
@@ -402,7 +467,9 @@ class IRLoweringBackend(EmitMixin):
             self._emit(f"    add {target}, {source}, {ZERO.asm()}")
             self._release_temp(source)
 
+        self._flush_promoted_values()
         self._emit(f"    jal {RA.asm()}, {instruction.func_name}")
+        self._invalidate_promoted_values()
         function_symbol = self.symbol_table.lookup_global(instruction.func_name)
         returns_void = (
             function_symbol is not None
@@ -506,6 +573,13 @@ class IRLoweringBackend(EmitMixin):
             raise CodegenError(f"operando IR invalido: {operand!r}")
 
         if self._is_simple_name(operand):
+            assigned = self._register_assignments.get(operand)
+            if assigned is not None:
+                if operand not in self._register_valid:
+                    self._load_backing_name(operand, assigned)
+                    self._register_valid.add(operand)
+                return assigned
+
             symbol = self._lookup_symbol(operand)
             register = self._acquire_temp(self._register_hint(operand))
             if symbol is not None:
@@ -618,6 +692,14 @@ class IRLoweringBackend(EmitMixin):
         return result
 
     def _store_name(self, name: str, source: str) -> None:
+        assigned = self._register_assignments.get(name)
+        if assigned is not None:
+            if assigned != source:
+                self._emit(f"    add {assigned}, {source}, {ZERO.asm()} ; promote {name}")
+            self._register_valid.add(name)
+            self._register_dirty.add(name)
+            return
+
         symbol = self._lookup_symbol(name)
         if symbol is not None:
             self._store_symbol(symbol, source)
@@ -661,12 +743,125 @@ class IRLoweringBackend(EmitMixin):
             key=lambda symbol: int(symbol.metadata.get("position", 0)),
         )
         for index, symbol in enumerate(parameters):
-            self._emit(
-                f"    sw {ARG_REGISTERS[index].asm()}, {symbol.memory_info.offset}({FP.asm()})"
-                f" ; parametro {symbol.name}"
-            )
+            assigned = self._register_assignments.get(symbol.name)
+            if assigned is not None:
+                self._emit(
+                    f"    add {assigned}, {ARG_REGISTERS[index].asm()}, {ZERO.asm()}"
+                    f" ; parametro promovido {symbol.name}"
+                )
+                self._register_valid.add(symbol.name)
+                self._register_dirty.add(symbol.name)
+            else:
+                self._emit(
+                    f"    sw {ARG_REGISTERS[index].asm()}, {symbol.memory_info.offset}({FP.asm()})"
+                    f" ; parametro {symbol.name}"
+                )
         if parameters:
             self._emit("")
+
+    def _allocate_registers(
+        self,
+        instructions: list[IRInstruction],
+    ) -> dict[str, str]:
+        """
+        Promocion conservadora por funcion.
+
+        El codigo escalar reserva cuatro temporales. Las funciones con accesos
+        indexados o Vault reservan seis porque el calculo de una direccion
+        mantiene vivos indice, escala, base y valor simultaneamente.
+        """
+        scratch_count = 6 if self._needs_addressing_scratch(instructions) else 4
+        allocatable = [
+            register.asm() for register in TEMP_REGISTERS[:-scratch_count]
+        ]
+        intervals: dict[str, list[int]] = {}
+        frequency: dict[str, int] = {}
+
+        for index, instruction in enumerate(instructions):
+            names = defs(instruction) | uses(instruction)
+            for name in names:
+                if not self._is_register_candidate(name):
+                    continue
+                frequency[name] = frequency.get(name, 0) + 1
+                interval = intervals.setdefault(name, [index, index])
+                interval[0] = min(interval[0], index)
+                interval[1] = max(interval[1], index)
+
+        assignments: dict[str, str] = {}
+        free = list(allocatable)
+        ranked = sorted(
+            intervals,
+            key=lambda name: (
+                self._lookup_symbol(name) is None,
+                -frequency[name],
+                -(intervals[name][1] - intervals[name][0]),
+                intervals[name][0],
+            ),
+        )
+        for name in ranked[: len(allocatable)]:
+            preferred = self._register_hint(name)
+            if preferred in free:
+                register = preferred
+                free.remove(register)
+            else:
+                free.sort(key=lambda value: int(value[1:]))
+                register = free.pop(0)
+            assignments[name] = register
+
+        return assignments
+
+    def _needs_addressing_scratch(
+        self,
+        instructions: list[IRInstruction],
+    ) -> bool:
+        for instruction in instructions:
+            if isinstance(instruction, IRVaultInstruction):
+                return True
+            for value in vars(instruction).values():
+                values = value if isinstance(value, list) else [value]
+                if any(isinstance(item, str) and "[" in item for item in values):
+                    return True
+        return False
+
+    def _is_register_candidate(self, name: str) -> bool:
+        if not self._is_simple_name(name):
+            return False
+        symbol = self._lookup_symbol(name)
+        if symbol is not None:
+            return (
+                symbol.memory_info.segment == "STACK"
+                and not isinstance(symbol.type, ChestType)
+            )
+        return VIRTUAL_RE.fullmatch(name) is not None
+
+    def _load_backing_name(self, name: str, target: str) -> None:
+        symbol = self._lookup_symbol(name)
+        if symbol is not None:
+            self._load_symbol(symbol, target)
+            return
+        offset = self._temp_offsets.get(name)
+        if offset is None:
+            raise CodegenError(f"temporal IR sin respaldo: {name}")
+        self._emit(f"    lw {target}, {offset}({FP.asm()}) ; reload {name}")
+
+    def _store_backing_name(self, name: str, source: str) -> None:
+        symbol = self._lookup_symbol(name)
+        if symbol is not None:
+            self._store_symbol(symbol, source)
+            return
+        offset = self._temp_offsets.get(name)
+        if offset is None:
+            raise CodegenError(f"temporal IR sin respaldo: {name}")
+        self._emit(f"    sw {source}, {offset}({FP.asm()}) ; spill {name}")
+
+    def _flush_promoted_values(self) -> None:
+        for name in sorted(self._register_dirty):
+            register = self._register_assignments[name]
+            self._store_backing_name(name, register)
+        self._register_dirty.clear()
+
+    def _invalidate_promoted_values(self) -> None:
+        self._register_valid.clear()
 
     def _allocate_temp_slots(
         self,
