@@ -171,26 +171,65 @@ def row_band(row):
     return "#fde8e6"
 
 
-def summary_section(rows):
-    """Resumen: totales y promedios sobre las corridas con datos."""
-    ok = sum(1 for r in rows if r.get("_status") == "OK")
-    with_data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+def load_no_cache():
+    """Corrida sin cache (iteracion 2) como referencia, si existe.
+    Devuelve {nombre: {'Ciclos':.., 'CPI':..}}. El nombre del while puede
+    venir con sufijo, se normaliza por prefijo."""
+    path = ARQUI / "outputs" / "reports" / "results_no_cash.csv"
+    ref = {}
+    if not path.exists():
+        return ref
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                name = r.get("Test Ejecutado", "")
+                key = "while loop x<5" if name.startswith("while") else name
+                ref[key] = {"Ciclos": r.get("Ciclos"), "CPI": r.get("CPI")}
+    except (OSError, KeyError):
+        pass
+    return ref
 
-    def avg(col):
-        vals = [_fnum(r.get(col)) for r in with_data]
-        vals = [v for v in vals if v is not None]
-        return f"{sum(vals) / len(vals):.2f}" if vals else "&mdash;"
 
+def _stall_pct(r):
+    """% de ciclos congelado esperando memoria (la 'pared de memoria')."""
+    cyc, st = _fnum(r.get("Ciclos")), _fnum(r.get("Stalls_Mem"))
+    if cyc and st is not None and cyc > 0:
+        return 100.0 * st / cyc
+    return None
+
+
+def _card(title, big, sub):
+    return (f'<div class="card"><div class="ct">{title}</div>'
+            f'<div class="cb">{big}</div><div class="cs">{sub}</div></div>')
+
+
+def verdict_section(rows, no_cache):
+    """Veredicto: la tesis en una linea + 3 tarjetas con lo esencial
+    (mejor CPI, peor CPI, aceleracion del cache vs sin cache)."""
+    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+    cards = ""
+    if data:
+        best = min(data, key=lambda r: _fnum(r.get("CPI")))
+        worst = max(data, key=lambda r: _fnum(r.get("CPI")))
+        cards += _card("Mejor CPI", f'{_fnum(best.get("CPI")):.2f}',
+                       f'{best["Test Ejecutado"]} &mdash; alta localidad')
+        cards += _card("Peor CPI", f'{_fnum(worst.get("CPI")):.2f}',
+                       f'{worst["Test Ejecutado"]} &mdash; sin localidad espacial')
+        for r in data:
+            ref = no_cache.get(r["Test Ejecutado"])
+            rc, c = (_fnum(ref.get("CPI")) if ref else None), _fnum(r.get("CPI"))
+            if rc and c:
+                cards += _card("Acelera el cach&eacute;", f"{rc / c:.1f}&times;",
+                               f'{r["Test Ejecutado"]}: {rc:.2f} &rarr; {c:.2f} CPI')
+                break
     return f"""
-<section class="resumen"><h2>Resumen</h2>
-<ul>
- <li>Benchmarks ejecutados: <b>{len(rows)}</b></li>
- <li>Exitosos: <b>{ok}</b></li>
- <li>Con fallos: <b>{len(rows) - ok}</b></li>
- <li>Promedio L1 Hit Rate: <b>{avg('L1_Hit_Rate')}%</b></li>
- <li>Promedio L2 Hit Rate: <b>{avg('L2_Hit_Rate')}%</b></li>
- <li>Promedio CPI: <b>{avg('CPI')}</b></li>
-</ul></section>
+<section class="verdict">
+ <h2>Veredicto</h2>
+ <p class="thesis">El rendimiento lo decide la <b>localidad</b> del acceso a
+   memoria: a m&aacute;s aciertos en cach&eacute;, menos esperas y menor CPI.
+   Mismo hardware, distinto patr&oacute;n de acceso.</p>
+ <div class="cards">{cards}</div>
+</section>
 """
 
 
@@ -218,108 +257,79 @@ Memory_Accesses = misses de lectura en L2 + total de stores drenados.</p>
 """
 
 
-def scatter_section(rows):
-    """Correlacion CPI vs L1 Miss Rate (puntos posicionados con CSS)."""
-    pts = []
-    for r in rows:
-        cpi = _fnum(r.get("CPI"))
-        mr = _fnum(r.get("L1_Miss_Rate"))
-        if cpi is not None and mr is not None:
-            pts.append((r["Test Ejecutado"], cpi, mr))
-    if not pts:
-        return ""
-    import math
-    max_cpi = math.ceil(max(p[1] for p in pts)) + 1   # eje X en enteros
-    dots = ""
-    for name, cpi, mr in pts:
-        x = 100.0 * cpi / max_cpi
-        y = mr  # 0-100 directo
-        dots += (
-            f'<div class="dot" style="left:{x:.1f}%;bottom:{y:.1f}%"></div>'
-            f'<div class="dotlbl" style="left:{x:.1f}%;bottom:{y:.1f}%">{name}</div>\n'
-        )
-    xticks = "".join(
-        f'<div class="xtick" style="left:{100.0 * i / max_cpi:.1f}%">{i}</div>'
-        for i in range(0, max_cpi + 1)
+def _chainbar(label, val, top, text, color):
+    pct = 100.0 * val / top if top else 0.0
+    return (
+        f'<div class="row"><div class="lbl">{label}</div>'
+        f'<div class="track"><div class="bar" '
+        f'style="width:{pct:.1f}%;background:{color}"></div></div>'
+        f'<div class="val">{text}</div></div>'
     )
+
+
+def causal_chain(rows):
+    """Vista integrada: por benchmark (ordenado del mas rapido al mas lento)
+    muestra la cadena completa L1 aciertos -> espera de memoria -> CPI, con
+    barras alineadas. Se lee de un vistazo: mas verde y menos rojo = menor CPI."""
+    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
+    if not data:
+        return ""
+    data = sorted(data, key=lambda r: _fnum(r.get("CPI")))
+    max_cpi = max(_fnum(r.get("CPI")) for r in data)
+    blocks = ""
+    for r in data:
+        hit = _fnum(r.get("L1_Hit_Rate")) or 0.0
+        stall = _stall_pct(r) or 0.0
+        cpi = _fnum(r.get("CPI")) or 0.0
+        bars = (
+            _chainbar("L1 aciertos", hit, 100, f"{hit:.0f}%", "#1a9850")
+            + _chainbar("Espera mem", stall, 100, f"{stall:.0f}%", "#d73027")
+            + _chainbar("CPI", cpi, max_cpi, f"{cpi:.2f}", "#4575b4")
+        )
+        blocks += (f'<div class="cblock"><div class="cname">'
+                   f'{r["Test Ejecutado"]}</div>{bars}</div>\n')
     return f"""
-<section><h2>Correlaci&oacute;n: L1 Miss Rate vs CPI</h2>
-<p class="nota">A mayor tasa de fallos en cach&eacute;, mayor CPI.</p>
-<div class="scatter-wrap">
- <div class="ylab">L1 Miss Rate (%)</div>
- <div class="scatter">{dots}
-   <div class="ytick" style="bottom:100%">100</div>
-   <div class="ytick" style="bottom:50%">50</div>
-   <div class="ytick" style="bottom:0%">0</div>
-   {xticks}
- </div>
-</div>
-<div class="xlab">CPI</div>
+<section><h2>Cadena causal: localidad &rarr; aciertos &rarr; esperas &rarr; CPI</h2>
+<p class="nota">Cada bloque es un benchmark, del m&aacute;s r&aacute;pido (arriba)
+ al m&aacute;s lento (abajo). Barra verde larga (aciertos) + roja corta (espera)
+ &rarr; CPI bajo. Es la misma cadena causal para todos: el patr&oacute;n de
+ acceso manda.</p>
+{blocks}
 </section>
 """
 
 
-def bar_section(title, rows, col, unit="", fixed_max=None):
-    """Seccion HTML con barras horizontales comparando una metrica.
-    fixed_max fija la escala (p.ej. 100 para porcentajes); sin el,
-    escala relativa al maximo observado."""
-    vals = []
-    for r in rows:
-        try:
-            vals.append(float(r.get(col, 0)))
-        except ValueError:
-            vals.append(0.0)
-    top = fixed_max if fixed_max else (max(vals) if vals and max(vals) > 0 else 1.0)
-    items = ""
-    for r, v in zip(rows, vals):
-        pct = 100.0 * v / top
-        label = f"{v:,.2f}" if "." in str(r.get(col, "")) else f"{int(v):,}"
-        items += (
-            f'<div class="row"><div class="lbl">{r["Test Ejecutado"]}</div>'
-            f'<div class="track"><div class="bar" style="width:{pct:.1f}%"></div></div>'
-            f'<div class="val">{label}{unit}</div></div>\n'
-        )
-    return f'<section><h2>{title}</h2>{items}</section>\n'
-
-
-def render_html(rows, path):
-    # columna Status solo si hubo algun fallo
+def render_html(rows, path, no_cache):
     show_status = any(r.get("_status", "OK") != "OK" for r in rows)
-    status_th = '<th rowspan="2">Status</th>' if show_status else ""
+    # orden de lectura: del mejor CPI (arriba) al peor; sin datos al final
+    display = sorted(rows, key=lambda r: (_fnum(r.get("CPI")) is None,
+                                          _fnum(r.get("CPI")) or 0.0))
 
-    # cabecera en dos filas: bloques (CPU / L1 / L2 / Memoria) + metricas
-    head = f"""
-<tr>
- <th rowspan="2">Benchmark</th>
- <th colspan="5" class="grp">CPU</th>
- <th colspan="8" class="grp">L1</th>
- <th colspan="5" class="grp">L2</th>
- <th colspan="3" class="grp">Memoria</th>
- {status_th}
-</tr>
-<tr>
- <th>Ciclos</th><th>Instr</th><th>CPI</th><th>St.Mem</th><th>St.Ctl</th>
- <th>Reads</th><th>Writes</th><th>R.Hits</th><th>R.Miss</th>
- <th>W.Hits</th><th>W.Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Hits</th><th>Miss</th><th>Hit %</th><th>Miss %</th>
- <th>Acc</th><th>Xfer cy</th><th>BW %</th>
-</tr>"""
+    # tabla curada: solo las columnas que cuentan la historia.
+    # El registro completo (22 columnas) vive en results.csv.
+    cols = [("Ciclos", "Ciclos"), ("CPI", "CPI"),
+            ("L1_Hit_Rate", "L1 Hit %"), ("L2_Hit_Rate", "L2 Hit %"),
+            ("__stall", "Espera mem %"), ("BW_Util", "BW %")]
+    head = ("<tr><th>Benchmark</th>"
+            + "".join(f"<th>{lbl}</th>" for _, lbl in cols)
+            + ("<th>Status</th>" if show_status else "") + "</tr>")
 
     body = ""
-    for r in rows:
-        band = row_band(r)
+    for r in display:
         cells = f'<td>{r.get("Test Ejecutado", "")}</td>'
-        for c in CSV_COLS[1:]:
-            v = r.get(c, "")
+        for col, _ in cols:
+            if col == "__stall":
+                sp = _stall_pct(r)
+                cells += f"<td>{sp:.1f}</td>" if sp is not None else "<td>&mdash;</td>"
+                continue
+            v = r.get(col, "")
             style = ""
-            if c in ("L1_Hit_Rate", "L2_Hit_Rate"):
+            if col in ("L1_Hit_Rate", "L2_Hit_Rate"):
                 style = f' style="background:{heat_color(v)};color:#fff"'
-            elif c in ("L1_Miss_Rate", "L2_Miss_Rate"):
-                style = f' style="background:{heat_color(v, invert=True)};color:#fff"'
             cells += f"<td{style}>{v}</td>"
         if show_status:
-            cells += f"<td>{r.get('_status', '')}</td>"
-        body += f'<tr style="background:{band}">{cells}</tr>\n'
+            cells += f'<td>{r.get("_status", "")}</td>'
+        body += f'<tr style="background:{row_band(r)}">{cells}</tr>\n'
 
     legend = """
 <p class="nota">Color de fila seg&uacute;n L1 Hit Rate:
@@ -328,66 +338,45 @@ def render_html(rows, path):
  <span class="chip" style="background:#fde8e6">&lt;80% malo</span>
  <span class="chip" style="background:#f0f0f0">sin datos</span></p>"""
 
-    sections = (
-        bar_section("Ciclos totales", rows, "Ciclos")
-        + bar_section("CPI", rows, "CPI")
-        + bar_section("Instrucciones ejecutadas", rows, "Instr")
-        + bar_section("Stalls por memoria (ciclos)", rows, "Stalls_Mem")
-        + bar_section("L1 Hit Rate", rows, "L1_Hit_Rate", "%", fixed_max=100)
-        + bar_section("L1 Miss Rate", rows, "L1_Miss_Rate", "%", fixed_max=100)
-        + bar_section("L2 Hit Rate", rows, "L2_Hit_Rate", "%", fixed_max=100)
-        + bar_section("L2 Miss Rate", rows, "L2_Miss_Rate", "%", fixed_max=100)
-        + bar_section("Accesos a memoria principal", rows, "Memory_Accesses")
-        + bar_section("Utilizacion de ancho de banda", rows, "BW_Util", "%", fixed_max=100)
-    )
-
     html = f"""<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Benchmarks - metricas de cache</title>
+<title>Benchmarks - rendimiento de cache</title>
 <style>
- body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; }}
- h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 18px 0 6px; }}
- table {{ border-collapse: collapse; font-size: 0.82em; }}
- th, td {{ border: 1px solid #ccc; padding: 4px 8px; text-align: right; }}
+ body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 820px; }}
+ h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 20px 0 6px; }}
+ table {{ border-collapse: collapse; font-size: 0.86em; }}
+ th, td {{ border: 1px solid #ccc; padding: 4px 10px; text-align: right; }}
  th {{ background: #f0f0f0; }}  td:first-child, th:first-child {{ text-align: left; }}
- th.grp {{ background: #e2e8f0; text-align: center; }}
- section {{ max-width: 760px; }}
- .resumen ul {{ margin: 4px 0; padding-left: 20px; }}
- .resumen li {{ margin: 2px 0; }}
+ code {{ background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }}
  .nota {{ font-size: 0.85em; color: #555; }}
  .chip {{ padding: 1px 8px; border-radius: 3px; border: 1px solid #ccc; margin-right: 4px; }}
+ .verdict {{ border: 1px solid #d7e0ea; background: #f7fafc; border-radius: 6px; padding: 10px 16px; }}
+ .thesis {{ margin: 4px 0 12px; }}
+ .cards {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+ .card {{ border: 1px solid #d7e0ea; background: #fff; border-radius: 6px; padding: 8px 16px; min-width: 150px; }}
+ .ct {{ font-size: 0.76em; color: #667; text-transform: uppercase; letter-spacing: .04em; }}
+ .cb {{ font-size: 1.6em; font-weight: 600; color: #1f3a5f; }}
+ .cs {{ font-size: 0.78em; color: #556; }}
+ .cblock {{ margin: 10px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
+ .cname {{ font-weight: 600; font-size: 0.9em; margin-bottom: 3px; }}
+ .row {{ display: flex; align-items: center; margin: 3px 0; }}
+ .lbl {{ width: 110px; font-size: 0.82em; color: #555; }}
+ .track {{ flex: 1; background: #eee; border-radius: 3px; height: 16px; max-width: 440px; }}
+ .bar {{ height: 100%; border-radius: 3px; }}
+ .val {{ width: 70px; text-align: right; font-size: 0.82em; padding-left: 8px; }}
  .formulas {{ display: flex; flex-wrap: wrap; gap: 14px; }}
  .f {{ border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }}
  .f pre {{ margin: 4px 0 0; font-size: 0.8em; }}
- .row {{ display: flex; align-items: center; margin: 3px 0; }}
- .lbl {{ width: 150px; font-size: 0.85em; }}
- .track {{ flex: 1; background: #eee; border-radius: 3px; height: 18px; }}
- .bar {{ background: #4575b4; height: 100%; border-radius: 3px; }}
- .val {{ width: 110px; text-align: right; font-size: 0.85em; padding-left: 8px; }}
- .scatter-wrap {{ display: flex; align-items: stretch; }}
- .ylab {{ writing-mode: vertical-rl; transform: rotate(180deg);
-          font-size: 0.8em; color: #555; padding-right: 4px; }}
- .scatter {{ position: relative; width: 480px; height: 260px;
-             border-left: 2px solid #444; border-bottom: 2px solid #444;
-             background: #fafafa; margin: 8px 0 4px 8px; }}
- .dot {{ position: absolute; width: 10px; height: 10px; border-radius: 50%;
-         background: #4575b4; transform: translate(-50%, 50%); }}
- .dotlbl {{ position: absolute; font-size: 0.75em; color: #333;
-            transform: translate(8px, 50%); white-space: nowrap; }}
- .ytick {{ position: absolute; left: -26px; font-size: 0.72em; color: #777;
-           transform: translateY(50%); }}
- .xtick {{ position: absolute; bottom: -18px; font-size: 0.72em; color: #777;
-           transform: translateX(-50%); }}
- .xlab {{ font-size: 0.8em; color: #555; margin-left: 40px; margin-top: 14px; }}
 </style></head><body>
-<h1>Benchmarks del procesador &mdash; metricas de cache</h1>
-{summary_section(rows)}
-<h2>Tabla de m&eacute;tricas</h2>
+<h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
+{verdict_section(rows, no_cache)}
+<h2>Resumen por benchmark</h2>
+<p class="nota">Ordenado del m&aacute;s r&aacute;pido al m&aacute;s lento.
+ Registro completo (22 columnas) en <code>results.csv</code>.</p>
 <table><thead>{head}</thead><tbody>{body}</tbody></table>
 {legend}
+{causal_chain(rows)}
 {formulas_section()}
-{scatter_section(rows)}
-{sections}
 </body></html>"""
     path.write_text(html, encoding="utf-8")
     print(f"[HTML] {path}")
@@ -428,7 +417,7 @@ def main():
     reports.mkdir(parents=True, exist_ok=True)
     write_csv(rows, reports / "results.csv")
     html_path = reports / "results.html"
-    render_html(rows, html_path)
+    render_html(rows, html_path, load_no_cache())
 
     if not args.no_open:
         webbrowser.open(html_path.as_uri())
