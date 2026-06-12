@@ -234,21 +234,21 @@ por ejemplo despues de un `while` que ya fue cerrado.
 python3 compi/IDE/main.py
 ```
 
-## Demo automatica de diagnosticos
+## Visor de la tabla LL(1)
 
-El boton `Demo errores` crea o abre `ide_error_demo.craft` dentro del workspace
-actual y rota casos cada pocos segundos para revisar visualmente el IDE:
+El boton `Tabla LL(1)` abre una pestana especial dentro del area central del IDE.
+La vista usa el formato matricial clasico:
 
-- numero invalido como `5awd`
-- falta de `;` y `}`
-- tipo desconocido
-- `return` incompleto
-- parentesis faltante
-- variable no declarada
-- aridad incorrecta en llamadas
-- programa valido para confirmar que se limpian los errores
+- Cada fila corresponde a un no terminal `A`.
+- Cada columna corresponde al terminal actual `a`.
+- Una celda ocupada representa `M[A, a] = A -> produccion`.
+- Una celda vacia indica que la combinacion produce un error sintactico.
 
-El boton cambia a `Detener demo` mientras la reproduccion esta activa.
+La pestana incluye un buscador que filtra por cualquiera de esas columnas,
+contadores de no terminales, terminales y entradas, y una representacion clara
+de las producciones vacias como `epsilon`. Al seleccionar una celda se muestra
+la regla completa debajo de la matriz. Al presionar el boton otra vez, el IDE
+enfoca la pestana existente en lugar de abrir copias.
 
 Si no tenes PySide6:
 
