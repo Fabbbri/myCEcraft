@@ -1,0 +1,20 @@
+// El resultado de la llamada alimenta codigo muerto, pero la llamada modifica contador.
+// Resultado esperado: 6.
+
+contador:int = 0;
+
+craft:int registrar(valor:int) {
+    contador = contador + valor;
+    return valor * 2;
+}
+
+@EnterCraftWorld
+craft:int main() {
+    local_muerto:int = 7 * 9;
+
+    // El valor retornado queda muerto, pero la llamada modifica contador.
+    retorno_muerto:int = summon:registrar(6);
+
+    local_muerto = local_muerto + retorno_muerto;
+    return contador;
+}

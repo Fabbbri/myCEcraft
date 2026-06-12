@@ -1,0 +1,15 @@
+@EnterCraftWorld
+
+// N constante y divisible por 4.
+// Resultado esperado: 0 + 1 + ... + 7 = 28.
+craft:int main() {
+    i:int = 0;
+    suma:int = 0;
+
+    while (i < 8) {
+        suma = suma + i;
+        i = i + 1;
+    }
+
+    return suma;
+}

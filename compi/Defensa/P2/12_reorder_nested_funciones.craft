@@ -1,0 +1,30 @@
+// Reordenamiento local con llamada y dos niveles de control condicional.
+// Resultado esperado: combinar(5, 5) + 13 = 31.
+
+craft:int combinar(a:int, b:int) {
+    parcial:int = a * 2;
+    extra:int = b + 3;
+
+    if (a == b) {
+        return parcial + extra;
+    }
+    return parcial - extra;
+}
+
+@EnterCraftWorld
+craft:int main() {
+    datos:chest[int, 2] = [5, 12];
+    x:int = datos[0];
+    y:int = 5;
+    independiente:int = 9 + 4;
+    valor:int = summon:combinar(x, y);
+
+    if (valor > independiente) {
+        if (x < 10) {
+            return valor + independiente;
+        }
+        return valor;
+    } else {
+        return independiente - valor;
+    }
+}

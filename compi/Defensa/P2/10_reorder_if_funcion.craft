@@ -1,0 +1,26 @@
+// La carga permite reordenar trabajo independiente antes de una llamada y un if.
+// Resultado esperado: ajustar(10) + 14 = 27.
+
+craft:int ajustar(valor:int) {
+    if (valor > 10) {
+        return valor - 3;
+    } else {
+        return valor + 3;
+    }
+}
+
+@EnterCraftWorld
+craft:int main() {
+    datos:chest[int, 2] = [4, 9];
+    a:int = datos[0];
+    b:int = 6;
+    independiente:int = 7 * 2;
+    combinado:int = a + b;
+    resultado:int = summon:ajustar(combinado);
+
+    if (resultado > 10) {
+        return resultado + independiente;
+    } else {
+        return independiente - resultado;
+    }
+}

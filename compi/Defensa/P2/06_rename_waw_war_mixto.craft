@@ -1,0 +1,17 @@
+@EnterCraftWorld
+
+// Dependencias WAW y WAR cruzadas entre a y b.
+// Resultado esperado: 7 + 14 + 11 = 32.
+craft:int main() {
+    a:int = 4;
+    b:int = 3;
+    previo:int = a + b;
+
+    a = b + 5;
+    medio:int = a + b * 2;
+
+    b = a + 1;
+    final:int = b + 2;
+
+    return previo + medio + final;
+}

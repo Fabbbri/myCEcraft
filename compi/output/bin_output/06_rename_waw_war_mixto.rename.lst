@@ -1,0 +1,66 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 180 bytes
+;   data_offset       = 224
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 45
+
+; Seccion .text
+0x0000: 00200066    ; portalv x0, x0, 24
+0x0004: 0008000E    ; lwv v0, 0(v0)
+0x0008: 00580000    ; sleep
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 0000000C    ; closev
+0x0018: 00004021    ; addiHIGH x2, x0, 0
+0x001C: 7FF00421    ; addi x2, x2, 0x7FF0
+0x0020: FFC48421    ; addiSigned x2, x2, -60
+0x0024: 00004402    ; sw x1, 0(x2)
+0x0028: 00044442    ; sw x17, 4(x2)
+0x002C: 003C0511    ; addi x17, x2, 60
+0x0030: 00040071    ; addi x7, x0, 4
+0x0034: 00000E40    ; add x4, x7, x0
+0x0038: 00030081    ; addi x8, x0, 3
+0x003C: 00001030    ; add x3, x8, x0
+0x0040: 0000C890    ; add x9, x4, x3
+0x0044: 00001250    ; add x5, x9, x0
+0x0048: 000500A1    ; addi x10, x0, 5
+0x004C: 00028670    ; add x7, x3, x10
+0x0050: 00000E40    ; add x4, x7, x0
+0x0054: 00020081    ; addi x8, x0, 2
+0x0058: 004A0690    ; mul x9, x3, x8
+0x005C: 0FF26202    ; sw x9, -32(x17)
+0x0060: 0FF82272    ; lw x7, -32(x17)
+0x0064: 0001C8A0    ; add x10, x4, x7
+0x0068: 00001460    ; add x6, x10, x0
+0x006C: 00010091    ; addi x9, x0, 1
+0x0070: 00024880    ; add x8, x4, x9
+0x0074: 00001030    ; add x3, x8, x0
+0x0078: 000200A1    ; addi x10, x0, 2
+0x007C: 00028670    ; add x7, x3, x10
+0x0080: 0FF1E2C2    ; sw x7, -20(x17)
+0x0084: 00018A90    ; add x9, x5, x6
+0x0088: 0FE26302    ; sw x9, -48(x17)
+0x008C: 0FEC2292    ; lw x9, -48(x17)
+0x0090: 0FFB2282    ; lw x8, -20(x17)
+0x0094: 000212A0    ; add x10, x9, x8
+0x0098: 0FE2A2C2    ; sw x10, -52(x17)
+0x009C: 0FEB22A2    ; lw x10, -52(x17)
+0x00A0: 000014B0    ; add x11, x10, x0
+0x00A4: 00000204    ; jal x0, 4
+0x00A8: 00090512    ; lw x17, 4(x2)
+0x00AC: 003C0421    ; addi x2, x2, 60
+0x00B0: 00600000    ; freeze
+
+; Seccion .data
+; <sin datos globales>

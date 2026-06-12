@@ -1,0 +1,87 @@
+ajustar:
+  t0 = valor > 10
+  ifFalse t0 goto L_else_0
+  t1 = valor - 3
+  return t1
+  goto L_end_if_1
+L_else_0:
+  t2 = valor + 3
+  return t2
+L_end_if_1:
+main:
+  datos = [4, 9]
+  t3 = datos[0]
+  a = t3
+  b = 6
+  t4 = 7 * 2
+  independiente = t4
+  t5 = a + b
+  combinado = t5
+  t6 = call ajustar(combinado)
+  resultado = t6
+  t7 = resultado > 10
+  ifFalse t7 goto L_else_2
+  t8 = resultado + independiente
+  return t8
+  goto L_end_if_3
+L_else_2:
+  t9 = independiente - resultado
+  return t9
+L_end_if_3:
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_ajustar]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_1
+    ajustar:
+    t0 = valor > 10
+    ifFalse t0 goto L_else_0
+
+[B_fallthrough_1]
+    t1 = valor - 3
+    return t1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+    L_else_0:
+    t2 = valor + 3
+    return t2
+
+[B_label_L_end_if_1]
+  -> Sucesores: B_label_main
+    L_end_if_1:
+
+[B_label_main]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_6
+    main:
+    datos = [4, 9]
+    t3 = datos[0]
+    a = t3
+    b = 6
+    t4 = 7 * 2
+    independiente = t4
+    t5 = a + b
+    combinado = t5
+    t6 = call ajustar(combinado)
+    resultado = t6
+    t7 = resultado > 10
+    ifFalse t7 goto L_else_2
+
+[B_fallthrough_6]
+    t8 = resultado + independiente
+    return t8
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_end_if_3
+    goto L_end_if_3
+
+[B_label_L_else_2]
+    L_else_2:
+    t9 = independiente - resultado
+    return t9
+
+[B_label_L_end_if_3]
+    L_end_if_3:

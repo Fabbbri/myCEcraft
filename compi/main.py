@@ -7,7 +7,6 @@ from lexer import Lexer, LexerError
 from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
 from codegen.binary import BinaryEncoder, EncodingError
-from codegen.generator import AssemblyGenerator
 from codegen.ir_assembly_generator import IRAssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
@@ -470,13 +469,9 @@ def main() -> int:
             asm_resolved_dir.mkdir(parents=True, exist_ok=True)
             bin_hex_dir.mkdir(parents=True, exist_ok=True)
 
-            if optimization_requested:
-                assert ir_instructions is not None
-                generator = IRAssemblyGenerator(symbol_table)
-                assembly_code = generator.generate(ir_instructions)
-            else:
-                generator = AssemblyGenerator(symbol_table)
-                assembly_code = generator.generate(ast)
+            assert ir_instructions is not None
+            generator = IRAssemblyGenerator(symbol_table)
+            assembly_code = generator.generate(ir_instructions)
 
             asm_path = asm_dir / f"{artifact_stem}.asm"
             if show_asm or show_resolved:

@@ -1,0 +1,51 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 120 bytes
+;   data_offset       = 164
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 30
+
+; Seccion .text
+0x0000: 00200066    ; portalv x0, x0, 24
+0x0004: 0008000E    ; lwv v0, 0(v0)
+0x0008: 00580000    ; sleep
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 0000000C    ; closev
+0x0018: 00004021    ; addiHIGH x2, x0, 0
+0x001C: 7FF00421    ; addi x2, x2, 0x7FF0
+0x0020: FFE08421    ; addiSigned x2, x2, -32
+0x0024: 00004402    ; sw x1, 0(x2)
+0x0028: 00044442    ; sw x17, 4(x2)
+0x002C: 00200511    ; addi x17, x2, 32
+0x0030: 00070071    ; addi x7, x0, 7
+0x0034: 00000E30    ; add x3, x7, x0
+0x0038: 00030081    ; addi x8, x0, 3
+0x003C: 004A0690    ; mul x9, x3, x8
+0x0040: 00001240    ; add x4, x9, x0
+0x0044: 000200A1    ; addi x10, x0, 2
+0x0048: 00001430    ; add x3, x10, x0
+0x004C: 00050071    ; addi x7, x0, 5
+0x0050: 0049C690    ; mul x9, x3, x7
+0x0054: 00001250    ; add x5, x9, x0
+0x0058: 00014880    ; add x8, x4, x5
+0x005C: 0FF22282    ; sw x8, -24(x17)
+0x0060: 0FFA22A2    ; lw x10, -24(x17)
+0x0064: 000014B0    ; add x11, x10, x0
+0x0068: 00000204    ; jal x0, 4
+0x006C: 00090512    ; lw x17, 4(x2)
+0x0070: 00200421    ; addi x2, x2, 32
+0x0074: 00600000    ; freeze
+
+; Seccion .data
+; <sin datos globales>

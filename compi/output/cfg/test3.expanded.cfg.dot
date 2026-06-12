@@ -1,0 +1,48 @@
+digraph "test3.expanded" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_maximo_lista" [label="B_label_maximo_lista\lmaximo_lista:\lt0 = lista[0]\lmaximo = t0\lnum = 0\lesMayor = 0\llimite = largo\li = 0\l"];
+  "B_label_L_for_start_0" [label="B_label_L_for_start_0\lL_for_start_0:\lt1 = limite + 0\lt2 = i < t1\lifFalse t2 goto L_for_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lt3 = lista[i]\lnum = t3\lt4 = num > maximo\lesMayor = t4\lt5 = esMayor + 0\lifFalse t5 goto L_else_2\l"];
+  "B_fallthrough_3" [label="B_fallthrough_3\lmaximo = num\lgoto L_end_if_3\l"];
+  "B_label_L_else_2" [label="B_label_L_else_2\lL_else_2:\l"];
+  "B_label_L_end_if_3" [label="B_label_L_end_if_3\lL_end_if_3:\lt6 = i + 1\li = t6\lgoto L_for_start_0\l"];
+  "B_label_L_for_end_1" [label="B_label_L_for_end_1\lL_for_end_1:\lreturn maximo\l"];
+  "B_fallthrough_7" [label="B_fallthrough_7\lsuma = 0\lmultiplicacion = 1\lresultado = [0, 0]\l"];
+  "B_label_sumeMayores" [label="B_label_sumeMayores\lsumeMayores:\lvalorMaximo = 0\lseguir = 0\lesDiez = 0\lesGrande = 0\lt7 = suma < 100\lseguir = t7\l"];
+  "B_label_L_while_start_4" [label="B_label_L_while_start_4\lL_while_start_4:\lt8 = seguir + 0\lifFalse t8 goto L_while_end_5\l"];
+  "B_fallthrough_10" [label="B_fallthrough_10\lt9 = call maximo_lista(lista, 5)\lvalorMaximo = t9\lt10 = valorMaximo / 2\lt11 = t10 == 5\lesDiez = t11\lt12 = esDiez + 0\lifFalse t12 goto L_else_6\l"];
+  "B_fallthrough_11" [label="B_fallthrough_11\lt13 = valorMaximo * 2\lvalorMaximo = t13\lgoto L_end_if_7\l"];
+  "B_label_L_else_6" [label="B_label_L_else_6\lL_else_6:\l"];
+  "B_label_L_end_if_7" [label="B_label_L_end_if_7\lL_end_if_7:\lt14 = suma + valorMaximo\lsuma = t14\lt15 = multiplicacion * valorMaximo\lmultiplicacion = t15\lt16 = multiplicacion > 500\lesGrande = t16\lt17 = esGrande + 0\lifFalse t17 goto L_else_8\l"];
+  "B_fallthrough_14" [label="B_fallthrough_14\lmultiplicacion = 10\lgoto L_end_if_9\l"];
+  "B_label_L_else_8" [label="B_label_L_else_8\lL_else_8:\lt18 = multiplicacion - 10\lmultiplicacion = t18\l"];
+  "B_label_L_end_if_9" [label="B_label_L_end_if_9\lL_end_if_9:\lt19 = suma < 100\lseguir = t19\lgoto L_while_start_4\l"];
+  "B_label_L_while_end_5" [label="B_label_L_while_end_5\lL_while_end_5:\lsalida[0] = suma\lsalida[1] = multiplicacion\lt20 = salida[0]\lreturn t20\l"];
+  "B_label_main" [label="B_label_main\lmain:\llista = [10, 2, 3, 4, 5]\lt21 = call sumeMayores(lista, resultado)\lreturn t21\l"];
+
+  "B_label_maximo_lista" -> "B_label_L_for_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_0" -> "B_label_L_for_end_1" [label="false", color="#B22222"];
+  "B_label_L_for_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_else_2" [label="false", color="#B22222"];
+  "B_fallthrough_2" -> "B_fallthrough_3" [label="true", color="#2E8B57"];
+  "B_fallthrough_3" -> "B_label_L_end_if_3" [label="jump", color="#4169E1"];
+  "B_label_L_else_2" -> "B_label_L_end_if_3" [label="fallthrough", color="#555555"];
+  "B_label_L_end_if_3" -> "B_label_L_for_start_0" [label="jump", color="#4169E1"];
+  "B_fallthrough_7" -> "B_label_sumeMayores" [label="fallthrough", color="#555555"];
+  "B_label_sumeMayores" -> "B_label_L_while_start_4" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_4" -> "B_label_L_while_end_5" [label="false", color="#B22222"];
+  "B_label_L_while_start_4" -> "B_fallthrough_10" [label="true", color="#2E8B57"];
+  "B_fallthrough_10" -> "B_label_L_else_6" [label="false", color="#B22222"];
+  "B_fallthrough_10" -> "B_fallthrough_11" [label="true", color="#2E8B57"];
+  "B_fallthrough_11" -> "B_label_L_end_if_7" [label="jump", color="#4169E1"];
+  "B_label_L_else_6" -> "B_label_L_end_if_7" [label="fallthrough", color="#555555"];
+  "B_label_L_end_if_7" -> "B_label_L_else_8" [label="false", color="#B22222"];
+  "B_label_L_end_if_7" -> "B_fallthrough_14" [label="true", color="#2E8B57"];
+  "B_fallthrough_14" -> "B_label_L_end_if_9" [label="jump", color="#4169E1"];
+  "B_label_L_else_8" -> "B_label_L_end_if_9" [label="fallthrough", color="#555555"];
+  "B_label_L_end_if_9" -> "B_label_L_while_start_4" [label="jump", color="#4169E1"];
+}

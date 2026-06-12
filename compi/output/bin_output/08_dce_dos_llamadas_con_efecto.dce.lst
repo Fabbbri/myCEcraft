@@ -1,0 +1,73 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 208 bytes
+;   data_offset       = 252
+;   data_size         = 4 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00008000
+;   instruction_count = 52
+
+; Seccion .text
+0x0000: 00200066    ; portalv x0, x0, 24
+0x0004: 0008000E    ; lwv v0, 0(v0)
+0x0008: 00580000    ; sleep
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 0000000C    ; closev
+0x0018: 00004021    ; addiHIGH x2, x0, 0
+0x001C: 7FF00421    ; addi x2, x2, 0x7FF0
+0x0020: FFE48421    ; addiSigned x2, x2, -28
+0x0024: 00004402    ; sw x1, 0(x2)
+0x0028: 00044442    ; sw x17, 4(x2)
+0x002C: 001C0511    ; addi x17, x2, 28
+0x0030: 00020051    ; addi x5, x0, 2
+0x0034: 00000AB0    ; add x11, x5, x0
+0x0038: 00002214    ; jal x1, 68
+0x003C: 00001660    ; add x6, x11, x0
+0x0040: 00000C30    ; add x3, x6, x0
+0x0044: 00040071    ; addi x7, x0, 4
+0x0048: 00000EB0    ; add x11, x7, x0
+0x004C: 0FF0E302    ; sw x3, -16(x17)
+0x0050: 00001614    ; jal x1, 44
+0x0054: 00001680    ; add x8, x11, x0
+0x0058: 00001040    ; add x4, x8, x0
+0x005C: 000040A1    ; addiHIGH x10, x0, 0
+0x0060: 800014A1    ; addi x10, x10, 32768
+0x0064: 00081492    ; lw x9, 0(x10)
+0x0068: 000012B0    ; add x11, x9, x0
+0x006C: 00000204    ; jal x0, 4
+0x0070: 00090512    ; lw x17, 4(x2)
+0x0074: 001C0421    ; addi x2, x2, 28
+0x0078: 00600000    ; freeze
+0x007C: FFF08421    ; addiSigned x2, x2, -16
+0x0080: 00004402    ; sw x1, 0(x2)
+0x0084: 00044442    ; sw x17, 4(x2)
+0x0088: 00100511    ; addi x17, x2, 16
+0x008C: 00001630    ; add x3, x11, x0
+0x0090: 00004061    ; addiHIGH x6, x0, 0
+0x0094: 80000C61    ; addi x6, x6, 32768
+0x0098: 00080C52    ; lw x5, 0(x6)
+0x009C: 0000CA70    ; add x7, x5, x3
+0x00A0: 00004081    ; addiHIGH x8, x0, 0
+0x00A4: 80001081    ; addi x8, x8, 32768
+0x00A8: 0001D002    ; sw x7, 0(x8)
+0x00AC: 000040A1    ; addiHIGH x10, x0, 0
+0x00B0: 800014A1    ; addi x10, x10, 32768
+0x00B4: 00081492    ; lw x9, 0(x10)
+0x00B8: 000012B0    ; add x11, x9, x0
+0x00BC: 00000204    ; jal x0, 4
+0x00C0: 00080412    ; lw x1, 0(x2)
+0x00C4: 00090512    ; lw x17, 4(x2)
+0x00C8: 00100421    ; addi x2, x2, 16
+0x00CC: 00080014    ; jalr x1, 0
+
+; Seccion .data
+0x00008000: 01000000         ; .word 1
