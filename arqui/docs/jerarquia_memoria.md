@@ -56,6 +56,8 @@ L1:  | tag 21b [31:11] | set 6b [10:5] | word 3b [4:2] | byte 2b [1:0] |
 
 ### Funcionamiento de caché L1-D con políticas elegidas
 
+![image:con_l1](DF-L1Con.png)
+
 ---
 
 ## Caché L2: políticas de escritura, reemplazo y parámetros
@@ -72,6 +74,8 @@ L2:  | tag 20b [31:12] | set 7b [11:5] | word 3b [4:2] | byte 2b [1:0] |
 ```
 
 ### Funcionamiento de caché L2 unificado
+
+![image:con_l2](DF-L2Con.png)
 
 ---
 
