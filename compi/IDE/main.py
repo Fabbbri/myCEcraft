@@ -1,4 +1,5 @@
 import sys
+import re
 from pathlib import Path
 
 from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal, QTimer
@@ -38,6 +39,7 @@ from PySide6.QtWidgets import (
 
 from compiler_runner import CompilerRunner
 from ll1_syntax import Diagnostic, LL1SyntaxService
+from simulation_runner import SimulationRunner
 from theme import APP_QSS
 from workspace import Workspace
 
@@ -476,6 +478,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.workspace = Workspace(REPO_ROOT)
         self.compiler = CompilerRunner(REPO_ROOT)
+        self.simulator = SimulationRunner(REPO_ROOT)
         self.syntax_service = LL1SyntaxService()
         self.open_editors: dict[Path, CodeEditor] = {}
         self.editor_paths: dict[CodeEditor, Path] = {}
@@ -488,11 +491,21 @@ class MainWindow(QMainWindow):
         self._loading_editor = False
         self.current_optimization_label = "Sin optimizaciones"
         self.current_unroll_label = "Automatico"
+        self.current_compile_options = {
+            "loop_unrolling": False,
+            "rename_registers": False,
+            "eliminate_dead_code": False,
+            "reorder_instructions": False,
+        }
+        self.current_artifact_tag: str | None = None
+        self.pending_run = False
+        self.active_compile_path: Path | None = None
 
         self.setWindowTitle(APP_TITLE)
         self.setMinimumSize(QSize(1100, 720))
         self._build_ui()
         self._connect_compiler()
+        self._connect_simulator()
         self._populate_file_list()
         self._open_initial_file()
         self.showMaximized()
@@ -577,13 +590,12 @@ class MainWindow(QMainWindow):
         unroll_label = QLabel("Loop unrolling")
         unroll_label.setObjectName("TopControlLabel")
         layout.addWidget(unroll_label)
-
         self.unroll_factor_input = QLineEdit()
         self.unroll_factor_input.setObjectName("TopNumberInput")
         self.unroll_factor_input.setPlaceholderText("Auto")
         self.unroll_factor_input.setValidator(QIntValidator(1, 64, self))
         self.unroll_factor_input.setToolTip(
-            "Escriba un factor entre 1 y 64. Deje el campo vacio para usar Automatico."
+            "Factor entre 1 y 64. Vacio usa seleccion automatica."
         )
         self.unroll_factor_input.setMaximumWidth(72)
         layout.addWidget(self.unroll_factor_input)
@@ -592,19 +604,63 @@ class MainWindow(QMainWindow):
         self.compile_button.setObjectName("PrimaryButton")
         self.compile_button.setCursor(Qt.PointingHandCursor)
         compile_menu = QMenu(self.compile_button)
-        for label, optimization in (
-            ("Sin optimizaciones", "-O0"),
-            ("O1", "-O1"),
-            ("O2", "-O2"),
-            ("O3", "-O3"),
+        for label, tag, options in (
+            ("Sin optimizaciones", None, {}),
+            (
+                "O1",
+                "O1",
+                {
+                    "loop_unrolling": True,
+                    "rename_registers": True,
+                },
+            ),
+            (
+                "O2",
+                "O2",
+                {
+                    "eliminate_dead_code": True,
+                    "reorder_instructions": True,
+                },
+            ),
+            (
+                "O3",
+                "O3",
+                {
+                    "loop_unrolling": True,
+                    "rename_registers": True,
+                    "eliminate_dead_code": True,
+                    "reorder_instructions": True,
+                },
+            ),
         ):
             action = compile_menu.addAction(label)
             action.triggered.connect(
-                lambda _checked=False, level=optimization, name=label:
-                    self.compile_current_file(level, name)
+                lambda _checked=False, name=label, artifact=tag, selected=options:
+                    self.compile_with_options(name, artifact, selected)
+            )
+        compile_menu.addSeparator()
+        for label, tag, options in (
+            ("Solo Loop unrolling", "unroll", {"loop_unrolling": True}),
+            ("Solo Renombramiento", "rename", {"rename_registers": True}),
+            ("Solo DCE", "dce", {"eliminate_dead_code": True}),
+            ("Solo Reordenamiento", "reorder", {"reorder_instructions": True}),
+        ):
+            action = compile_menu.addAction(label)
+            action.triggered.connect(
+                lambda _checked=False, name=label, artifact=tag, selected=options:
+                    self.compile_with_options(name, artifact, selected)
             )
         self.compile_button.setMenu(compile_menu)
         layout.addWidget(self.compile_button)
+
+        self.run_button = QPushButton("Ejecutar O0")
+        self.run_button.setObjectName("PrimaryButton")
+        self.run_button.setToolTip(
+            "Compila el archivo activo y lo ejecuta en tb_general_dump"
+        )
+        self.run_button.setCursor(Qt.PointingHandCursor)
+        self.run_button.clicked.connect(self.run_current_file)
+        layout.addWidget(self.run_button)
 
         bar.setFixedHeight(52)
         return bar
@@ -748,6 +804,11 @@ class MainWindow(QMainWindow):
         self.compiler.error_ready.connect(self._append_compiler_error)
         self.compiler.finished.connect(self._handle_compile_finished)
 
+    def _connect_simulator(self) -> None:
+        self.simulator.started.connect(self._handle_simulation_started)
+        self.simulator.output_ready.connect(self._append_simulation_output)
+        self.simulator.finished.connect(self._handle_simulation_finished)
+
     def _populate_file_list(self) -> None:
         self.file_list.clear()
         self.workspace_label.setText(self.workspace.relative_label(self.workspace.source_root))
@@ -865,11 +926,11 @@ class MainWindow(QMainWindow):
         self._set_state(f"Abierto {path.name}")
         self._validate_editor(editor)
 
-    def save_current_file(self) -> None:
+    def save_current_file(self) -> bool:
         editor = self.current_editor()
         if editor is None:
             self._set_state("No hay archivo activo")
-            return
+            return False
 
         path = self.editor_paths[editor]
         try:
@@ -877,28 +938,46 @@ class MainWindow(QMainWindow):
         except OSError as error:
             self._set_problem_text(f"No se pudo guardar {path}:\n{error}")
             self._set_state("Error al guardar")
-            return
+            return False
 
         editor.document().setModified(False)
         self._update_tab_title(editor)
         self._set_state(f"Guardado {path.name}")
+        return True
+
+    def compile_with_options(
+        self,
+        optimization_label: str,
+        artifact_tag: str | None,
+        options: dict[str, bool],
+    ) -> None:
+        self.current_compile_options = {
+            "loop_unrolling": False,
+            "rename_registers": False,
+            "eliminate_dead_code": False,
+            "reorder_instructions": False,
+        }
+        self.current_compile_options.update(options)
+        self.current_artifact_tag = artifact_tag
+        self.current_optimization_label = optimization_label
+        run_label = "O0" if optimization_label == "Sin optimizaciones" else optimization_label
+        self.run_button.setText(f"Ejecutar {run_label}")
+        self.compile_current_file()
 
     def compile_current_file(
         self,
-        optimization: str = "-O0",
-        optimization_label: str = "Sin optimizaciones",
-    ) -> None:
+    ) -> bool:
         editor = self.current_editor()
         if editor is None:
             self._set_state("No hay archivo activo")
-            return
+            return False
 
-        if self.compiler.is_running():
-            self._set_state("Compilacion en curso")
-            return
+        if self.compiler.is_running() or self.simulator.is_running():
+            self._set_state("Compilacion o simulacion en curso")
+            return False
 
-        if editor.document().isModified():
-            self.save_current_file()
+        if editor.document().isModified() and not self.save_current_file():
+            return False
 
         path = self.editor_paths[editor]
         self.output_panel.clear()
@@ -906,18 +985,37 @@ class MainWindow(QMainWindow):
         self._set_problem_count(0)
         self.artifacts_panel.setPlainText("Compilando...")
         self.output_tabs.setCurrentWidget(self.output_panel)
-        self.current_optimization_label = optimization_label
+        options = self.current_compile_options
         unroll_text = self.unroll_factor_input.text().strip()
         unroll_factor = int(unroll_text) if unroll_text else None
         if unroll_factor is not None and not 1 <= unroll_factor <= 64:
             self._set_state("El factor de loop unrolling debe estar entre 1 y 64")
             self.unroll_factor_input.setFocus()
             self.unroll_factor_input.selectAll()
-            return
-        self.current_unroll_label = (
-            "Automatico" if unroll_factor is None else str(unroll_factor)
+            return False
+        if options["loop_unrolling"]:
+            self.current_unroll_label = (
+                "Automatico" if unroll_factor is None else str(unroll_factor)
+            )
+        else:
+            self.current_unroll_label = "Desactivado"
+        self.active_compile_path = path
+        self.compiler.compile(
+            path,
+            loop_unrolling=options["loop_unrolling"],
+            unroll_factor=unroll_factor,
+            rename_registers=options["rename_registers"],
+            eliminate_dead_code=options["eliminate_dead_code"],
+            reorder_instructions=options["reorder_instructions"],
+            artifact_tag=self.current_artifact_tag,
         )
-        self.compiler.compile(path, optimization, unroll_factor)
+        return True
+
+    def run_current_file(self) -> None:
+        self.pending_run = True
+        started = self.compile_current_file()
+        if not started:
+            self.pending_run = False
 
     def close_editor(self, editor: CodeEditor) -> None:
         index = self.editor_tabs.indexOf(editor)
@@ -1531,8 +1629,7 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_compile_started(self) -> None:
-        self.compile_button.setEnabled(False)
-        self.unroll_factor_input.setEnabled(False)
+        self._set_execution_controls_enabled(False)
         status = (
             f"Compilando: {self.current_optimization_label}, "
             f"unroll {self.current_unroll_label}"
@@ -1553,10 +1650,7 @@ class MainWindow(QMainWindow):
         self.output_tabs.setCurrentWidget(self.problems_panel)
 
     def _handle_compile_finished(self, exit_code: int) -> None:
-        self.compile_button.setEnabled(True)
-        self.unroll_factor_input.setEnabled(True)
-        editor = self.current_editor()
-        path = self.editor_paths.get(editor) if editor is not None else None
+        path = self.active_compile_path
 
         if exit_code == 0:
             self._set_problem_count(0)
@@ -1566,7 +1660,31 @@ class MainWindow(QMainWindow):
             )
             self.sidebar_status.setText(status)
             self._set_state(status)
+
+            if self.pending_run:
+                hex_path = self.compiler.generated_hex_path
+                if hex_path is None:
+                    self.pending_run = False
+                    self._set_problem_text(
+                        "La compilacion termino correctamente, pero no se pudo "
+                        "determinar la ruta del archivo .hex generado."
+                    )
+                    self.sidebar_status.setText("No se pudo iniciar la simulacion")
+                    self._set_state("No se pudo iniciar la simulacion")
+                    self._set_execution_controls_enabled(True)
+                else:
+                    self.output_panel.moveCursor(QTextCursor.End)
+                    self.output_panel.insertPlainText(
+                        "\n"
+                        "============================================================\n"
+                        f"  EJECUTANDO EN RTL: {hex_path.name}\n"
+                        "============================================================\n"
+                    )
+                    self.simulator.run(hex_path)
+            else:
+                self._set_execution_controls_enabled(True)
         else:
+            self.pending_run = False
             if self.problems_panel.toPlainText() == NO_PROBLEMS_TEXT:
                 details = self.output_panel.toPlainText().strip()
                 self.problems_panel.setPlainText(details or "El compilador termino con errores.")
@@ -1574,9 +1692,59 @@ class MainWindow(QMainWindow):
             self.sidebar_status.setText("Error de compilacion")
             self._set_state("Error de compilacion")
             self.output_tabs.setCurrentWidget(self.problems_panel)
+            self._set_execution_controls_enabled(True)
 
         if path is not None:
             self._refresh_artifacts(path)
+        self.active_compile_path = None
+
+    def _handle_simulation_started(self) -> None:
+        self._set_execution_controls_enabled(False)
+        self.output_tabs.setCurrentWidget(self.output_panel)
+        status = f"Ejecutando: {self.current_optimization_label}"
+        self.sidebar_status.setText(status)
+        self._set_state(status)
+
+    def _append_simulation_output(self, text: str) -> None:
+        self.output_panel.moveCursor(QTextCursor.End)
+        self.output_panel.insertPlainText(text)
+
+    def _handle_simulation_finished(self, exit_code: int) -> None:
+        self.pending_run = False
+        self._set_execution_controls_enabled(True)
+
+        failed = (
+            exit_code != 0
+            or "[ERROR] Test abortado" in self.simulator.output_text
+        )
+        if failed:
+            status = f"Simulacion terminada con error ({exit_code})"
+            self._set_problem_text(
+                "La simulacion no termino correctamente. "
+                "Revise la pestana Salida para ver el diagnostico del testbench."
+            )
+            self.output_tabs.setCurrentWidget(self.output_panel)
+        else:
+            match = re.search(
+                r"\[METRICS\]\s+cycles=(\d+)\|instr=(\d+)\|cpi=([0-9.]+)",
+                self.simulator.output_text,
+            )
+            if match:
+                status = (
+                    f"Simulacion finalizada: ciclos={match.group(1)}, "
+                    f"instr={match.group(2)}, CPI={match.group(3)}"
+                )
+            else:
+                status = "Simulacion finalizada correctamente"
+            self._set_problem_count(0)
+
+        self.sidebar_status.setText(status)
+        self._set_state(status)
+
+    def _set_execution_controls_enabled(self, enabled: bool) -> None:
+        self.compile_button.setEnabled(enabled)
+        self.run_button.setEnabled(enabled)
+        self.unroll_factor_input.setEnabled(enabled)
 
     def _refresh_artifacts(self, source_path: Path) -> None:
         artifacts = self.workspace.artifact_paths_for(source_path)

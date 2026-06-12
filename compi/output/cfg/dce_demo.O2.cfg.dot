@@ -1,0 +1,9 @@
+digraph "dce_demo.O2" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\lx = 1\ly = 2\lt0 = x + y\lz = t0\lt2 = z + 4\lvivo = t2\lreturn vivo\l"];
+
+}

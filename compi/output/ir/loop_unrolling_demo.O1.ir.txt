@@ -40,7 +40,7 @@ L_while_end_1:
 
 [B_label_main]
   -> Sucesores: B_label_L_while_start_0
-  main:
+    main:
     i = 0
     suma = 0
     mezcla = 1
@@ -48,7 +48,7 @@ L_while_end_1:
 
 [B_label_L_while_start_0]
   -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
-  L_while_start_0:
+    L_while_start_0:
     t5__x3 = i < 8
     ifFalse t5__x3 goto L_while_end_1
 
@@ -83,5 +83,5 @@ L_while_end_1:
     goto L_while_start_0
 
 [B_label_L_while_end_1]
-  L_while_end_1:
+    L_while_end_1:
     return total

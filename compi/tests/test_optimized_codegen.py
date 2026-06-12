@@ -13,6 +13,7 @@ if str(COMPI_ROOT) not in sys.path:
 from codegen.binary import BinaryEncoder
 from codegen.ir_assembly_generator import IRAssemblyGenerator
 from codegen.resolver import LabelResolver
+from IR.basic_blocks import ControlFlowGraph
 from IR.instructions import IRAssign, IRBinOp
 from IR.ir_generator import IRGenerator
 from lexer import Lexer
@@ -69,6 +70,30 @@ craft:int main() {
         self.assertNotEqual(normal_assembly, assembly)
         self.assertNotEqual(normal_binary, binary)
         self.assertIn("addi", assembly)
+
+    def test_cfg_dot_contains_basic_blocks_and_branch_edges(self) -> None:
+        source = """
+@EnterCraftWorld
+craft:int main() {
+    x:int = 0;
+    while (x < 3) {
+        x = x + 1;
+    }
+    return x;
+}
+"""
+        tokens = Lexer(source, filename="<test>").tokenize()
+        program = Parser(tokens, filename="<test>").parse()
+        SemanticAnalyzer(filename="<test>").analyze(program)
+        instructions = IRGenerator().generate(program)
+        cfg = ControlFlowGraph()
+        cfg.build_from_ir(instructions)
+
+        dot = cfg.to_dot("test_cfg")
+        self.assertTrue(dot.startswith('digraph "test_cfg" {'))
+        self.assertIn('"B_label_main" [label=', dot)
+        self.assertIn('[label="true"', dot)
+        self.assertIn('[label="false"', dot)
 
     def test_manual_unroll_factor_can_exceed_register_count(self) -> None:
         source = """

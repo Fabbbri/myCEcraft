@@ -8,12 +8,12 @@
 ;   header_size       = 44 bytes
 ;   entry_point       = 0x00000000
 ;   text_offset       = 44
-;   text_size         = 152 bytes
-;   data_offset       = 196
+;   text_size         = 224 bytes
+;   data_offset       = 268
 ;   data_size         = 0 bytes
 ;   text_base         = 0x00000000
 ;   data_base         = 0x00000000
-;   instruction_count = 38
+;   instruction_count = 56
 
 ; Seccion .text
 0x0000: 00200066    ; portalv x0, x0, 24
@@ -24,36 +24,54 @@
 0x0014: 0000000C    ; closev
 0x0018: 00004021    ; addiHIGH x2, x0, 0
 0x001C: 7FF00421    ; addi x2, x2, 0x7FF0
-0x0020: FFD88421    ; addiSigned x2, x2, -40
+0x0020: FFC08421    ; addiSigned x2, x2, -64
 0x0024: 00004402    ; sw x1, 0(x2)
 0x0028: 00044442    ; sw x17, 4(x2)
-0x002C: 00280511    ; addi x17, x2, 40
+0x002C: 00400511    ; addi x17, x2, 64
 0x0030: 00000071    ; addi x7, x0, 0
-0x0034: 00000E30    ; add x3, x7, x0
+0x0034: 00000E50    ; add x5, x7, x0
 0x0038: 00000081    ; addi x8, x0, 0
-0x003C: 00001050    ; add x5, x8, x0
+0x003C: 00001030    ; add x3, x8, x0
 0x0040: 00000091    ; addi x9, x0, 0
 0x0044: 00001240    ; add x4, x9, x0
 0x0048: 000800A1    ; addi x10, x0, 8
 0x004C: 00000071    ; addi x7, x0, 0
-0x0050: 00128626    ; blt x3, x10, 8
+0x0050: 00128A26    ; blt x5, x10, 8
 0x0054: 00000404    ; jal x0, 8
 0x0058: 00010071    ; addi x7, x0, 1
 0x005C: 00000E60    ; add x6, x7, x0
-0x0060: 00000C96    ; beq x6, x0, 36
-0x0064: 0000CA80    ; add x8, x5, x3
-0x0068: 00001050    ; add x5, x8, x0
-0x006C: 00014890    ; add x9, x4, x5
+0x0060: 00000DB6    ; beq x6, x0, 108
+0x0064: 00014680    ; add x8, x3, x5
+0x0068: 00001030    ; add x3, x8, x0
+0x006C: 0000C890    ; add x9, x4, x3
 0x0070: 00001240    ; add x4, x9, x0
 0x0074: 00010071    ; addi x7, x0, 1
-0x0078: 0001C6A0    ; add x10, x3, x7
-0x007C: 00001430    ; add x3, x10, x0
-0x0080: 0FF7E404    ; jal x0, -56
-0x0084: 000008B0    ; add x11, x4, x0
-0x0088: 00000204    ; jal x0, 4
-0x008C: 00090512    ; lw x17, 4(x2)
-0x0090: 00280421    ; addi x2, x2, 40
-0x0094: 00600000    ; freeze
+0x0078: 0001CAA0    ; add x10, x5, x7
+0x007C: 00028680    ; add x8, x3, x10
+0x0080: 00001030    ; add x3, x8, x0
+0x0084: 0000C890    ; add x9, x4, x3
+0x0088: 00001240    ; add x4, x9, x0
+0x008C: 00020071    ; addi x7, x0, 2
+0x0090: 0001CA80    ; add x8, x5, x7
+0x0094: 000206A0    ; add x10, x3, x8
+0x0098: 00001430    ; add x3, x10, x0
+0x009C: 0000C890    ; add x9, x4, x3
+0x00A0: 00001240    ; add x4, x9, x0
+0x00A4: 00030071    ; addi x7, x0, 3
+0x00A8: 0001CAA0    ; add x10, x5, x7
+0x00AC: 00028680    ; add x8, x3, x10
+0x00B0: 00001030    ; add x3, x8, x0
+0x00B4: 0000C890    ; add x9, x4, x3
+0x00B8: 00001240    ; add x4, x9, x0
+0x00BC: 00040071    ; addi x7, x0, 4
+0x00C0: 0001CA80    ; add x8, x5, x7
+0x00C4: 00001050    ; add x5, x8, x0
+0x00C8: 0FF7C004    ; jal x0, -128
+0x00CC: 000008B0    ; add x11, x4, x0
+0x00D0: 00000204    ; jal x0, 4
+0x00D4: 00090512    ; lw x17, 4(x2)
+0x00D8: 00400421    ; addi x2, x2, 64
+0x00DC: 00600000    ; freeze
 
 ; Seccion .data
 ; <sin datos globales>
