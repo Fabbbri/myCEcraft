@@ -29,12 +29,7 @@ module l1_con (
 
     output logic [31:0] dato_cpu,
 
-    output logic miss_l1_out,
-    output logic hit_l1_out,
-    output logic is_write_out,
-    output logic [31:0] wdata_out,
-    output logic [31:0] addr_out,
-    output logic [1:0]  size_out
+    output logic miss_l1_out
 );
 
 // ==========================================================
@@ -72,12 +67,7 @@ set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
 // ==========================================================
 // Outputs hacia pipeline / l2_con
 // ==========================================================
-assign hit_l1_out   = hit_l1;
 assign miss_l1_out  = ~hit_l1;
-assign is_write_out = is_write;
-assign wdata_out    = wdata;
-assign addr_out     = addr;
-assign size_out     = size;
 assign dato_cpu     = l1_data_out;
 
 // ==========================================================

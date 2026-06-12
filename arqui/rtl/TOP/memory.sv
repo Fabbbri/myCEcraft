@@ -183,12 +183,7 @@ l1_con L1Con(
     .inv_way             (inv_way_l1),
     .inv_set             (inv_set_l1),
     .dato_cpu            (dato_cpu_l1_unused),  // FIX 1: wire propio
-    .miss_l1_out         (miss_l1),
-    .hit_l1_out          (),
-    .is_write_out        (),
-    .wdata_out           (),
-    .addr_out            (),
-    .size_out            ()
+    .miss_l1_out         (miss_l1)
 );
 
 // ==========================================================
