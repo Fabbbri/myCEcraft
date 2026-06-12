@@ -1,0 +1,16 @@
+digraph "loop_unrolling_demo.unroll" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\li = 0\lsuma = 0\lmezcla = 1\ltotal = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt5 = i < 8\lifFalse t5 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lt6 = suma + i\lsuma = t6\lt7 = mezcla * 2\lmezcla = t7\lt8 = total + suma\ltotal = t8\lt9 = suma + (i + 1)\lsuma = t9\lt10 = mezcla * 2\lmezcla = t10\lt11 = total + suma\ltotal = t11\lt12 = suma + (i + 2)\lsuma = t12\lt13 = mezcla * 2\lmezcla = t13\lt14 = total + suma\ltotal = t14\lt15 = suma + (i + 3)\lsuma = t15\lt16 = mezcla * 2\lmezcla = t16\lt17 = total + suma\ltotal = t17\lt18 = i + 4\li = t18\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\lreturn total\l"];
+
+  "B_label_main" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+}

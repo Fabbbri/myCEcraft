@@ -1,0 +1,81 @@
+; ==================================================
+; Fase 6 - codigo binario generado
+; ==================================================
+
+; Encabezado MYCE
+;   magic             = MYCE
+;   version           = 1
+;   header_size       = 44 bytes
+;   entry_point       = 0x00000000
+;   text_offset       = 44
+;   text_size         = 240 bytes
+;   data_offset       = 284
+;   data_size         = 0 bytes
+;   text_base         = 0x00000000
+;   data_base         = 0x00000000
+;   instruction_count = 60
+
+; Seccion .text
+0x0000: 00200066    ; portalv x0, x0, 24
+0x0004: 0008000E    ; lwv v0, 0(v0)
+0x0008: 00580000    ; sleep
+0x000C: 00580000    ; sleep
+0x0010: 00580000    ; sleep
+0x0014: 0000000C    ; closev
+0x0018: 00004021    ; addiHIGH x2, x0, 0
+0x001C: 7FF00421    ; addi x2, x2, 0x7FF0
+0x0020: FFF48421    ; addiSigned x2, x2, -12
+0x0024: 00004402    ; sw x1, 0(x2)
+0x0028: 00044442    ; sw x17, 4(x2)
+0x002C: 000C0511    ; addi x17, x2, 12
+0x0030: 08490041    ; addi x4, x0, 2121
+0x0034: 00000830    ; add x3, x4, x0
+0x0038: 01200686    ; portalv x3, v0, 160
+0x003C: 96A30011    ; addi x1, v0, 38563
+0x0040: 0023421F    ; addiHIGHv v1, x1, 35
+0x0044: 00580000    ; sleep
+0x0048: 00580000    ; sleep
+0x004C: 00580000    ; sleep
+0x0050: 0000400E    ; swv v1, 0(v0)
+0x0054: 04D20011    ; addi x1, v0, 1234
+0x0058: 0000421F    ; addiHIGHv v1, x1, 0
+0x005C: 00580000    ; sleep
+0x0060: 00580000    ; sleep
+0x0064: 00580000    ; sleep
+0x0068: 0000404E    ; swv v1, 4(v0)
+0x006C: 33B20011    ; addi x1, v0, 13234
+0x0070: 0000421F    ; addiHIGHv v1, x1, 0
+0x0074: 00580000    ; sleep
+0x0078: 00580000    ; sleep
+0x007C: 00580000    ; sleep
+0x0080: 0000408E    ; swv v1, 8(v0)
+0x0084: 007C0011    ; addi x1, v0, 124
+0x0088: 0000421F    ; addiHIGHv v1, x1, 0
+0x008C: 00580000    ; sleep
+0x0090: 00580000    ; sleep
+0x0094: 00580000    ; sleep
+0x0098: 000040CE    ; swv v1, 12(v0)
+0x009C: 12340011    ; addi x1, v0, 0x1234
+0x00A0: ABCD422F    ; addiHIGHv v2, x1, 0xABCD
+0x00A4: 00580000    ; sleep
+0x00A8: 00580000    ; sleep
+0x00AC: 00580000    ; sleep
+0x00B0: 0000022B    ; changev v2, v1
+0x00B4: 00580000    ; sleep
+0x00B8: 00580000    ; sleep
+0x00BC: 00580000    ; sleep
+0x00C0: 0008003E    ; lwv v3, 0(v0)
+0x00C4: 00580000    ; sleep
+0x00C8: 00580000    ; sleep
+0x00CC: 00580000    ; sleep
+0x00D0: 0000C04E    ; swv v3, 4(v0)
+0x00D4: 0000000C    ; closev
+0x00D8: 00000051    ; addi x5, x0, 0
+0x00DC: 00000AB0    ; add x11, x5, x0
+0x00E0: 00000204    ; jal x0, 4
+0x00E4: 00090512    ; lw x17, 4(x2)
+0x00E8: 000C0421    ; addi x2, x2, 12
+0x00EC: 00600000    ; freeze
+
+; Seccion .data
+; <sin datos globales>

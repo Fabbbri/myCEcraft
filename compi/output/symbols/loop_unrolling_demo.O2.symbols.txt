@@ -1,0 +1,37 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+L_while_start_0              pc=0x0048
+.L_ir_2_ir_cmp_true          pc=0x0058
+.L_ir_3_ir_cmp_end           pc=0x005C
+L_while_end_1                pc=0x00CC
+.L_ir_1_main_end             pc=0x00D4
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                           seg   addr    off  size  res
+  ----  --------  ----  -----------------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   loop_unrolling_demo.craft:3:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=16)
+    symbols:
+    name             kind      type  decl                           seg    addr             off  size  res
+    ---------------  --------  ----  -----------------------------  -----  ---------------  ---  ----  ---
+    i                VARIABLE  int   loop_unrolling_demo.craft:4:5  STACK  runtime(x17-4)   -4   4     yes
+    suma             VARIABLE  int   loop_unrolling_demo.craft:5:5  STACK  runtime(x17-8)   -8   4     yes
+    mezcla           VARIABLE  int   loop_unrolling_demo.craft:6:5  STACK  runtime(x17-12)  -12  4     yes
+    total            VARIABLE  int   loop_unrolling_demo.craft:7:5  STACK  runtime(x17-16)  -16  4     yes
+    .L0_while_start  LABEL     None  loop_unrolling_demo.craft:9:5  TEXT   -                -    0     no 
+    .L1_while_end    LABEL     None  loop_unrolling_demo.craft:9:5  TEXT   -                -    0     no 
+
+    [scope 2] LOOP 'while'
+      symbols: (none)

@@ -9,7 +9,6 @@ from IR.instructions import (
     IRArrayAssign,
     IRBinOp,
     IRCall,
-    IRCommit,
     IRInstruction,
     IRJump,
     IRJumpIfFalse,
@@ -24,22 +23,20 @@ from .common import IROptimizationStats
 
 
 TEMP_RE = re.compile(r"t\d+\Z")
-SIMPLE_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
 class IRStaticRegisterRenamer:
     """
-    Versiona escrituras escalares dentro de cada bloque basico.
+    Agrega pistas de registro fisico a temporales IR.
 
-    Cada nueva definicion recibe un nombre virtual distinto y una pista de
-    registro fisico. Al salir del bloque, IRCommit conserva el valor visible
-    de la variable original sin permitir que el planificador mueva la copia.
+    Las variables visibles conservan su nombre. La asignacion real y la
+    decision de spill pertenecen al backend; crear versiones de cada variable
+    aqui obligaba a materializarlas en stack y hacia crecer el codigo.
     """
 
     def __init__(self, stats: IROptimizationStats) -> None:
         self.stats = stats
         self._register_counter = 0
-        self._version_counters: dict[str, int] = {}
         self._temp_mapping: dict[str, str] = {}
         self._registers = [register.asm() for register in TEMP_REGISTERS]
 
@@ -47,11 +44,6 @@ class IRStaticRegisterRenamer:
         if not instructions:
             return []
 
-        arrays = {
-            instruction.result
-            for instruction in instructions
-            if isinstance(instruction, IRArrayAssign)
-        }
         cfg = ControlFlowGraph()
         cfg.build_from_ir(instructions)
 
@@ -67,19 +59,16 @@ class IRStaticRegisterRenamer:
                 self._temp_mapping.clear()
 
             if inside_function:
-                output.extend(self._rename_block(block.instructions, arrays))
+                output.extend(self._rename_block(block.instructions))
             else:
-                # Global initializers must keep their symbol names for .data.
                 output.extend(block.instructions)
         return output
 
     def _rename_block(
         self,
         instructions: list[IRInstruction],
-        arrays: set[str],
     ) -> list[IRInstruction]:
         output: list[IRInstruction] = []
-        versions: dict[str, str] = {}
 
         for instruction in instructions:
             if isinstance(instruction, IRLabel):
@@ -91,8 +80,8 @@ class IRStaticRegisterRenamer:
                 output.append(
                     IRBinOp(
                         instruction.op,
-                        self._rename_operand(instruction.left, versions),
-                        self._rename_operand(instruction.right, versions),
+                        self._rename_operand(instruction.left),
+                        self._rename_operand(instruction.right),
                         result,
                     )
                 )
@@ -103,42 +92,29 @@ class IRStaticRegisterRenamer:
                 output.append(
                     IRUnaryOp(
                         instruction.op,
-                        self._rename_operand(instruction.operand, versions),
+                        self._rename_operand(instruction.operand),
                         result,
                     )
                 )
                 continue
 
             if isinstance(instruction, IRAssign):
-                source = self._rename_operand(instruction.source, versions)
+                source = self._rename_operand(instruction.source)
                 target = instruction.result
 
                 if TEMP_RE.fullmatch(target):
                     output.append(
                         IRAssign(source, self._rename_temp_definition(target))
                     )
-                elif (
-                    SIMPLE_NAME_RE.fullmatch(target)
-                    and target not in arrays
-                ):
-                    version = self._new_variable_version(target)
-                    versions[target] = version
-                    output.append(IRAssign(source, version))
                 else:
-                    output.append(
-                        IRAssign(
-                            source,
-                            self._rename_operand(target, versions),
-                        )
-                    )
+                    output.append(IRAssign(source, target))
                 continue
 
             if isinstance(instruction, IRArrayAssign):
-                output.extend(self._flush_versions(versions))
                 output.append(
                     IRArrayAssign(
                         [
-                            self._rename_operand(element, versions)
+                            self._rename_operand(element)
                             for element in instruction.elements
                         ],
                         instruction.result,
@@ -147,7 +123,6 @@ class IRStaticRegisterRenamer:
                 continue
 
             if isinstance(instruction, IRCall):
-                output.extend(self._flush_versions(versions))
                 result = (
                     self._rename_temp_definition(instruction.result)
                     if instruction.result
@@ -157,7 +132,7 @@ class IRStaticRegisterRenamer:
                     IRCall(
                         instruction.func_name,
                         [
-                            self._rename_operand(argument, versions)
+                            self._rename_operand(argument)
                             for argument in instruction.args
                         ],
                         result,
@@ -166,29 +141,26 @@ class IRStaticRegisterRenamer:
                 continue
 
             if isinstance(instruction, IRJumpIfFalse):
-                output.extend(self._flush_versions(versions))
                 output.append(
                     IRJumpIfFalse(
-                        self._rename_operand(instruction.condition, versions),
+                        self._rename_operand(instruction.condition),
                         instruction.label,
                     )
                 )
                 continue
 
             if isinstance(instruction, IRReturn):
-                output.extend(self._flush_versions(versions))
                 output.append(
-                    IRReturn(self._rename_operand(instruction.value, versions))
+                    IRReturn(self._rename_operand(instruction.value))
                 )
                 continue
 
             if isinstance(instruction, IRVaultInstruction):
-                output.extend(self._flush_versions(versions))
                 output.append(
                     IRVaultInstruction(
                         instruction.keyword,
                         [
-                            self._rename_operand(operand, versions)
+                            self._rename_operand(operand)
                             for operand in instruction.operands
                         ],
                     )
@@ -196,38 +168,26 @@ class IRStaticRegisterRenamer:
                 continue
 
             if isinstance(instruction, IRJump):
-                output.extend(self._flush_versions(versions))
                 output.append(instruction)
                 continue
 
             output.append(instruction)
 
-        output.extend(self._flush_versions(versions))
         return output
-
-    def _flush_versions(self, versions: dict[str, str]) -> list[IRCommit]:
-        commits = [
-            IRCommit(version, original)
-            for original, version in versions.items()
-        ]
-        versions.clear()
-        return commits
 
     def _rename_operand(
         self,
         operand: Any,
-        versions: dict[str, str],
     ) -> Any:
         if not isinstance(operand, str):
             return operand
 
-        mapping = {**self._temp_mapping, **versions}
-        if operand in mapping:
-            return mapping[operand]
-        for original in sorted(mapping, key=len, reverse=True):
+        if operand in self._temp_mapping:
+            return self._temp_mapping[operand]
+        for original in sorted(self._temp_mapping, key=len, reverse=True):
             operand = re.sub(
                 rf"\b{re.escape(original)}\b",
-                mapping[original],
+                self._temp_mapping[original],
                 operand,
             )
         return operand
@@ -236,11 +196,6 @@ class IRStaticRegisterRenamer:
         renamed = self._with_register_hint(original)
         self._temp_mapping[original] = renamed
         return renamed
-
-    def _new_variable_version(self, original: str) -> str:
-        version = self._version_counters.get(original, 0) + 1
-        self._version_counters[original] = version
-        return self._with_register_hint(f"{original}__v{version}")
 
     def _with_register_hint(self, name: str) -> str:
         if not self._registers:

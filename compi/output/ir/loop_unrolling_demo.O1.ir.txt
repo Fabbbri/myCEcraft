@@ -1,0 +1,87 @@
+main:
+  i = 0
+  suma = 0
+  mezcla = 1
+  total = 0
+L_while_start_0:
+  t5__x3 = i < 8
+  ifFalse t5__x3 goto L_while_end_1
+  t6__x4 = suma + i
+  suma = t6__x4
+  t7__x5 = mezcla * 2
+  mezcla = t7__x5
+  t8__x6 = total + suma
+  total = t8__x6
+  t9__x7 = suma + (i + 1)
+  suma = t9__x7
+  t10__x8 = mezcla * 2
+  mezcla = t10__x8
+  t11__x9 = total + suma
+  total = t11__x9
+  t12__x10 = suma + (i + 2)
+  suma = t12__x10
+  t13__x3 = mezcla * 2
+  mezcla = t13__x3
+  t14__x4 = total + suma
+  total = t14__x4
+  t15__x5 = suma + (i + 3)
+  suma = t15__x5
+  t16__x6 = mezcla * 2
+  mezcla = t16__x6
+  t17__x7 = total + suma
+  total = t17__x7
+  t18__x8 = i + 4
+  i = t18__x8
+  goto L_while_start_0
+L_while_end_1:
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    i = 0
+    suma = 0
+    mezcla = 1
+    total = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t5__x3 = i < 8
+    ifFalse t5__x3 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    t6__x4 = suma + i
+    suma = t6__x4
+    t7__x5 = mezcla * 2
+    mezcla = t7__x5
+    t8__x6 = total + suma
+    total = t8__x6
+    t9__x7 = suma + (i + 1)
+    suma = t9__x7
+    t10__x8 = mezcla * 2
+    mezcla = t10__x8
+    t11__x9 = total + suma
+    total = t11__x9
+    t12__x10 = suma + (i + 2)
+    suma = t12__x10
+    t13__x3 = mezcla * 2
+    mezcla = t13__x3
+    t14__x4 = total + suma
+    total = t14__x4
+    t15__x5 = suma + (i + 3)
+    suma = t15__x5
+    t16__x6 = mezcla * 2
+    mezcla = t16__x6
+    t17__x7 = total + suma
+    total = t17__x7
+    t18__x8 = i + 4
+    i = t18__x8
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+    L_while_end_1:
+    return total

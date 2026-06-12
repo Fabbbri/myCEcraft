@@ -102,6 +102,43 @@ QMainWindow {
     border-color: #5A5A5A;
 }
 
+#TopControlLabel {
+    color: #AFAFAF;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#TopNumberInput {
+    min-width: 54px;
+    background: #252526;
+    color: #CCCCCC;
+    border: 1px solid #3C3C3C;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+#TopNumberInput:hover,
+#TopNumberInput:focus {
+    border-color: #5A5A5A;
+}
+
+QMenu {
+    background: #252526;
+    border: 1px solid #4A4A4A;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 7px 22px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background: #3A3D41;
+    color: #FFFFFF;
+}
+
 #RunButton {
     background: #16825D;
     color: #FFFFFF;

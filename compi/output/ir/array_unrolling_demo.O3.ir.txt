@@ -1,35 +1,33 @@
 main:
   datos = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-  i__v1__x3 = 0
-  commit i = i__v1__x3
+  i = 0
 L_for_start_0:
-  t5__x4 = i < 8
-  ifFalse t5__x4 goto L_for_end_1
-  t6__x5 = datos[i]
-  t7__x6 = t6__x5 + 1
-  datos[i] = t7__x6
-  t8__x7 = datos[(i + 1)]
-  t9__x8 = t8__x7 + 1
-  datos[(i + 1)] = t9__x8
-  t10__x9 = datos[(i + 2)]
-  t11__x10 = t10__x9 + 1
-  datos[(i + 2)] = t11__x10
-  t12__x3 = datos[(i + 3)]
-  t13__x4 = t12__x3 + 1
-  datos[(i + 3)] = t13__x4
-  t14__x5 = i + 4
-  i__v2__x6 = t14__x5
-  commit i = i__v2__x6
+  t5__x3 = i < 8
+  ifFalse t5__x3 goto L_for_end_1
+  t6__x4 = datos[i]
+  t7__x5 = t6__x4 + 1
+  datos[i] = t7__x5
+  t8__x6 = datos[(i + 1)]
+  t9__x7 = t8__x6 + 1
+  datos[(i + 1)] = t9__x7
+  t10__x8 = datos[(i + 2)]
+  t11__x9 = t10__x8 + 1
+  datos[(i + 2)] = t11__x9
+  t12__x10 = datos[(i + 3)]
+  t13__x3 = t12__x10 + 1
+  datos[(i + 3)] = t13__x3
+  t14__x4 = i + 4
+  i = t14__x4
   goto L_for_start_0
 L_for_end_1:
-  t15__x7 = datos[8]
-  t16__x8 = t15__x7 + 1
-  datos[8] = t16__x8
-  t18__x9 = datos[9]
-  t19__x10 = t18__x9 + 1
-  datos[9] = t19__x10
-  t4__x3 = datos[9]
-  return t4__x3
+  t15__x5 = datos[8]
+  t16__x6 = t15__x5 + 1
+  datos[8] = t16__x6
+  t18__x7 = datos[9]
+  t19__x8 = t18__x7 + 1
+  datos[9] = t19__x8
+  t4__x9 = datos[9]
+  return t4__x9
 
 === Control Flow Graph & Basic Blocks ===
 
@@ -37,41 +35,39 @@ L_for_end_1:
   -> Sucesores: B_label_L_for_start_0
   main:
     IRArrayAssign(elements=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result='datos')
-    i__v1__x3 = 0
-    commit i = i__v1__x3
+    i = 0
 
 [B_label_L_for_start_0]
   -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
   L_for_start_0:
-    t5__x4 = i < 8
-    ifFalse t5__x4 goto L_for_end_1
+    t5__x3 = i < 8
+    ifFalse t5__x3 goto L_for_end_1
 
 [B_fallthrough_2]
   -> Sucesores: B_label_L_for_start_0
-    t6__x5 = datos[i]
-    t7__x6 = t6__x5 + 1
-    datos[i] = t7__x6
-    t8__x7 = datos[(i + 1)]
-    t9__x8 = t8__x7 + 1
-    datos[(i + 1)] = t9__x8
-    t10__x9 = datos[(i + 2)]
-    t11__x10 = t10__x9 + 1
-    datos[(i + 2)] = t11__x10
-    t12__x3 = datos[(i + 3)]
-    t13__x4 = t12__x3 + 1
-    datos[(i + 3)] = t13__x4
-    t14__x5 = i + 4
-    i__v2__x6 = t14__x5
-    commit i = i__v2__x6
+    t6__x4 = datos[i]
+    t7__x5 = t6__x4 + 1
+    datos[i] = t7__x5
+    t8__x6 = datos[(i + 1)]
+    t9__x7 = t8__x6 + 1
+    datos[(i + 1)] = t9__x7
+    t10__x8 = datos[(i + 2)]
+    t11__x9 = t10__x8 + 1
+    datos[(i + 2)] = t11__x9
+    t12__x10 = datos[(i + 3)]
+    t13__x3 = t12__x10 + 1
+    datos[(i + 3)] = t13__x3
+    t14__x4 = i + 4
+    i = t14__x4
     goto L_for_start_0
 
 [B_label_L_for_end_1]
   L_for_end_1:
-    t15__x7 = datos[8]
-    t16__x8 = t15__x7 + 1
-    datos[8] = t16__x8
-    t18__x9 = datos[9]
-    t19__x10 = t18__x9 + 1
-    datos[9] = t19__x10
-    t4__x3 = datos[9]
-    return t4__x3
+    t15__x5 = datos[8]
+    t16__x6 = t15__x5 + 1
+    datos[8] = t16__x6
+    t18__x7 = datos[9]
+    t19__x8 = t18__x7 + 1
+    datos[9] = t19__x8
+    t4__x9 = datos[9]
+    return t4__x9

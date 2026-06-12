@@ -101,4 +101,19 @@ class Workspace:
                         self.output_root / "symbols" / f"{optimized_stem}.symbols.txt",
                     ]
                 )
+            for tag in ("unroll", "rename", "dce", "reorder"):
+                tagged_stem = f"{base_stem}.{tag}"
+                candidates.extend(
+                    [
+                        self.output_root / "ir" / f"{tagged_stem}.ir.txt",
+                        self.output_root / "cfg" / f"{tagged_stem}.cfg.dot",
+                        self.output_root / "asm_unresolved" / f"{tagged_stem}.asm",
+                        self.output_root / "asm_resolved" / f"{tagged_stem}.resolved.asm",
+                        self.output_root / "bin_output" / f"{tagged_stem}.bin",
+                        self.output_root / "bin_output" / f"{tagged_stem}.hex",
+                        self.output_root / "bin_output" / f"{tagged_stem}.data.hex",
+                        self.output_root / "bin_output" / f"{tagged_stem}.lst",
+                        self.output_root / "symbols" / f"{tagged_stem}.symbols.txt",
+                    ]
+                )
         return [path for path in candidates if path.exists()]
