@@ -1,0 +1,19 @@
+digraph "07_dce_ramas_muertas_if" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_entry" [label="B_entry\lestado = 0\l"];
+  "B_label_marcar" [label="B_label_marcar\lmarcar:\lt0 = estado + v\lestado = t0\lreturn estado\l"];
+  "B_label_main" [label="B_label_main\lmain:\lbase = 7\lt1 = base > 0\lifFalse t1 goto L_else_0\l"];
+  "B_fallthrough_3" [label="B_fallthrough_3\lt2 = base + 3\lm1 = t2\lt3 = m1 + m1\lm2 = t3\lt4 = m2 + m1\lm3 = t4\lt5 = m3 + m2\lm4 = t5\lgoto L_end_if_1\l"];
+  "B_label_L_else_0" [label="B_label_L_else_0\lL_else_0:\lt6 = base + 9\ln1 = t6\lt7 = n1 + n1\ln2 = t7\lt8 = n2 + n1\ln3 = t8\lt9 = n3 + n2\ln4 = t9\l"];
+  "B_label_L_end_if_1" [label="B_label_L_end_if_1\lL_end_if_1:\lt10 = call marcar(5)\lreturn estado\l"];
+
+  "B_entry" -> "B_label_marcar" [label="fallthrough", color="#555555"];
+  "B_label_main" -> "B_label_L_else_0" [label="false", color="#B22222"];
+  "B_label_main" -> "B_fallthrough_3" [label="true", color="#2E8B57"];
+  "B_fallthrough_3" -> "B_label_L_end_if_1" [label="jump", color="#4169E1"];
+  "B_label_L_else_0" -> "B_label_L_end_if_1" [label="fallthrough", color="#555555"];
+}

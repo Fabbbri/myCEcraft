@@ -647,4 +647,58 @@ Minimap {
     background: #1A1A1A;
     border-left: 1px solid #2A2A2A;
 }
+
+#CFGOverlay {
+    background: rgba(30, 30, 30, 220);
+    border: 1px solid #3C3C3C;
+    border-radius: 8px;
+}
+
+#CFGListHeader {
+    background: transparent;
+    color: #888888;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 10px 4px 10px;
+    border-bottom: 1px solid #3C3C3C;
+    border-radius: 0px;
+}
+
+#CFGList {
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: #CCCCCC;
+}
+
+#CFGList::item {
+    padding: 5px 10px;
+    border-bottom: 1px solid #2A2A2A;
+}
+
+#CFGList::item:hover {
+    background: rgba(255, 255, 255, 15);
+}
+
+#CFGList::item:selected {
+    background: #37373F;
+    color: #FFFFFF;
+}
+
+#CFGFitButton {
+    background: transparent;
+    border: none;
+    border-top: 1px solid #3C3C3C;
+    border-radius: 0px;
+    padding: 6px 10px;
+    color: #888888;
+    font-size: 11px;
+    text-align: left;
+}
+
+#CFGFitButton:hover {
+    color: #CCCCCC;
+    background: rgba(255, 255, 255, 10);
+}
 """

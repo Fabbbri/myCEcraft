@@ -1,0 +1,59 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_2_ir_cmp_true          pc=0x0048
+.L_ir_3_ir_cmp_end           pc=0x004C
+L_else_0                     pc=0x0084
+L_end_if_1                   pc=0x00B4
+.L_ir_1_main_end             pc=0x00EC
+marcar                       pc=0x00F8
+.L_ir_4_marcar_end           pc=0x013C
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name    kind      type  decl                                seg   addr    off  size  res
+  ------  --------  ----  ----------------------------------  ----  ------  ---  ----  ---
+  marcar  FUNCTION  int   07_dce_ramas_muertas_if.craft:10:1  TEXT  0x00F8  -    0     yes
+  main    FUNCTION  int   07_dce_ramas_muertas_if.craft:16:1  TEXT  0x0018  -    0     yes
+  estado  VARIABLE  int   07_dce_ramas_muertas_if.craft:8:1   DATA  0x8000  -    4     yes
+
+  [scope 1] FUNCTION marcar (stack_size=4)
+    symbols:
+    name  kind       type  decl                                 seg    addr            off  size  res
+    ----  ---------  ----  -----------------------------------  -----  --------------  ---  ----  ---
+    v     PARAMETER  int   07_dce_ramas_muertas_if.craft:10:18  STACK  runtime(x17-4)  -4   4     yes
+
+  [scope 2] FUNCTION main (stack_size=36)
+    symbols:
+    name         kind      type  decl                                seg    addr            off  size  res
+    -----------  --------  ----  ----------------------------------  -----  --------------  ---  ----  ---
+    base         VARIABLE  int   07_dce_ramas_muertas_if.craft:17:5  STACK  runtime(x17-4)  -4   4     yes
+    .L0_if_else  LABEL     None  07_dce_ramas_muertas_if.craft:19:5  TEXT   -               -    0     no 
+    .L1_if_end   LABEL     None  07_dce_ramas_muertas_if.craft:19:5  TEXT   -               -    0     no 
+
+    [scope 3] CONDITIONAL 'if'
+      symbols:
+      name  kind      type  decl                                seg    addr             off  size  res
+      ----  --------  ----  ----------------------------------  -----  ---------------  ---  ----  ---
+      m1    VARIABLE  int   07_dce_ramas_muertas_if.craft:21:9  STACK  runtime(x17-8)   -8   4     yes
+      m2    VARIABLE  int   07_dce_ramas_muertas_if.craft:22:9  STACK  runtime(x17-12)  -12  4     yes
+      m3    VARIABLE  int   07_dce_ramas_muertas_if.craft:23:9  STACK  runtime(x17-16)  -16  4     yes
+      m4    VARIABLE  int   07_dce_ramas_muertas_if.craft:24:9  STACK  runtime(x17-20)  -20  4     yes
+
+    [scope 4] CONDITIONAL 'else'
+      symbols:
+      name  kind      type  decl                                seg    addr             off  size  res
+      ----  --------  ----  ----------------------------------  -----  ---------------  ---  ----  ---
+      n1    VARIABLE  int   07_dce_ramas_muertas_if.craft:26:9  STACK  runtime(x17-24)  -24  4     yes
+      n2    VARIABLE  int   07_dce_ramas_muertas_if.craft:27:9  STACK  runtime(x17-28)  -28  4     yes
+      n3    VARIABLE  int   07_dce_ramas_muertas_if.craft:28:9  STACK  runtime(x17-32)  -32  4     yes
+      n4    VARIABLE  int   07_dce_ramas_muertas_if.craft:29:9  STACK  runtime(x17-36)  -36  4     yes

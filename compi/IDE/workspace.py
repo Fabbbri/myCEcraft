@@ -66,6 +66,12 @@ class Workspace:
         )
         return target
 
+    def cfg_dot_paths(self) -> list[Path]:
+        cfg_dir = self.output_root / "cfg"
+        if not cfg_dir.is_dir():
+            return []
+        return sorted(cfg_dir.glob("*.cfg.dot"))
+
     def artifact_paths_for(self, source_path: Path) -> list[Path]:
         stem = source_path.stem
         candidates = [

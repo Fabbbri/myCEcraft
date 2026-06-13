@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from cfg_viewer import CFGViewer
 from compiler_runner import CompilerRunner
 from ll1_syntax import Diagnostic, EPSILON, LL1SyntaxService
 from simulation_runner import SimulationRunner
@@ -797,6 +798,7 @@ class MainWindow(QMainWindow):
         self.editor_diagnostics: dict[CodeEditor, list[Diagnostic]] = {}
         self.editor_minimaps: dict[CodeEditor, Minimap] = {}
         self.ll1_table_view: LL1TableView | None = None
+        self.cfg_viewer_tab: CFGViewer | None = None
         self._loading_editor = False
         self.current_optimization_label = "Sin optimizaciones"
         self.current_unroll_label = "Automatico"
@@ -885,6 +887,7 @@ class MainWindow(QMainWindow):
             ("Guardar", self.save_current_file),
             ("Tabla LL(1)", self.show_ll1_table),
             ("Artefactos", self.show_artifacts_tab),
+            ("Ver CFGs", self.show_cfg_viewer),
         ]
 
         for label, handler in actions:
@@ -1408,6 +1411,34 @@ class MainWindow(QMainWindow):
     def show_artifacts_tab(self) -> None:
         self.output_tabs.setCurrentWidget(self.artifacts_panel)
 
+    def show_cfg_viewer(self) -> None:
+        if self.cfg_viewer_tab is not None:
+            index = self.editor_tabs.indexOf(self.cfg_viewer_tab)
+            if index != -1:
+                self.editor_tabs.setCurrentIndex(index)
+                self._load_cfg_paths()
+                self._set_state("Visor CFG")
+                return
+
+        self.cfg_viewer_tab = CFGViewer()
+        index = self.editor_tabs.addTab(self.cfg_viewer_tab, "CFG")
+        self.editor_tabs.tabBar().setTabButton(
+            index,
+            QTabBar.RightSide,
+            self._build_auxiliary_tab_close_button(self.cfg_viewer_tab),
+        )
+        self.editor_tabs.setCurrentIndex(index)
+        self._load_cfg_paths()
+        self._set_state("Visor CFG")
+
+    def _load_cfg_for_active_file(self) -> None:
+        self._load_cfg_paths()
+
+    def _load_cfg_paths(self) -> None:
+        if self.cfg_viewer_tab is None:
+            return
+        self.cfg_viewer_tab.load_paths(self.workspace.cfg_dot_paths())
+
     def show_ll1_table(self) -> None:
         if self.ll1_table_view is not None:
             index = self.editor_tabs.indexOf(self.ll1_table_view)
@@ -1459,6 +1490,8 @@ class MainWindow(QMainWindow):
         self.editor_tabs.removeTab(index)
         if widget is self.ll1_table_view:
             self.ll1_table_view = None
+        if widget is self.cfg_viewer_tab:
+            self.cfg_viewer_tab = None
         widget.deleteLater()
         self._handle_current_tab_changed(self.editor_tabs.currentIndex())
 
@@ -2121,6 +2154,7 @@ class MainWindow(QMainWindow):
 
         if path is not None:
             self._refresh_artifacts(path)
+            self._load_cfg_paths()
         self.active_compile_path = None
 
     def _handle_simulation_started(self) -> None:
