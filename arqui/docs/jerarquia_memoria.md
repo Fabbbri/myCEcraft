@@ -94,7 +94,7 @@ L2:  | tag 20b [31:12] | set 7b [11:5] | word 3b [4:2] | byte 2b [1:0] |
 | Bits de offset (palabra) | 3 | `OFFSET_BITS = 3` |
 | Bits de tag | 32 − 7 − 3 − 2 = **20** | `TAG_BITS = 20` |
 
-### Justificación de parámetros
+#### Justificación de parámetros
  
 En el enunciado del proyecto se indican los siguientes parámetros:
 
@@ -142,7 +142,7 @@ En un store, si la dirección no está, entonces no es necesario:
  
 **Write-through** fue elegido sobre write-back por las siguientes razones:
  
-- **Simplifica la coherencia L1↔L2:** Con write-through, L2 siempre contiene datos ≥ tan recientes como L1. No es necesario implementar un protocolo dirty-bit + writeback al desalojar líneas de L1, lo que simplifica la implementación y diseño.
+- **Simplifica la coherencia L1-L2:** Con write-through, L2 siempre contiene datos ≥ tan recientes como L1. No es necesario implementar un protocolo dirty-bit + writeback al desalojar líneas de L1, lo que simplifica la implementación y diseño.
 - **Elimina el estado "dirty":** El bit `valid` es suficiente por línea; no se requiere bit `dirty`. Esto reduce el área del array de tags, simplifica la decodificación y reduce las variables necesarias a considerar en FSM del controlador.
 - **Reduce la complejidad del reemplazo:** Al desalojar una línea de L2, nunca es necesario escribirla de vuelta a DRAM, porque DRAM ya tiene la versión actualizada.
 - **Adecuado para el patrón de acceso del benchmark:** Se identificó que en general, los stores en los benchmarks de CRAFT21 son poco frecuentes comparados con los loads; el costo extra de write-through (latencia de store) no domina el CPI total. Además, se apuesta a que el principio de que si el dato no está, no necesita escribirse en L2 pero si en DRAM para mantener la coherencia.
