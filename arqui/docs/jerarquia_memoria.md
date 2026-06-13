@@ -129,7 +129,7 @@ De esta forma, se obtuvo que:
 
 La justificación de estos datos es puramente matemática y los valores no son arbitrarios sino la derivación de utilizar los valores solicitados por el enunciado.
 
-La figura que se muestra a continuación presenta la arquitectura de la caché L1-D diseñada para este proyecto.
+La figura que se muestra a continuación presenta la organización de la caché L1-D diseñada para este proyecto.
 
 ![image: l1](microL1.png)
 
@@ -331,7 +331,7 @@ De esta forma, se obtuvo que:
 
 La justificación de estos datos es puramente matemática y los valores no son arbitrarios sino la derivación de utilizar los valores solicitados por el enunciado. 
 
-La figura que se muestra a continuación presenta la arquitectura de la caché L2 diseñada para este proyecto.
+La figura que se muestra a continuación presenta la organización de la caché L2 diseñada para este proyecto.
 
 ![image:l2](microL2.png)
 
