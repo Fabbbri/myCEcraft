@@ -10,8 +10,6 @@ module refill_regs (
     input  logic [2:0]  burst_counter,
     input  logic [31:0] burst_rdata,
 
-    input  logic [31:0] l2_rdata,
-
     input  logic        hit_l2,
 
     output logic [255:0] fill_line_out

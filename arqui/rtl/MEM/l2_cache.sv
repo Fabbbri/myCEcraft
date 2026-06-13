@@ -27,8 +27,7 @@ module l2_cache (
 
     output logic        hit_l2_wb,
 
-    input  logic [6:0]  l2_refill_set,
-    output logic [31:0] l2_refill_rdata
+    input  logic [6:0]  l2_refill_set
 );
 
     localparam int NUM_SETS  = 128;

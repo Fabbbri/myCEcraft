@@ -61,7 +61,6 @@ logic [31:0] store_data_l2;
 logic        hit_l2;
 logic [31:0] l2_data_out;
 logic        hit_l2_wb;
-logic [31:0] l2_refill_rdata;
 
 // FIX 2: addr_set_l2 declarado con ancho correcto (7 bits)
 logic [6:0]  addr_set_l2;
@@ -195,8 +194,7 @@ l2_cache L2(
     .store_data       (store_data_l2),
     .hit_l2_wb        (hit_l2_wb),
 
-    .l2_refill_set    (addr_set_l2),        // FIX 2: 7 bits
-    .l2_refill_rdata  (l2_refill_rdata)
+    .l2_refill_set    (addr_set_l2)        // FIX 2: 7 bits
 );
 
 // ==========================================================
@@ -287,7 +285,6 @@ refill_regs RefillRegs(
     .burst_active     (burst_active),
     .burst_counter    (burst_counter),
     .burst_rdata      (burst_rdata),
-    .l2_rdata         (l2_refill_rdata),
     .hit_l2           (hit_l2),
     .fill_line_out    (fill_line_to_caches)// único driver de este wire
 );
