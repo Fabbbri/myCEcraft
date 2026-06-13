@@ -15,11 +15,10 @@ Jian Zheng Wu
 ## Tabla de contenidos
 
 1. [Diagrama de la jerarquía L1/L2](#diagrama-de-la-jerarquía-l1l2)
-2. [Caché L1: políticas de escritura, reemplazo y parámetros](#caché-l1-políticas-de-escritura-reemplazo-y-parámetros)
+2. [Caché L1: políticas de escritura, reemplazo y parámetros](#caché-l1-decisiones-de-diseño-políticas-de-escritura-reemplazo-y-parámetros)
    - [Funcionamiento de caché L1-D con políticas elegidas](#funcionamiento-de-caché-l1-d-con-políticas-elegidas)
-3. [Caché L2: políticas de escritura, reemplazo y parámetros](#caché-l2-políticas-de-escritura-reemplazo-y-parámetros)
-   - [Funcionamiento de caché L2 unificado](#funcionamiento-de-caché-l2-unificado)
-4. [Justificación técnica de políticas, reemplazo y parámetros configurables](#justificación-técnica-de-políticas-reemplazo-y-parámetros-configurables)
+3. [Caché L2: políticas de escritura, reemplazo y parámetros](#caché-l2-decisiones-de-diseño-políticas-de-escritura-reemplazo-y-parámetros)
+4. [Justificación técnica de políticas, reemplazo y parámetros configurables](#resumen-de-justificación-técnica-de-políticas-reemplazo-y-parámetros-configurables)
 5. [Flujo de un acceso](#flujo-de-un-acceso)
 6. [Integración con el pipeline del procesador](#integración-con-el-pipeline-del-procesador)
    - [Manejo de stalls de pipeline por misses](#manejo-de-stalls-de-pipeline-por-misses)
