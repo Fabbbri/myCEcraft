@@ -61,16 +61,89 @@ Hay varios aspectos a explicar pues tanto la caché L1 como L2 (los principales 
 
 ---
 
-## Caché L1: políticas de escritura, reemplazo y parámetros
+## Caché L1: Decisiones de diseño, políticas de escritura, reemplazo y parámetros
+
+### 1. Resumen
+
+La caché L1-D actúa como primer nivel de la jerarquía de memoria y es el único nivel de acceso completamente combinacional. Su objetivo es proveer el dato en el mismo ciclo en que `alu_result` está disponible (etapa MEM del pipeline), sin generar stall, aprovechando la localidad temporal y espacial del programa.
 
 | Nivel | Tamaño | Asociatividad | Linea | Sets | Hit time |
 |---|---|---|---|---|---|
 | L1-D | 4 KB | 2-way | 32 B (8 palabras) | 64 | 1 ciclo (combinacional) |
 
+- **Política de escritura:** Write-Through, No-Write-Allocate.
+- **Política de reemplazo:** FIFO.
+
 ### División de la dirección — L1
 
 ```
 L1:  | tag 21b [31:11] | set 6b [10:5] | word 3b [4:2] | byte 2b [1:0] |
+```
+
+---
+
+### 2. Parámetros Configurables
+
+| Parámetro | Valor | Símbolo |
+|---|---|---|
+| Tamaño de línea | 256 bits (32 bytes) | `LINE_BITS = 256` |
+| Número de conjuntos | 64 | `SETS = 64` |
+| Asociatividad | 2 vías | `WAYS = 2` |
+| Capacidad total | 64 × 2 × 32 B = **4 KB** | — |
+| Bits de set | 6 | `SET_BITS = 6` |
+| Bits de offset (palabra) | 3 | `OFFSET_BITS = 3` |
+| Bits de tag | 32 − 6 − 3 − 2 = **21** | `TAG_BITS = 21` |
+
+#### Justificación de parámetros
+
+En el enunciado del proyecto se indican los siguientes parámetros:
+
+- **Tamaño:** 4 KB (1024 palabras de 32 bits)
+- **Asociatividad:** 2-way set associative
+- **Tamaño de línea:** 32 bytes = 256 bits (8 palabras)
+
+Por estas razones, como parte del diseño se decidieron obtener ciertos parametros importantes:
+
+```math
+\#Bloques = \frac{Capacidad}{Tamaño\ de\ Línea} = \frac{4096\ B}{32\ B} = 128
+```
+```math
+\#Sets = \frac{(\#Bloques)}{(\#Vías)} = \frac{128}{2} = 64
+```
+```math
+\text{Bits de Set} = n,\ \text{con } 2^n = \#Sets = 2^6 = 64
+```
+```math
+\text{Bits de Set} = n = 6\ bits
+```
+```math
+\text{Bits de Block Offset} = b,\ \text{con } 2^b = \#\text{Palabras por Bloque} = 2^3 = 8
+```
+```math
+\text{Bits de Block Offset} = b = 3\ bits
+```
+
+De esta forma, se obtuvo que:
+- **Bits de Set:** 6
+- **Bits de Block Offset:** 3
+- **Bits de Byte Offset:** 2
+
+La justificación de estos datos es puramente matemática y los valores no son arbitrarios sino la derivación de utilizar los valores solicitados por el enunciado.
+
+La figura que se muestra a continuación presenta la arquitectura de la caché L1-D diseñada para este proyecto.
+
+![image: l1](microL1.png)
+
+### 3. Política de Escritura
+
+#### Decisión: Write-Through + No-Write-Allocate
+
+```
+En un store:
+  1. Si hay hit en L1: se actualiza la palabra en la vía correspondiente en el mismo ciclo.
+  2. El dato SIEMPRE se envía al write buffer de l2_con (write-through).
+  3. Si hay miss en L1: NO se asigna nueva línea (no-write-allocate).
+     El store va directamente al write buffer de l2_con hacia L2/DRAM.
 ```
 
 ### Funcionamiento de caché L1-D con políticas elegidas
@@ -148,7 +221,7 @@ La justificación de estos datos es puramente matemática y los valores no son a
 
 La figura que se muestra a continuación presenta la arquitectura de la caché L2 diseñada para este proyecto.
 
-![image:l1](microL2.png)
+![image:l2](microL2.png)
 
 ### 3. Política de Escritura
  
