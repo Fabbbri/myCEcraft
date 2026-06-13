@@ -46,6 +46,18 @@ module tb_topG;
     `define RAM   dut.Memory.NormalRam.mem
 
     // ==========================================
+    // Alias de registros arquitectonicos para GTKWave.
+    // Icarus no siempre vuelca los elementos de un arreglo (`REGS[N]`) al VCD;
+    // estos wire continuos los exponen con nombre legible bajo el scope tb_topG.
+    // ==========================================
+
+    wire [31:0] reg_ra = `REGS[1];   // x1  (return address)
+    wire [31:0] reg_sp = `REGS[2];   // x2  (stack pointer)
+    wire [31:0] reg_s0 = `REGS[8];   // x8  (saved / frame pointer)
+    wire [31:0] reg_a0 = `REGS[10];  // x10 (arg / retorno 0)
+    wire [31:0] reg_a1 = `REGS[11];  // x11 (arg / retorno 1, validacion benchmark)
+
+    // ==========================================
     // Contadores
     // ==========================================
 
@@ -465,8 +477,11 @@ module tb_topG;
         $display("         CRAFT21 ARCHITECTURE TESTBENCH");
         $display("============================================================");
 
-        $dumpfile("sim/waves/tb_topG.vcd");
-        $dumpvars(0, tb_topG);
+        // onda bajo demanda: solo con +VCD (la suite de benchmarks corre sin onda)
+        if ($test$plusargs("VCD")) begin
+            $dumpfile("sim/waves/tb_topG.vcd");
+            $dumpvars(0, tb_topG);
+        end
 
         csv_fd = $fopen("outputs/reports/results.csv", "w");
 

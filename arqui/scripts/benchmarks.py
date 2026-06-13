@@ -22,10 +22,18 @@ ARQUI = Path(__file__).resolve().parent.parent
 SIM_VVP = ARQUI / "sim" / "build" / "tb_topG_bench.vvp"
 P2_SRC = ARQUI.parent / "compi" / "Defensa" / "P2"
 
+# Sim sin cache (top_no_cash + memoria realista). Se compila como binario
+# aparte; no hay colision de modulos (old/ usa nombres con sufijo).
+SIM_VVP_NOCACHE = ARQUI / "sim" / "build" / "tb_top_no_cash_bench.vvp"
+NO_CACHE_TB = ARQUI / "tb" / "old" / "tb_top_no_cash.sv"
+NO_CACHE_CSV = ARQUI / "outputs" / "reports" / "results_no_cash.csv"
+
 # mismos directorios de fuentes que el Makefile (sin make: funciona igual
-# desde PowerShell, cmd o bash, y compila UNA sola vez para toda la suite)
+# desde PowerShell, cmd o bash, y compila UNA sola vez para toda la suite).
+# Incluye rtl/TOP/old para que el sim sin cache encuentre top_no_cash; en el
+# sim con cache esos modulos quedan como codigo muerto (no se instancian).
 SRC_DIRS = ["rtl", "rtl/async_fifo", "rtl/IF", "rtl/DE", "rtl/MEM",
-            "rtl/utils", "rtl/TOP"]
+            "rtl/utils", "rtl/TOP", "rtl/TOP/old"]
 
 
 def build_sim():
@@ -43,6 +51,24 @@ def build_sim():
     proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
     if proc.returncode != 0:
         print("[ERROR] fallo la compilacion:")
+        print("\n".join((proc.stdout + proc.stderr).strip().splitlines()[-8:]))
+        return False
+    return True
+
+
+def compile_no_cache():
+    """Compila el sim sin cache (top_no_cash + memoria realista) con las mismas
+    fuentes + el tb old. No hay colision de modulos. True si compilo."""
+    srcs = []
+    for d in SRC_DIRS:
+        srcs.extend(sorted((ARQUI / d).glob("*.sv")))
+    srcs.append(NO_CACHE_TB)
+
+    cmd = ["iverilog", "-g2012", "-o", str(SIM_VVP_NOCACHE)] + [str(s) for s in srcs]
+    print(f"[BUILD] iverilog sin-cache ({len(srcs)} fuentes)")
+    proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("[ERROR] fallo la compilacion sin-cache:")
         print("\n".join((proc.stdout + proc.stderr).strip().splitlines()[-8:]))
         return False
     return True
@@ -414,6 +440,72 @@ def parse_metrics(out):
     return row
 
 
+# La latencia realista sin cache infla mucho los ciclos: se sube el techo.
+NO_CACHE_MAX_MULT = 40
+NO_CACHE_MAX_FLOOR = 2_000_000
+
+
+def run_no_cache(run):
+    """Corre el programa (O0) en el sim sin cache. Misma ROM y mismo HALT_PC
+    que la corrida con cache (apples-to-apples). Devuelve la fila
+    {Test Ejecutado, Ciclos, Instr, CPI, Stalls_Mem} o None."""
+    rom_path = PROG / run["rom"]
+    halt = freeze_halt(rom_path)
+    if halt is None:
+        print(f"[FAIL] sin-cache {run['name']}: sin freeze en {run['rom']}")
+        return None
+    max_cyc = max(run["max"] * NO_CACHE_MAX_MULT, NO_CACHE_MAX_FLOOR)
+    safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", run["name"])
+    cmd = [
+        "vvp", str(SIM_VVP_NOCACHE),
+        f"+TEST_NAME={safe_name}",
+        f"+HALT_PC={halt}",
+        f"+MAX_CYCLES={max_cyc}",
+        f"+FILE_ROM=programs/{run['rom']}",
+        "+FILE_RAM=programs/data.hex",
+    ]
+    if run["x11"]:
+        cmd.append(f"+EXPECT_X11={run['x11']}")
+    print(f"[RUN ] sin-cache {run['name']}  ({run['rom']})")
+    proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
+    out = proc.stdout + proc.stderr
+    row = parse_metrics(out)   # mismo FIELD_MAP: Ciclos/Instr/CPI/Stalls_Mem
+    if row is None:
+        tail = "\n".join(out.strip().splitlines()[-4:])
+        print(f"[FAIL] sin-cache {run['name']}: sin [METRICS]\n{tail}")
+        return None
+    row["Test Ejecutado"] = run["name"]
+    return row
+
+
+def run_no_cache_pass(todo, with_cache_rows):
+    """Compila el sim sin cache una vez, corre cada programa O0, acumula filas y
+    escribe results_no_cash.csv. Devuelve {nombre: {Ciclos, CPI}} para el HTML.
+    Tolerante a fallos: si no compila/corre, devuelve {} y el reporte usa solo
+    el modelo analitico de trafico."""
+    if not compile_no_cache():
+        print("[WARN] sin-cache no compilo; el reporte usara solo el modelo analitico")
+        return {}
+    # solo el baseline O0 (los .hex O1 viven en la seccion del compilador)
+    o0_runs = [r for r in expand_runs(todo) if r["opt"] in (None, "O0")]
+    # ciclos con cache por nombre, para el chequeo de sanidad sin >= con
+    cyc_con = {r.get("Test Ejecutado"): _fnum(r.get("Ciclos")) for r in with_cache_rows}
+    nc_rows = []
+    for run in o0_runs:
+        row = run_no_cache(run)
+        if row is None:
+            continue
+        sin = _fnum(row.get("Ciclos"))
+        con = cyc_con.get(run["name"])
+        if sin is not None and con is not None and sin < con:
+            print(f"[WARN] sin-cache {run['name']}: ciclos sin ({sin:.0f}) < con "
+                  f"({con:.0f}) -> revisar HALT_PC/contadores")
+        nc_rows.append(row)
+    if nc_rows:
+        write_csv(nc_rows, NO_CACHE_CSV)
+    return load_no_cache()
+
+
 def write_csv(rows, path):
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=CSV_COLS, extrasaction="ignore")
@@ -591,32 +683,47 @@ def _card(title, big, sub):
             f'<div class="cb">{big}</div><div class="cs">{sub}</div></div>')
 
 
-def verdict_section(rows, no_cache):
-    """Veredicto: la tesis en una linea + 3 tarjetas con lo esencial
-    (mejor CPI, peor CPI, aceleracion del cache vs sin cache)."""
-    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
-    cards = ""
-    if data:
-        best = min(data, key=lambda r: _fnum(r.get("CPI")))
-        worst = max(data, key=lambda r: _fnum(r.get("CPI")))
-        cards += _card("Mejor CPI", f'{_fnum(best.get("CPI")):.2f}',
-                       f'{best["Test Ejecutado"]} &mdash; alta localidad')
-        cards += _card("Peor CPI", f'{_fnum(worst.get("CPI")):.2f}',
-                       f'{worst["Test Ejecutado"]} &mdash; sin localidad espacial')
-        for r in data:
-            ref = no_cache.get(r["Test Ejecutado"])
-            rc, c = (_fnum(ref.get("CPI")) if ref else None), _fnum(r.get("CPI"))
-            if rc and c:
-                cards += _card("Acelera el cach&eacute;", f"{rc / c:.1f}&times;",
-                               f'{r["Test Ejecutado"]}: {rc:.2f} &rarr; {c:.2f} CPI')
-                break
+def cache_effect_section(base_rows, no_cache):
+    """Comparacion REAL de ciclos con vs sin cache: el MISMO programa (O0,
+    misma ROM, mismo HALT_PC) corrido en 'top' (jerarquia L1/L2) y en
+    'top_no_cash' (memoria realista, sin cache). Aceleracion = ciclos_sin /
+    ciclos_con. Si no hay datos sin cache, la seccion se auto-oculta."""
+    data = _sorted_rows(base_rows)
+    body, any_real = "", False
+    for r in data:
+        name = r["Test Ejecutado"]
+        ref = no_cache.get(name)
+        con = _fnum(r.get("Ciclos"))
+        sin = _fnum(ref.get("Ciclos")) if ref else None
+        cpi_con = _fnum(r.get("CPI"))
+        cpi_sin = _fnum(ref.get("CPI")) if ref else None
+        if sin and con and con > 0:
+            sp = sin / con
+            any_real = True
+            spcol = heat_color(min(sp, 5.0) / 5.0 * 100.0)
+            sp_html = (f'<td style="background:{spcol};color:#fff">'
+                       f'<b>{sp:.2f}&times;</b></td>')
+        else:
+            sp_html = "<td>&mdash;</td>"
+        body += (f'<tr><td>{name}</td>'
+                 f'<td>{_num(sin)}</td><td>{_num(con)}</td>'
+                 f'{sp_html}'
+                 f'<td>{_num(cpi_sin, 2)}</td><td>{_num(cpi_con, 2)}</td></tr>\n')
+    if not any_real:
+        return ""   # sin corrida real sin cache -> no mostrar (queda el modelo 5.3)
     return f"""
-<section class="verdict">
- <h2>Veredicto</h2>
- <p class="thesis">El rendimiento lo decide la <b>localidad</b> del acceso a
-   memoria: a m&aacute;s aciertos en cach&eacute;, menos esperas y menor CPI.
-   Mismo hardware, distinto patr&oacute;n de acceso.</p>
- <div class="cards">{cards}</div>
+<section><h2>Aceleraci&oacute;n del cach&eacute;: ciclos con vs sin cach&eacute; (medido)</h2>
+<p class="nota">Mismo programa (O0), misma ROM, mismo punto de parada.
+ <b>Sin cach&eacute;</b> = el procesador con memoria realista
+ (<code>top_no_cash</code>: divisor de reloj 100&rarr;50&nbsp;MHz + burst de 8,
+ ~22 ciclos por acceso a RAM). <b>Con cach&eacute;</b> = la jerarqu&iacute;a L1/L2.
+ La <b>Aceleraci&oacute;n</b> es cu&aacute;ntas veces menos ciclos tarda el programa
+ gracias al cach&eacute; (ciclos sin / ciclos con). Esto es la medida directa del
+ efecto de la memoria; el bloque 5.3 muestra el otro eje (tr&aacute;fico al bus).</p>
+<table><thead><tr>
+ <th>Programa</th><th>Ciclos sin cach&eacute;</th><th>Ciclos con cach&eacute;</th>
+ <th>Aceleraci&oacute;n</th><th>CPI sin</th><th>CPI con</th>
+</tr></thead><tbody>{body}</tbody></table>
 </section>
 """
 
@@ -1291,6 +1398,7 @@ def render_html(rows, path, no_cache, p2_results=None):
  .p2ms       {{ font-size:0.82em; color:#666; text-align:right; white-space:nowrap; }}
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
+{cache_effect_section(base_rows, no_cache)}
 {processor_section(base_rows)}
 {cache_section(base_rows)}
 {memory_section(base_rows)}
@@ -1314,6 +1422,8 @@ def main():
                     help="compilar los 12 programas de Defensa/P2 (O0 + flag especifico)")
     ap.add_argument("--no-p2", action="store_true",
                     help="omitir la seccion P2 del HTML aunque existan los .hex")
+    ap.add_argument("--no-nocache", action="store_true",
+                    help="omitir la pasada SIN cache (top_no_cash); itera mas rapido")
     args = ap.parse_args()
 
     if args.list:
@@ -1377,8 +1487,16 @@ def main():
     reports = ARQUI / "outputs" / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     write_csv(rows, reports / "results.csv")
+
+    # Pasada SIN cache (top_no_cash + memoria realista): ciclos reales por
+    # programa para la comparacion con vs sin cache. Lenta -> se puede omitir.
+    if args.no_nocache:
+        no_cache = load_no_cache()   # usa results_no_cash.csv previo si existe
+    else:
+        no_cache = run_no_cache_pass(todo, rows)
+
     html_path = reports / "results.html"
-    render_html(rows, html_path, load_no_cache(), p2_results)
+    render_html(rows, html_path, no_cache, p2_results)
 
     if not args.no_open:
         webbrowser.open(html_path.as_uri())

@@ -71,6 +71,26 @@
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 
+<section><h2>Aceleraci&oacute;n del cach&eacute;: ciclos con vs sin cach&eacute; (medido)</h2>
+<p class="nota">Mismo programa (O0), misma ROM, mismo punto de parada.
+ <b>Sin cach&eacute;</b> = el procesador con memoria realista
+ (<code>top_no_cash</code>: divisor de reloj 100&rarr;50&nbsp;MHz + burst de 8,
+ ~22 ciclos por acceso a RAM). <b>Con cach&eacute;</b> = la jerarqu&iacute;a L1/L2.
+ La <b>Aceleraci&oacute;n</b> es cu&aacute;ntas veces menos ciclos tarda el programa
+ gracias al cach&eacute; (ciclos sin / ciclos con). Esto es la medida directa del
+ efecto de la memoria; el bloque 5.3 muestra el otro eje (tr&aacute;fico al bus).</p>
+<table><thead><tr>
+ <th>Programa</th><th>Ciclos sin cach&eacute;</th><th>Ciclos con cach&eacute;</th>
+ <th>Aceleraci&oacute;n</th><th>CPI sin</th><th>CPI con</th>
+</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>205,093</td><td>45,396</td><td style="background:#1a9850;color:#fff"><b>4.52&times;</b></td><td>9.89</td><td>2.19</td></tr>
+<tr><td>while loop x<5</td><td>487</td><td>179</td><td style="background:#fee08b;color:#fff"><b>2.72&times;</b></td><td>8.25</td><td>2.52</td></tr>
+<tr><td>bench_seq (O0)</td><td>82,127</td><td>21,992</td><td style="background:#91cf60;color:#fff"><b>3.73&times;</b></td><td>9.99</td><td>2.67</td></tr>
+<tr><td>bench_random (O0)</td><td>206,417</td><td>57,509</td><td style="background:#91cf60;color:#fff"><b>3.59&times;</b></td><td>10.09</td><td>2.81</td></tr>
+<tr><td>bench_stride (O0)</td><td>10,447</td><td>4,085</td><td style="background:#fee08b;color:#fff"><b>2.56&times;</b></td><td>9.93</td><td>3.84</td></tr>
+</tbody></table>
+</section>
+
+
 <section><h2>5.1 M&eacute;tricas del procesador</h2>
 <p class="nota">IPC = Instrucciones/Ciclos (mayor es mejor); CPI = 1/IPC (menor es
  mejor, base de la narrativa). Stalls MEM = ciclos perdidos en la etapa MEM
