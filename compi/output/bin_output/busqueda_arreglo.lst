@@ -8,12 +8,12 @@
 ;   header_size       = 44 bytes
 ;   entry_point       = 0x00000000
 ;   text_offset       = 44
-;   text_size         = 252 bytes
-;   data_offset       = 296
+;   text_size         = 268 bytes
+;   data_offset       = 312
 ;   data_size         = 0 bytes
 ;   text_base         = 0x00000000
 ;   data_base         = 0x00000000
-;   instruction_count = 63
+;   instruction_count = 67
 
 ; Seccion .text
 0x0000: 00200066    ; portalv x0, x0, 24
@@ -41,7 +41,7 @@
 0x0058: 000100A1    ; addi x10, x0, 1
 0x005C: 0FF2A3C2    ; sw x10, -4(x17)
 0x0060: 00090051    ; addi x5, x0, 9
-0x0064: 00000B40    ; add x20, x5, x0
+0x0064: 0FF16242    ; sw x5, -28(x17)
 0x0068: 00000061    ; addi x6, x0, 0
 0x006C: 00000C30    ; add x3, x6, x0
 0x0070: 00010071    ; addi x7, x0, 1
@@ -52,33 +52,37 @@
 0x0084: 00124626    ; blt x3, x9, 8
 0x0088: 00000404    ; jal x0, 8
 0x008C: 000100A1    ; addi x10, x0, 1
-0x0090: 00001560    ; add x22, x10, x0
-0x0094: 00002D56    ; beq x22, x0, 84
-0x0098: 0000C650    ; add x5, x3, x3
-0x009C: 00014A50    ; add x5, x5, x5
-0x00A0: FFE8A261    ; addiSigned x6, x17, -24
-0x00A4: 00014C60    ; add x6, x6, x5
-0x00A8: 00080C82    ; lw x8, 0(x6)
-0x00AC: 00001170    ; add x23, x8, x0
-0x00B0: 00000071    ; addi x7, x0, 0
-0x00B4: 00052E26    ; beq x23, x20, 8
-0x00B8: 00000404    ; jal x0, 8
-0x00BC: 00010071    ; addi x7, x0, 1
-0x00C0: 00000F80    ; add x24, x7, x0
-0x00C4: 00003056    ; beq x24, x0, 20
-0x00C8: 00000640    ; add x4, x3, x0
-0x00CC: 000600A1    ; addi x10, x0, 6
-0x00D0: 00001430    ; add x3, x10, x0
-0x00D4: 00000804    ; jal x0, 16
-0x00D8: 00010091    ; addi x9, x0, 1
-0x00DC: 00024650    ; add x5, x3, x9
-0x00E0: 00000A30    ; add x3, x5, x0
-0x00E4: 0FF7CC04    ; jal x0, -104
-0x00E8: 000008B0    ; add x11, x4, x0
-0x00EC: 00000204    ; jal x0, 4
-0x00F0: 00090512    ; lw x17, 4(x2)
-0x00F4: 00400421    ; addi x2, x2, 64
-0x00F8: 00600000    ; freeze
+0x0090: 0FE2A342    ; sw x10, -44(x17)
+0x0094: 0FED2252    ; lw x5, -44(x17)
+0x0098: 00000B86    ; beq x5, x0, 96
+0x009C: 0000C660    ; add x6, x3, x3
+0x00A0: 00018C60    ; add x6, x6, x6
+0x00A4: FFE8A281    ; addiSigned x8, x17, -24
+0x00A8: 00019080    ; add x8, x8, x6
+0x00AC: 00081072    ; lw x7, 0(x8)
+0x00B0: 0FE1E302    ; sw x7, -48(x17)
+0x00B4: 0FEC22A2    ; lw x10, -48(x17)
+0x00B8: 0FF92292    ; lw x9, -28(x17)
+0x00BC: 00000051    ; addi x5, x0, 0
+0x00C0: 00025426    ; beq x10, x9, 8
+0x00C4: 00000404    ; jal x0, 8
+0x00C8: 00010051    ; addi x5, x0, 1
+0x00CC: 0FE162C2    ; sw x5, -52(x17)
+0x00D0: 0FEB2262    ; lw x6, -52(x17)
+0x00D4: 00000C56    ; beq x6, x0, 20
+0x00D8: 00000640    ; add x4, x3, x0
+0x00DC: 00060081    ; addi x8, x0, 6
+0x00E0: 00001030    ; add x3, x8, x0
+0x00E4: 00000804    ; jal x0, 16
+0x00E8: 00010071    ; addi x7, x0, 1
+0x00EC: 0001C650    ; add x5, x3, x7
+0x00F0: 00000A30    ; add x3, x5, x0
+0x00F4: 0FF7C404    ; jal x0, -120
+0x00F8: 000008B0    ; add x11, x4, x0
+0x00FC: 00000204    ; jal x0, 4
+0x0100: 00090512    ; lw x17, 4(x2)
+0x0104: 00400421    ; addi x2, x2, 64
+0x0108: 00600000    ; freeze
 
 ; Seccion .data
 ; <sin datos globales>

@@ -11,8 +11,8 @@
 ;   L_while_start_0 = 0x00B4
 ;   .L_ir_3_ir_cmp_true = 0x00C4
 ;   .L_ir_4_ir_cmp_end = 0x00C8
-;   .L_ir_5_ir_cmp_true = 0x014C
-;   .L_ir_6_ir_cmp_end = 0x0150
+;   .L_ir_5_ir_cmp_true = 0x011C
+;   .L_ir_6_ir_cmp_end = 0x0120
 ;   L_else_2 = 0x016C
 ;   L_end_if_3 = 0x016C
 ;   L_while_end_1 = 0x017C
@@ -25,9 +25,9 @@
 ;   pc=0x00BC blt -> .L_ir_3_ir_cmp_true (addr=0x00C4, offset=8)
 ;   pc=0x00C0 jal -> .L_ir_4_ir_cmp_end (addr=0x00C8, offset=8)
 ;   pc=0x00D0 beq -> L_while_end_1 (addr=0x017C, offset=172)
-;   pc=0x0144 blt -> .L_ir_5_ir_cmp_true (addr=0x014C, offset=8)
-;   pc=0x0148 jal -> .L_ir_6_ir_cmp_end (addr=0x0150, offset=8)
-;   pc=0x0158 beq -> L_else_2 (addr=0x016C, offset=20)
+;   pc=0x0114 blt -> .L_ir_5_ir_cmp_true (addr=0x011C, offset=8)
+;   pc=0x0118 jal -> .L_ir_6_ir_cmp_end (addr=0x0120, offset=8)
+;   pc=0x0128 beq -> L_else_2 (addr=0x016C, offset=68)
 ;   pc=0x0168 jal -> L_end_if_3 (addr=0x016C, offset=4)
 ;   pc=0x0178 jal -> L_while_start_0 (addr=0x00B4, offset=-196)
 ;   pc=0x0180 jal -> .L_ir_2_analizar_sensor_end (addr=0x0184, offset=4)
@@ -124,36 +124,36 @@ L_while_start_0:
     lw x10, -44(x17) ; t2                               ; pc=0x0100
     sw x10, -20(x17) ; log                              ; pc=0x0104
     lw x5, -16(x17) ; lectura                           ; pc=0x0108
-    addi x6, x0, 2                                      ; pc=0x010C
-    mul x7, x5, x6                                      ; pc=0x0110
-    sw x7, -24(x17) ; promedio                          ; pc=0x0114
-    lw x8, -24(x17) ; promedio                          ; pc=0x0118
-    addi x9, x0, 10                                     ; pc=0x011C
-    add x10, x8, x9                                     ; pc=0x0120
-    sw x10, -28(x17) ; ajuste                           ; pc=0x0124
-    lw x7, -28(x17) ; ajuste                            ; pc=0x0128
-    addi x6, x0, 3                                      ; pc=0x012C
-    mul x5, x7, x6                                      ; pc=0x0130
-    sw x5, -32(x17) ; resultado                         ; pc=0x0134
-    lw x10, -16(x17) ; lectura                          ; pc=0x0138
-    addi x9, x0, 50                                     ; pc=0x013C
-    addi x8, x0, 0                                      ; pc=0x0140
-    blt x9, x10, 8                                      ; pc=0x0144 ; target=.L_ir_5_ir_cmp_true ; addr=0x014C
-    jal x0, 8                                           ; pc=0x0148 ; target=.L_ir_6_ir_cmp_end ; addr=0x0150
+    addi x6, x0, 50                                     ; pc=0x010C
+    addi x7, x0, 0                                      ; pc=0x0110
+    blt x6, x5, 8                                       ; pc=0x0114 ; target=.L_ir_5_ir_cmp_true ; addr=0x011C
+    jal x0, 8                                           ; pc=0x0118 ; target=.L_ir_6_ir_cmp_end ; addr=0x0120
 .L_ir_5_ir_cmp_true:
-    addi x8, x0, 1                                      ; pc=0x014C
+    addi x7, x0, 1                                      ; pc=0x011C
 .L_ir_6_ir_cmp_end:
-    sw x8, -60(x17) ; t6                                ; pc=0x0150
-    lw x5, -60(x17) ; t6                                ; pc=0x0154
-    beq x5, x0, 20                                      ; pc=0x0158 ; target=L_else_2 ; addr=0x016C
-    lw x6, -32(x17) ; resultado                         ; pc=0x015C
-    add x7, x4, x6                                      ; pc=0x0160
-    add x4, x7, x0 ; promote total                      ; pc=0x0164
+    sw x7, -48(x17) ; t6                                ; pc=0x0120
+    lw x8, -48(x17) ; t6                                ; pc=0x0124
+    beq x8, x0, 68                                      ; pc=0x0128 ; target=L_else_2 ; addr=0x016C
+    lw x9, -16(x17) ; lectura                           ; pc=0x012C
+    addi x10, x0, 2                                     ; pc=0x0130
+    mul x7, x9, x10                                     ; pc=0x0134
+    sw x7, -24(x17) ; promedio                          ; pc=0x0138
+    lw x6, -24(x17) ; promedio                          ; pc=0x013C
+    addi x5, x0, 10                                     ; pc=0x0140
+    add x8, x6, x5                                      ; pc=0x0144
+    sw x8, -28(x17) ; ajuste                            ; pc=0x0148
+    lw x7, -28(x17) ; ajuste                            ; pc=0x014C
+    addi x10, x0, 3                                     ; pc=0x0150
+    mul x9, x7, x10                                     ; pc=0x0154
+    sw x9, -32(x17) ; resultado                         ; pc=0x0158
+    lw x8, -32(x17) ; resultado                         ; pc=0x015C
+    add x5, x4, x8                                      ; pc=0x0160
+    add x4, x5, x0 ; promote total                      ; pc=0x0164
     jal x0, 4                                           ; pc=0x0168 ; target=L_end_if_3 ; addr=0x016C
 L_else_2:
 L_end_if_3:
-    addi x8, x0, 1                                      ; pc=0x016C
-    add x9, x3, x8                                      ; pc=0x0170
+    addi x6, x0, 1                                      ; pc=0x016C
+    add x9, x3, x6                                      ; pc=0x0170
     add x3, x9, x0 ; promote i                          ; pc=0x0174
     jal x0, -196                                        ; pc=0x0178 ; target=L_while_start_0 ; addr=0x00B4
 L_while_end_1:

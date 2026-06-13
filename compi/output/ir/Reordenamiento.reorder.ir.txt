@@ -8,14 +8,14 @@ L_while_start_0:
   t2 = i * 100
   lectura = t1
   log = t2
+  t6 = lectura > 50
+  ifFalse t6 goto L_else_2
   t3 = lectura * 2
   promedio = t3
   t4 = promedio + 10
   ajuste = t4
   t5 = ajuste * 3
   resultado = t5
-  t6 = lectura > 50
-  ifFalse t6 goto L_else_2
   t7 = total + resultado
   total = t7
   goto L_end_if_3
@@ -51,17 +51,17 @@ main:
     t2 = i * 100
     lectura = t1
     log = t2
+    t6 = lectura > 50
+    ifFalse t6 goto L_else_2
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_end_if_3
     t3 = lectura * 2
     promedio = t3
     t4 = promedio + 10
     ajuste = t4
     t5 = ajuste * 3
     resultado = t5
-    t6 = lectura > 50
-    ifFalse t6 goto L_else_2
-
-[B_fallthrough_3]
-  -> Sucesores: B_label_L_end_if_3
     t7 = total + resultado
     total = t7
     goto L_end_if_3
