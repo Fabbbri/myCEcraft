@@ -59,8 +59,13 @@ BENCH_ARGS ?=
 
 UNAME_S := $(shell uname -s)
 
+# gtkwave incluido con el instalador de Icarus en Windows (si existe)
+GTKWAVE_BUNDLED := $(wildcard C:/iverilog/gtkwave/bin/gtkwave.exe)
+
 ifeq ($(UNAME_S),Darwin)
     WAVE_VIEWER = surfer
+else ifneq ($(GTKWAVE_BUNDLED),)
+    WAVE_VIEWER = $(GTKWAVE_BUNDLED)
 else
     WAVE_VIEWER = gtkwave
 endif
@@ -92,6 +97,37 @@ run: compile
 benchmarks:
 	-$(PYTHON) scripts/benchmarks.py $(BENCH_ARGS)
 
+# =========================
+# Demo de visualizacion (GTKWave)
+# =========================
+# Genera UNA sola vez el VCD con bench_stride y luego cada vista lo reabre con
+# su archivo .gtkw tematico. Asi no se recompila/re-simula 4 veces.
+
+# Compila + simula bench_stride y deja sim/waves/tb_topG.vcd listo.
+wave-vcd: dirs
+	$(IVERILOG) $(IVERILOG_FLAGS) -o $(BUILD_DIR)/tb_topG.vvp $(SRC) $(TB_DIR)/tb_topG.sv
+	$(VVP) $(BUILD_DIR)/tb_topG.vvp +VCD +HALT_PC=E4 +MAX_CYCLES=300000 +FILE_ROM=programs/bench_stride.hex +FILE_RAM=programs/data.hex
+	@echo ">> En GTKWave: Ctrl+Shift+F para ver toda la corrida"
+
+# Vista: flujo de instrucciones por etapa (PC, IF/ID, rd por etapa, WB, stalls/flush)
+wave-pipeline: wave-vcd
+	$(WAVE_VIEWER) sim/waves/tb_topG.vcd sim/gtkwave/tb_topG_pipeline.gtkw
+
+# Vista: ALU + register file (srcA/srcB/alu_result/flags, registros clave, escritura WB)
+wave-datapath: wave-vcd
+	$(WAVE_VIEWER) sim/waves/tb_topG.vcd sim/gtkwave/tb_topG_datapath.gtkw
+
+# Vista: forwarding y riesgos (forwardA/B, rs/rd por etapa, stalls/flush)
+wave-hazard: wave-vcd
+	$(WAVE_VIEWER) sim/waves/tb_topG.vcd sim/gtkwave/tb_topG_hazard.gtkw
+
+# Vista: jerarquia de memoria / cache (dirección, load/store, hit/miss L1/L2, burst)
+wave-mem: wave-vcd
+	$(WAVE_VIEWER) sim/waves/tb_topG.vcd sim/gtkwave/tb_topG_mem.gtkw
+
+# demo lista para defensa: alias historico -> abre la vista de pipeline.
+wave-demo: wave-pipeline
+
 # iniciar simulacion con waves
 wave:
 	@if [ ! -f $(VCD) ]; then \
@@ -115,4 +151,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run benchmarks wave run-all clean print
+.PHONY: all dirs compile run benchmarks wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo run-all clean print
