@@ -4,16 +4,23 @@ module tb_top_no_cash;
 
     string FILE_ROM;
     string FILE_RAM;
+    string TEST_NAME;
     longint cycle_count;
     longint instr_count;
-    integer csv_fd;
+    longint stall_mem_cycles;
+    logic [31:0] expect_x11;
+    bit          use_expect;
 
     // ==========================================
     // Parametros
     // ==========================================
 
-    parameter int          MAX_CYCLES = 20000;
-    parameter logic [31:0] HALT_PC    = 32'h0000006C; // freeze en 0x006C
+    parameter int          MAX_CYCLES_DEF = 20000;
+    parameter logic [31:0] HALT_PC_DEF    = 32'h0000006C; // freeze en 0x006C
+
+    // sobreescribibles por plusargs (benchmarks.py); default = corrida standalone
+    logic [31:0] halt_pc    = HALT_PC_DEF;
+    int          max_cycles = MAX_CYCLES_DEF;
 
     // h00000160 para Factorial.hex
 
@@ -48,7 +55,7 @@ module tb_top_no_cash;
 
     // 1. Ciclos ocurridos
     always @(posedge clk) begin
-        if (`PC === HALT_PC) halt_detected <= 1;
+        if (`PC === halt_pc) halt_detected <= 1;
         if (!reset && !halt_detected)
             cycle_count++;
     end
@@ -65,6 +72,12 @@ module tb_top_no_cash;
                 instr_count++;
             end
         end
+    end
+
+    // 3. Ciclos congelado esperando memoria (la "pared de memoria" sin cache)
+    always @(posedge clk) begin
+        if (!reset && !halt_detected && dut.stall_mem)
+            stall_mem_cycles++;
     end
 
     // ==========================================
@@ -99,25 +112,27 @@ module tb_top_no_cash;
     // ==========================================
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
+        bit done;
         timed_out = 0;
         cycles    = 0;
+        done      = 0;
 
-        forever begin
+        // while+flag en lugar de return: Icarus no soporta return en tasks
+        while (!done) begin
             @(posedge clk);
             cycles++;
 
             // Detectar freeze
-            if (`PC === HALT_PC) begin
+            if (`PC === halt_pc) begin
                 $display("[INFO]  HALT en PC=%h  (ciclo %0d)", `PC, cycles);
-                return;
+                done = 1;
             end
-
             // Terminar si lleva muchos ciclos
-            if (cycles >= MAX_CYCLES) begin
+            else if (cycles >= max_cycles) begin
                 $display("[ERROR] Timeout tras %0d ciclos - último PC: %h",
-                          MAX_CYCLES, `PC);
+                          max_cycles, `PC);
                 timed_out = 1;
-                return;
+                done = 1;
             end
         end
     endtask
@@ -182,7 +197,8 @@ module tb_top_no_cash;
 
         cycle_count = 0;
         instr_count = 0;
-        halt_detected = 0; 
+        stall_mem_cycles = 0;
+        halt_detected = 0;
 
         load_and_reset(rom_file, ram_file);
         wait_for_finish(timed_out);
@@ -191,8 +207,8 @@ module tb_top_no_cash;
             $display("[ERROR] Test abortado - dump de registros:");
             dump_regs();
             tests_failed++;
-            return;
         end
+        else begin
 
         // Drenar pipeline: esperar que stall_mem lleve 8 ciclos quieto
         // (cubre LWs que entran a MEM varios ciclos despues del HALT)
@@ -211,15 +227,22 @@ module tb_top_no_cash;
         // CAMBIAR SEGÚN TEST
         // ======================================
 
-        // DEMO.CRAFT REGISTERS
-        $display("\n  --- Registros clave ---");
-        check_reg(11, 32'h00000005, "x11");
-        check_reg( 3, 32'h00000005, "x3");
-        check_reg( 5, 32'h00000005, "x5");
-        check_reg( 2, 32'h00007ff0, "x2");  // stack pointer restaurado
+        // Oraculo: un benchmark generico deja su resultado en x11 (+EXPECT_X11);
+        // sin EXPECT_X11 se valida el while loop por defecto.
+        if (use_expect) begin
+            $display("\n  --- Registro de resultado ---");
+            check_reg(11, expect_x11, "x11");
+        end else begin
+            $display("\n  --- Registros clave ---");
+            check_reg(11, 32'h00000005, "x11");
+            check_reg( 3, 32'h00000005, "x3");
+            check_reg( 5, 32'h00000005, "x5");
+            check_reg( 2, 32'h00007ff0, "x2");  // stack pointer restaurado
+        end
 
         // ======================================
-        // Sobreescribir los resultados CSV
+        // Emitir metricas (benchmarks.py parsea la linea [METRICS];
+        // keys son subconjunto de tb_topG -> FIELD_MAP las mapea igual)
         // ======================================
 
         begin
@@ -229,12 +252,8 @@ module tb_top_no_cash;
                 ? (1.0 * cycle_count) / instr_count
                 : 0.0;
 
-            $fwrite(csv_fd,
-                    "%s,%0d,%0d,%f\n",
-                    test_name,
-                    cycle_count,
-                    instr_count,
-                    cpi);
+            $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d",
+                     test_name, cycle_count, instr_count, cpi, stall_mem_cycles);
 
             $display("\n  --- Performance ---");
             $display("  Ciclos        : %0d", cycle_count-1);
@@ -243,6 +262,8 @@ module tb_top_no_cash;
             $display("  Instrucciones : %0d", instr_count);
             $display("  CPI           : %f", cpi);
         end
+
+        end // else (no timed_out)
 
     endtask
 
@@ -327,24 +348,14 @@ module tb_top_no_cash;
         $display("============================================================");
 
         // ======================================
-        // Archivo Waves
+        // Archivo Waves (solo bajo demanda con +VCD; sin el flag no se
+        // generan VCDs gigantes en la pasada de benchmarks)
         // ======================================
 
-        $dumpfile("sim/waves/tb_top_no_cash.vcd");
-        $dumpvars(0, tb_top_no_cash);
-
-        // ======================================
-        // Preparar archivo de tipo CSV
-        // ======================================
-
-        csv_fd = $fopen("outputs/reports/results_no_cash.csv", "w");
-
-        if (csv_fd == 0) begin
-            $display("ERROR: no se pudo abrir CSV");
-            $finish;
+        if ($test$plusargs("VCD")) begin
+            $dumpfile("sim/waves/tb_top_no_cash.vcd");
+            $dumpvars(0, tb_top_no_cash);
         end
-
-        $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI\n");
 
         // ======================================
         // CARGAR ROM Y RAM
@@ -362,11 +373,20 @@ module tb_top_no_cash;
         end
 
         // ======================================
-        // EJECUTAR TEST
-        // run_test("nombre del test", FILE_ROM, FILE_RAM);
-        // ======================================        
+        // Plusargs opcionales (benchmarks.py); defaults = corrida del while
+        // ======================================
 
-        run_test("while loop x<5 (return x=5)", FILE_ROM, FILE_RAM);
+        if (!$value$plusargs("TEST_NAME=%s", TEST_NAME))
+            TEST_NAME = "while loop x<5 (return x=5)";
+        use_expect = $value$plusargs("EXPECT_X11=%h", expect_x11) ? 1'b1 : 1'b0;
+        if ($value$plusargs("HALT_PC=%h", halt_pc))    begin /* override */ end
+        if ($value$plusargs("MAX_CYCLES=%d", max_cycles)) begin /* override */ end
+
+        // ======================================
+        // EJECUTAR TEST
+        // ======================================
+
+        run_test(TEST_NAME, FILE_ROM, FILE_RAM);
 
         $display("\n============================================================");
         $display("  REPORTE FINAL");
@@ -382,7 +402,6 @@ module tb_top_no_cash;
 
         $display("============================================================\n");
 
-        $fclose(csv_fd); // cerrar el archivo csv
         $finish;
     end
 

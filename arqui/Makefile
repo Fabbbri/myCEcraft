@@ -99,6 +99,13 @@ run: compile
 benchmarks:
 	-$(PYTHON) scripts/benchmarks.py $(BENCH_ARGS)
 
+# correr el tb SIN cache (top_no_cash + memoria realista) en un programa.
+# El tb vive en tb/old/, por eso tiene target propio (no usa run TOP=...).
+# ej: make run-no-cache ROM=program.hex RAM=data.hex
+run-no-cache: dirs
+	$(IVERILOG) $(IVERILOG_FLAGS) -o $(BUILD_DIR)/tb_top_no_cash.vvp $(SRC) $(TB_DIR)/old/tb_top_no_cash.sv
+	$(VVP) $(BUILD_DIR)/tb_top_no_cash.vvp +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
+
 # =========================
 # Demo de visualizacion (GTKWave)
 # =========================
@@ -153,4 +160,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run benchmarks wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo run-all clean print
+.PHONY: all dirs compile run benchmarks run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo run-all clean print
