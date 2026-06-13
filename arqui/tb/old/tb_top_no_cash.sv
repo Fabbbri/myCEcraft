@@ -26,7 +26,7 @@ module tb_top_no_cash;
     // Instancia
     // ==========================================
 
-    top dut (.clk(clk), .reset(reset));
+    top_no_cash dut (.clk(clk), .reset(reset));
 
     always #5 clk = ~clk;
 

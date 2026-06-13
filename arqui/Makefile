@@ -25,6 +25,7 @@ SRC = \
 	$(wildcard $(SRC_DIR)/MEM/*.sv) \
 	$(wildcard $(SRC_DIR)/utils/*.sv) \
 	$(wildcard $(SRC_DIR)/TOP/*.sv) \
+	$(wildcard $(SRC_DIR)/TOP/old/*.sv) \
 
 # Si TOP está definido: usar solo ese TB
 # Si no: usar todos
@@ -80,6 +81,7 @@ dirs:
 
 # Compilar los directorios según tb
 compile: dirs
+	mkdir -p $(dir $(OUT)) $(dir $(VCD))
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(OUT) $(SRC) $(TB)
 
 # correr el compilado
