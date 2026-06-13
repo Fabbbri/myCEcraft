@@ -146,6 +146,56 @@ En un store:
      El store va directamente al write buffer de l2_con hacia L2/DRAM.
 ```
 
+#### Justificación técnica
+
+**Write-through** fue elegido sobre write-back por las siguientes razones:
+
+- **Simplifica la coherencia L1-L2:** Con write-through, toda escritura en L1 se propaga inmediatamente a L2, garantizando que ambos niveles son consistentes en todo momento. No es necesario implementar un protocolo dirty-bit + writeback al desalojar líneas de L1, lo que simplifica la implementación y diseño.
+- **Elimina el estado "dirty":** El bit `valid` es suficiente por línea; no se requiere bit `dirty`. Al no existir el estado sucio, el reemplazo de una línea no requiere ninguna escritura adicional, lo que mantiene la ruta combinacional de 1 ciclo.
+- **Simplifica el remplazo:** Al reemplazar una línea de L1, basta con marcarla como inválida; L2 ya posee la copia actualizada del dato, por lo que no se requiere ninguna escritura de vuelta al nivel inferior.
+- **Adecuado para el patrón de acceso del benchmark:** Los benchmarks de CRAFT21 presentan más loads que stores; el costo adicional de write-through (latencia de store hacia L2) no domina el CPI total.
+
+**No-write-allocate** define qué ocurre ante un miss de escritura: el bloque no se carga en L1 y la escritura se envía directamente al nivel inferior vía `l2_con`. Las ventajas de esta política para este diseño son:
+
+- Reduce el tráfico de refill: No se carga un bloque completo desde L2 (8 ciclos) para alojar un solo store que quizá no se vuelva a leer en L1.
+- Preserva la capacidad de L1 para loads: El espacio se reserva para datos con alta probabilidad de reutilización, maximizando el impacto del hit time de 1 ciclo sobre el CPI.
+- Sin penalización de stall: El store se entrega a `l2_con` en el mismo ciclo sin detener el pipeline, por lo que no alojar en L1 no introduce ninguna penalización en el flujo de ejecución.
+- Implementación más simple: No se requiere lógica de refill en el path de escritura; el store miss simplemente drena por el write buffer.
+
+#### Trade-off reconocido
+
+La principal desventaja es que si el programa accede a la misma dirección poco después del store (write-then-read), ese load producirá un miss en L1 por no haberse cargado el bloque previamente, aumentando la latencia de accesos posteriores. Para los benchmarks actuales este patrón no es el caso dominante, por lo que la política no representa un problema significativo.
+
+---
+
+### 4. Política de Reemplazo
+
+#### Decisión: FIFO (First-In, First-Out)
+
+Cada conjunto de 2 vías mantiene un puntero de 1 bit (`fifo_ptr`, implementado en `set_reg.sv`) que indica la vía más antigua, es decir, la próxima en ser reemplazada. El puntero alterna únicamente al cargar una nueva línea (miss); los hits no lo modifican.
+
+```
+Estado inicial:   fifo_ptr = 1'b0  (reemplazar W0 primero)
+
+Secuencia de fills en un conjunto:
+  Fill #1 -> escribe W0, fifo_ptr <- 1
+  Fill #2 -> escribe W1, fifo_ptr <- 0  (ciclo completo)
+  Fill #3 -> escribe W0 (desaloja la línea más antigua), fifo_ptr <- 1
+```
+
+#### Justificación técnica
+
+- En una organización asociativa de dos vías, FIFO y LRU presentan un comportamiento equivalente. Tras cada acceso, la línea a reemplazar coincide tanto con la más antigua como con la menos recientemente utilizada, por lo que la elección de FIFO no implica una degradación del hit rate respecto a LRU en este nivel de caché.
+
+- La política FIFO requiere únicamente un bit por conjunto para identificar la próxima vía a reemplazar, lo que representa un total de 64 bits de almacenamiento adicional. A diferencia de LRU, no es necesario mantener información sobre la antigüedad de uso de las líneas ni actualizar el estado de reemplazo en cada acceso exitoso (hit), reduciendo así la complejidad del hardware.
+
+- La caché L1 debe proporcionar los datos en un único ciclo dentro de la etapa MEM del pipeline. Debido a que FIFO no modifica su estado durante un hit, no introduce lógica adicional en el camino de lectura. En contraste, una implementación LRU requiere actualizar información de reemplazo en cada acceso exitoso, aumentando la lógica.
+
+
+#### Trade-off reconocido
+
+FIFO no se ajusta de forma dinámica a cambios en los patrones de acceso. En aplicaciones que alternan entre diferentes conjuntos de trabajo (working sets), la política puede reemplazar líneas que aún resultan útiles, ya que la decisión de reemplazo se basa únicamente en el orden de llegada y no en el historial reciente de uso. No obstante, dado que la caché L1 cuenta con solo dos vías, el impacto de esta limitación es reducido. 
+
 ### Funcionamiento de caché L1-D con políticas elegidas
 
 ![image:con_l1](DF-L1Con.png)
