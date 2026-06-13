@@ -1,0 +1,31 @@
+@EnterCraftWorld
+// Equivalente en Craft de LoopUnrolling.py
+//
+// El .py recorre 4 "bloques" de 8 elementos cada uno y acumula bloque[i]*2.
+// Craft no tiene listas dinamicas ni len(): los bloques se modelan como un
+// chest aplanado de 32 elementos y dos for anidados. El for interno tiene
+// limite constante 8, asi que el desenrollador elige factor 4 y lo divide en
+// 2 bloques sin remainder, ademas de compartir el calculo invariante b*8.
+//
+// Resultado esperado: 2 * (1+2+...+32) = 1056 = 0x420.
+craft:int procesar_bloques(bloques:chest[int, 32]) {
+    total:int = 0;
+
+    for (b:int = 0; b < 4; b = b + 1) {
+        for (i:int = 0; i < 8; i = i + 1) {
+            total = total + bloques[b * 8 + i] * 2;
+        }
+    }
+
+    return total;
+}
+
+craft:int main() {
+    datos:chest[int, 32] = [
+        1, 2, 3, 4, 5, 6, 7, 8,
+        9, 10, 11, 12, 13, 14, 15, 16,
+        17, 18, 19, 20, 21, 22, 23, 24,
+        25, 26, 27, 28, 29, 30, 31, 32
+    ];
+    return summon:procesar_bloques(datos);
+}

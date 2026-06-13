@@ -1,0 +1,82 @@
+procesar_bloques:
+  total = 0
+  b = 0
+L_for_start_0:
+  t0 = b < 4
+  ifFalse t0 goto L_for_end_1
+  i = 0
+L_for_start_2:
+  t1 = i < 8
+  ifFalse t1 goto L_for_end_3
+  t2 = b * 8
+  t3 = t2 + i
+  t4 = bloques[t3]
+  t5 = t4 * 2
+  t6 = total + t5
+  total = t6
+  t7 = i + 1
+  i = t7
+  goto L_for_start_2
+L_for_end_3:
+  t8 = b + 1
+  b = t8
+  goto L_for_start_0
+L_for_end_1:
+  return total
+main:
+  datos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+  t9 = call procesar_bloques(datos)
+  return t9
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_procesar_bloques]
+  -> Sucesores: B_label_L_for_start_0
+    procesar_bloques:
+    total = 0
+    b = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t0 = b < 4
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_2
+    i = 0
+
+[B_label_L_for_start_2]
+  -> Sucesores: B_label_L_for_end_3, B_fallthrough_4
+    L_for_start_2:
+    t1 = i < 8
+    ifFalse t1 goto L_for_end_3
+
+[B_fallthrough_4]
+  -> Sucesores: B_label_L_for_start_2
+    t2 = b * 8
+    t3 = t2 + i
+    t4 = bloques[t3]
+    t5 = t4 * 2
+    t6 = total + t5
+    total = t6
+    t7 = i + 1
+    i = t7
+    goto L_for_start_2
+
+[B_label_L_for_end_3]
+  -> Sucesores: B_label_L_for_start_0
+    L_for_end_3:
+    t8 = b + 1
+    b = t8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    return total
+
+[B_label_main]
+    main:
+    datos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+    t9 = call procesar_bloques(datos)
+    return t9

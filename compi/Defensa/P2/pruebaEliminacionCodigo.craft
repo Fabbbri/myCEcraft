@@ -1,0 +1,45 @@
+@EnterCraftWorld
+// Equivalente en Craft de pruebaEliminacionCodigo.py
+//
+// El .py multiplica dos matrices y mezcla variables que nunca llegan al
+// resultado: temporal_externo, basura1, basura2, basura3, total_operaciones,
+// estadistica y desperdicio. Aqui se replica con matrices 2x2 aplanadas.
+// Solo C[] y su suma final son observables; todo lo demas es codigo muerto
+// que la Eliminacion de Codigo Muerto (DCE) debe descartar.
+//
+// Resultado esperado: C = A*B = [19, 22, 43, 50] -> suma = 134.
+craft:int main() {
+    A:chest[int, 4] = [1, 2, 3, 4];
+    B:chest[int, 4] = [5, 6, 7, 8];
+    C:chest[int, 4] = [0, 0, 0, 0];
+
+    total_operaciones:int = 0;
+    suma:int = 0;
+    temporal_externo:int = 0;
+    basura1:int = 0;
+    basura2:int = 0;
+    basura3:int = 0;
+
+    for (i:int = 0; i < 2; i = i + 1) {
+        temporal_externo = i * 100;            // muerto
+
+        for (j:int = 0; j < 2; j = j + 1) {
+            basura1 = i + j;                   // muerto
+
+            suma = 0;
+            for (k:int = 0; k < 2; k = k + 1) {
+                basura2 = k * 50;              // muerto
+                suma = suma + A[i * 2 + k] * B[k * 2 + j];
+                total_operaciones = total_operaciones + 1;
+            }
+
+            C[i * 2 + j] = suma;
+            basura3 = suma * 999;              // muerto
+        }
+    }
+
+    estadistica:int = total_operaciones;       // muerto
+    desperdicio:int = estadistica * 2;         // muerto
+
+    return C[0] + C[1] + C[2] + C[3];
+}

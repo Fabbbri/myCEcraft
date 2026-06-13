@@ -5,7 +5,7 @@ class Workspace:
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
         self.compi_root = repo_root / "compi"
-        self.source_root = (self.compi_root / "ejemplos").resolve()
+        self.source_root = (self.compi_root / "Defensa/P2").resolve()
         self.output_root = self.compi_root / "output"
 
     def open_folder(self, folder: Path) -> None:
