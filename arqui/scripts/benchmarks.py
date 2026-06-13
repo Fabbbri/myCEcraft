@@ -526,18 +526,18 @@ def write_csv(rows, path):
 
 
 def heat_color(pct, invert=False):
-    """verde (bueno) -> rojo (malo). invert=True para metricas donde alto=malo."""
+    """verde (bueno) -> rojo (malo). Paleta oscura con suficiente contraste sobre texto blanco."""
     try:
         v = float(pct)
     except (TypeError, ValueError):
-        return "#999"
+        return "#30363D"
     if invert:
         v = 100.0 - v
-    if v >= 90: return "#1a9850"
-    if v >= 70: return "#91cf60"
-    if v >= 50: return "#fee08b"
-    if v >= 30: return "#fc8d59"
-    return "#d73027"
+    if v >= 90: return "#1A6B30"
+    if v >= 70: return "#3A6B20"
+    if v >= 50: return "#6B5B00"
+    if v >= 30: return "#7A3B10"
+    return "#7A1515"
 
 
 def _fnum(v):
@@ -550,12 +550,12 @@ def _fnum(v):
 
 def row_band(row):
     """Color de fondo de la fila completa segun L1 Hit Rate.
-    >95% verde, 80-95% amarillo, <80% rojo, sin datos gris."""
+    >95% verde oscuro, 80-95% amarillo oscuro, <80% rojo oscuro, sin datos neutro."""
     v = _fnum(row.get("L1_Hit_Rate"))
-    if v is None:   return "#f0f0f0"
-    if v > 95.0:    return "#e3f4e4"
-    if v >= 80.0:   return "#fdf6dd"
-    return "#fde8e6"
+    if v is None:   return "#1C2128"
+    if v > 95.0:    return "#0F1F14"
+    if v >= 80.0:   return "#1C1A12"
+    return "#1F0C0C"
 
 
 def load_no_cache():
@@ -821,17 +821,17 @@ def _num(v, dec=0, suffix=""):
 
 
 _OPT_LEVEL_META = {
-    "O0": {"color": "#6c757d", "label": "O0", "desc": "Sin optimizar (baseline)"},
-    "O1": {"color": "#3b5bdb", "label": "O1", "desc": "Unroll + Rename"},
-    "O2": {"color": "#0ca678", "label": "O2", "desc": "DCE + Reorder"},
-    "O3": {"color": "#e67700", "label": "O3", "desc": "Todas las optimizaciones"},
+    "O0": {"color": "#8B949E", "label": "O0", "desc": "Sin optimizar (baseline)"},
+    "O1": {"color": "#58A6FF", "label": "O1", "desc": "Unroll + Rename"},
+    "O2": {"color": "#3FB950", "label": "O2", "desc": "DCE + Reorder"},
+    "O3": {"color": "#E3B341", "label": "O3", "desc": "Todas las optimizaciones"},
 }
 
 _OPT_TRANSF_META = [
-    ("Opt_Unrolled",    "Unroll",  "#3b5bdb"),
-    ("Opt_Renamed",     "Rename",  "#0ca678"),
-    ("Opt_DCE_Removed", "DCE",     "#e67700"),
-    ("Opt_Reordered",   "Reorder", "#862e9c"),
+    ("Opt_Unrolled",    "Unroll",  "#58A6FF"),
+    ("Opt_Renamed",     "Rename",  "#3FB950"),
+    ("Opt_DCE_Removed", "DCE",     "#E3B341"),
+    ("Opt_Reordered",   "Reorder", "#BC8CFF"),
 ]
 
 
@@ -839,8 +839,8 @@ def _opt_badge(o):
     """Chip coloreado para un nivel de optimizacion."""
     m = _OPT_LEVEL_META.get(o, {})
     c = m.get("color", "#999")
-    return (f'<span class="optbadge" style="background:{c}1a;color:{c};'
-            f'border:1px solid {c}55">{o}</span>')
+    return (f'<span class="optbadge" style="background:{c}2a;color:{c};'
+            f'border:1px solid {c}66">{o}</span>')
 
 
 def _speed_badge_opt(sp, broke, o):
@@ -886,13 +886,13 @@ def compiler_section(rows):
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         span = 3  # Ciclos + IPC + CPI
         hdr1_a += (f'<th colspan="{span}" class="p2hgroup" '
-                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'style="background:{c}33;color:{c};border-bottom:2px solid {c}">'
                    f'{_opt_badge(o)}</th>')
     # columna speedup por nivel no-base
     for o in non_base:
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         hdr1_a += (f'<th rowspan="2" class="p2hgroup" '
-                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'style="background:{c}33;color:{c};border-bottom:2px solid {c}">'
                    f'Speedup<br>{_opt_badge(o)}</th>')
 
     hdr2_a = "".join(
@@ -947,19 +947,19 @@ def compiler_section(rows):
     for o in all_opts:
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         hdr1_b += (f'<th colspan="2" class="p2hgroup" '
-                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'style="background:{c}33;color:{c};border-bottom:2px solid {c}">'
                    f'{_opt_badge(o)}</th>')
     for o in non_base:
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         hdr1_b += (f'<th colspan="4" class="p2hgroup" '
-                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'style="background:{c}33;color:{c};border-bottom:2px solid {c}">'
                    f'Transformaciones {_opt_badge(o)}</th>')
 
     hdr2_b = "".join("<th>Instr</th><th>Cod&nbsp;(B)</th>" for _ in all_opts)
     # sub-cabeceras de transformaciones con chip de color
     for _ in non_base:
         for _, tlabel, tc in _OPT_TRANSF_META:
-            hdr2_b += (f'<th class="p2tsub" style="background:{tc}18;color:{tc}">'
+            hdr2_b += (f'<th class="p2tsub" style="background:{tc}22;color:{tc}">'
                        f'{tlabel}</th>')
 
     transf = ""
@@ -986,7 +986,7 @@ def compiler_section(rows):
             for tkey, tlabel, tc in _OPT_TRANSF_META:
                 val = _num(ox.get(tkey))
                 nonzero = _fnum(ox.get(tkey)) not in (None, 0.0)
-                style = f' style="background:{tc}18;font-weight:600;color:{tc}"' if nonzero else ""
+                style = f' style="background:{tc}22;font-weight:700;color:{tc}"' if nonzero else ""
                 cells_transf += f"<td{style}>{val}</td>"
 
         transf += (f"<tr><td class='cname'>{base}</td>"
@@ -1146,22 +1146,22 @@ def memory_section(rows):
 
 
 _P2_GROUP_META = {
-    "unroll":  {"color": "#3b5bdb", "label": "Desenrollado de bucles",
+    "unroll":  {"color": "#58A6FF", "label": "Desenrollado de bucles",
                 "flag": "--unroll",
                 "desc": "El compilador replica el cuerpo del loop (factor auto hasta 8) para reducir "
                         "los saltos de control. Mejora visible en Instr/Ciclos cuando N es constante "
                         "y el cuerpo tiene m&aacute;s de una operaci&oacute;n."},
-    "rename":  {"color": "#0ca678", "label": "Renombrado de registros",
+    "rename":  {"color": "#3FB950", "label": "Renombrado de registros",
                 "flag": "--rename-registers",
                 "desc": "Asigna pistas de registro f&iacute;sico distintas a cada versi&oacute;n de un temporal "
                         "(WAW/WAR). Rompe dependencias falsas en loops densos, permitiendo al backend "
                         "usar m&aacute;s registros en paralelo y reducir spills al stack."},
-    "dce":     {"color": "#e67700", "label": "Eliminación de código muerto",
+    "dce":     {"color": "#E3B341", "label": "Eliminación de código muerto",
                 "flag": "--dce",
                 "desc": "Elimina cadenas de instrucciones cuyos resultados nunca alcanzan un "
                         "<code>return</code> ni una llamada con efecto (summon). Cuantas m&aacute;s "
                         "instrucciones muertas haya, mayor la reducci&oacute;n de Instr y Ciclos."},
-    "reorder": {"color": "#862e9c", "label": "Reordenamiento de instrucciones",
+    "reorder": {"color": "#BC8CFF", "label": "Reordenamiento de instrucciones",
                 "flag": "--reorder",
                 "desc": "Mueve instrucciones independientes justo despu&eacute;s de un load para "
                         "rellenar los ciclos de latencia de memoria. El scheduler actua dentro "
@@ -1312,7 +1312,7 @@ def p2_section(p2_results):
  <div class="p2gtitle">
   <span class="p2gicon" style="background:{color}"></span>
   <span style="color:{color};font-weight:700;font-size:1.05em">{glabel}</span>
-  &nbsp;<code style="background:{color}1a;color:{color};border:1px solid {color}55">{gflag}</code>
+  &nbsp;<code style="background:{color}2a;color:{color};border:1px solid {color}66">{gflag}</code>
  </div>
  <p class="p2gdesc">{gdesc}</p>
  <div class="tablewrap">
@@ -1325,15 +1325,15 @@ def p2_section(p2_results):
    <th colspan="2" class="p2hgroup">Instrucciones <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B) <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="2" class="p2hgroup">IPC</th>
-   <th colspan="2" class="p2hgroup" style="background:#fff8e6">Compile (ms)</th>
-   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+   <th colspan="2" class="p2hgroup" style="background:#1C1A12;color:#E3B341">Compile (ms)</th>
+   <th colspan="4" class="p2hgroup" style="background:#1A1427;color:#BC8CFF">Transformaciones aplicadas (opt)</th>
   </tr>
   <tr>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
-   <th style="background:#fff8e6">O0</th><th style="background:#fff8e6">opt</th>
+   <th style="background:#1C1A12;color:#E3B341">O0</th><th style="background:#1C1A12;color:#E3B341">opt</th>
    <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
    <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
   </tr>
@@ -1431,72 +1431,128 @@ def render_html(rows, path, no_cache, p2_results=None):
 <html lang="es"><head><meta charset="utf-8">
 <title>Benchmarks - rendimiento de cache</title>
 <style>
- body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1100px; }}
- h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 20px 0 6px; }}
- h3 {{ font-size: 0.92em; margin: 12px 0 4px; color: #334; }}
- table {{ border-collapse: collapse; font-size: 0.86em; }}
- table.metrics {{ font-size: 0.78em; }}
- th, td {{ border: 1px solid #ccc; padding: 4px 8px; text-align: right; }}
- th {{ background: #f0f0f0; }}  td:first-child, th:first-child {{ text-align: left; }}
- th.grp {{ background: #e2e8f0; text-align: center; }}
- .tablewrap {{ overflow-x: auto; }}
- code {{ background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }}
- .nota {{ font-size: 0.85em; color: #555; }}
- .verdict {{ border: 1px solid #d7e0ea; background: #f7fafc; border-radius: 6px; padding: 10px 16px; }}
- .thesis {{ margin: 4px 0 12px; }}
- .cards {{ display: flex; flex-wrap: wrap; gap: 12px; }}
- .card {{ border: 1px solid #d7e0ea; background: #fff; border-radius: 6px; padding: 8px 16px; min-width: 150px; }}
- .ct {{ font-size: 0.76em; color: #667; text-transform: uppercase; letter-spacing: .04em; }}
- .cb {{ font-size: 1.6em; font-weight: 600; color: #1f3a5f; }}
- .cs {{ font-size: 0.78em; color: #556; }}
- .cblock {{ margin: 10px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
- .cname {{ font-weight: 600; font-size: 0.9em; margin-bottom: 3px; }}
- .row {{ display: flex; align-items: center; margin: 3px 0; }}
- .lbl {{ width: 110px; font-size: 0.82em; color: #555; }}
- .track {{ flex: 1; background: #eee; border-radius: 3px; height: 16px; max-width: 440px; }}
- .bar {{ height: 100%; border-radius: 3px; }}
- .val {{ width: 70px; text-align: right; font-size: 0.82em; padding-left: 8px; }}
+ /* ── Base ── */
+ :root {{
+   --bg:       #0D1117;
+   --bg-card:  #161B22;
+   --bg-row-alt: #0D1117;
+   --bg-thead: #21262D;
+   --border:   #30363D;
+   --text:     #E6EDF3;
+   --muted:    #8B949E;
+   --accent:   #58A6FF;
+   --ok:       #3FB950;
+   --fail:     #F85149;
+   --warn:     #E3B341;
+   --purple:   #BC8CFF;
+ }}
+ * {{ box-sizing: border-box; }}
+ body {{ font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+         margin: 28px 32px; background: var(--bg); color: var(--text);
+         max-width: 1200px; line-height: 1.5; }}
+ h1 {{ font-size: 1.3em; font-weight: 700; color: var(--accent);
+       border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }}
+ h2 {{ font-size: 1em; font-weight: 700; color: var(--text);
+       margin: 28px 0 8px; border-left: 3px solid var(--accent);
+       padding-left: 10px; }}
+ h3 {{ font-size: 0.9em; font-weight: 600; color: var(--muted);
+       margin: 16px 0 6px; }}
+ section {{ margin-bottom: 36px; }}
+ /* ── Tables ── */
+ table {{ border-collapse: collapse; font-size: 0.84em; width: 100%; }}
+ table.metrics {{ font-size: 0.76em; }}
+ th, td {{ border: 1px solid var(--border); padding: 5px 10px; text-align: right; }}
+ th {{ background: var(--bg-thead); color: var(--muted);
+       font-weight: 600; font-size: 0.82em; text-transform: uppercase;
+       letter-spacing: 0.04em; }}
+ tbody tr:nth-child(even) {{ background: var(--bg-card); }}
+ tbody tr:nth-child(odd)  {{ background: var(--bg-row-alt); }}
+ tbody tr:hover {{ background: #1C2128; }}
+ td:first-child, th:first-child {{ text-align: left; }}
+ th.grp {{ background: #161B22; color: var(--accent); text-align: center;
+           border-bottom: 2px solid var(--accent); }}
+ .tablewrap {{ overflow-x: auto; border-radius: 6px;
+               border: 1px solid var(--border); }}
+ .tablewrap::-webkit-scrollbar {{ height: 6px; }}
+ .tablewrap::-webkit-scrollbar-track {{ background: var(--bg-card); border-radius: 3px; }}
+ .tablewrap::-webkit-scrollbar-thumb {{ background: var(--border); border-radius: 3px; }}
+ .tablewrap::-webkit-scrollbar-thumb:hover {{ background: var(--muted); }}
+ /* ── Inline elements ── */
+ code {{ background: #21262D; color: var(--warn); padding: 1px 5px;
+         border-radius: 4px; font-size: 0.92em; }}
+ .nota {{ font-size: 0.83em; color: var(--muted); margin: 6px 0 10px;
+          line-height: 1.55; }}
+ /* ── Cards ── */
+ .verdict {{ border: 1px solid var(--border); background: var(--bg-card);
+             border-radius: 8px; padding: 12px 18px; }}
+ .thesis  {{ margin: 4px 0 12px; }}
+ .cards   {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+ .card    {{ border: 1px solid var(--border); background: var(--bg-card);
+             border-radius: 8px; padding: 10px 18px; min-width: 150px; }}
+ .ct {{ font-size: 0.74em; color: var(--muted); text-transform: uppercase;
+        letter-spacing: .05em; }}
+ .cb {{ font-size: 1.55em; font-weight: 700; color: var(--accent); }}
+ .cs {{ font-size: 0.76em; color: var(--muted); }}
+ /* ── Bar chart elements ── */
+ .cblock {{ margin: 10px 0; padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
+ .cname  {{ font-weight: 600; font-size: 0.9em; margin-bottom: 3px; }}
+ .row  {{ display: flex; align-items: center; margin: 3px 0; }}
+ .lbl  {{ width: 110px; font-size: 0.82em; color: var(--muted); }}
+ .track {{ flex: 1; background: var(--border); border-radius: 3px;
+           height: 14px; max-width: 440px; }}
+ .bar  {{ height: 100%; border-radius: 3px; }}
+ .val  {{ width: 70px; text-align: right; font-size: 0.82em;
+          padding-left: 8px; color: var(--muted); }}
+ /* ── Formulas ── */
  .formulas {{ display: flex; flex-wrap: wrap; gap: 14px; }}
- .f {{ border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }}
- .f pre {{ margin: 4px 0 0; font-size: 0.8em; }}
- .bad {{ color: #b00; font-size: 0.8em; font-weight: 600; }}
- /* ── Compiler levels ── */
- .optbadge {{ display:inline-block; padding:1px 7px; border-radius:10px;
-              font-size:0.8em; font-weight:700; white-space:nowrap; }}
- .clvlrow  {{ display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 12px;
+ .f {{ border: 1px solid var(--border); border-radius: 6px;
+       padding: 8px 12px; background: var(--bg-card); }}
+ .f b  {{ color: var(--accent); }}
+ .f pre {{ margin: 6px 0 0; font-size: 0.8em; color: var(--muted); }}
+ .bad {{ color: var(--fail); font-size: 0.8em; font-weight: 600; }}
+ /* ── Compiler level badges ── */
+ .optbadge {{ display:inline-block; padding:1px 8px; border-radius:10px;
+              font-size:0.78em; font-weight:700; white-space:nowrap; }}
+ .clvlrow  {{ display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 14px;
               align-items:center; }}
- .clvldesc {{ font-size:0.82em; color:#555; }}
+ .clvldesc {{ font-size:0.82em; color:var(--muted); }}
  .cname    {{ text-align:left !important; font-weight:600; white-space:nowrap; }}
  /* ── Defensa P2 ── */
- #p2 {{ border-top: 2px solid #d0d7de; margin-top: 32px; padding-top: 8px; }}
- .p2group {{ margin: 20px 0 28px; padding: 14px 16px 10px; border-radius: 6px;
-             background: #fafbfc; }}
- .p2gtitle {{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }}
+ #p2 {{ border-top: 2px solid var(--border); margin-top: 40px; padding-top: 12px; }}
+ .p2group {{ margin: 20px 0 30px; padding: 16px 18px 12px;
+             border-radius: 8px; background: var(--bg-card); }}
+ .p2gtitle {{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
  .p2gicon  {{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }}
- .p2gdesc  {{ font-size:0.83em; color:#555; margin:4px 0 10px; line-height:1.5; }}
- .p2table  {{ font-size:0.84em; width:100%; }}
- .p2hname  {{ text-align:left !important; min-width:200px; max-width:280px; }}
- .p2hgroup {{ text-align:center; background:#e8edf4; }}
- .p2tsub   {{ background:#f0eaff; font-size:0.82em; }}
+ .p2gdesc  {{ font-size:0.82em; color:var(--muted); margin:4px 0 12px; line-height:1.55; }}
+ .p2table  {{ font-size:0.83em; width:100%; }}
+ .p2hname  {{ text-align:left !important; min-width:200px; max-width:300px; }}
+ .p2hgroup {{ text-align:center !important; background:#21262D; color:var(--muted); }}
+ .p2tsub   {{ background:#1A1F2E; color:var(--purple); font-size:0.8em; }}
  .p2namecell {{ text-align:left !important; }}
- .p2name   {{ font-weight:600; font-size:0.88em; display:block; margin-bottom:2px; }}
- .p2desc   {{ font-size:0.76em; color:#666; line-height:1.4; max-width:280px; }}
- .p2x11    {{ font-family:monospace; font-size:0.82em; color:#444; }}
- .p2speedcell {{ text-align:center !important; padding:4px 6px; }}
- .p2badge  {{ display:inline-block; padding:2px 8px; border-radius:12px;
-              font-size:0.82em; font-weight:600; white-space:nowrap; }}
- .p2up     {{ background:#d4edda; color:#155724; border:1px solid #c3e6cb; }}
- .p2down   {{ background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }}
- .p2flat   {{ background:#e2e3e5; color:#383d41; border:1px solid #d6d8db; }}
- .p2fail   {{ background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }}
- .p2na     {{ background:#e2e3e5; color:#6c757d; border:1px solid #d6d8db; }}
- .p2delta  {{ font-size:0.78em; color:#888; }}
- .p2green  {{ background:#f0fff4; }}
- .p2red    {{ background:#fff5f5; }}
- .p2zero   {{ color:#999; }}
- .p2summary td {{ background:#f0f0f0; font-size:0.82em; border-top:2px solid #ccc; }}
- .p2tactive  {{ font-weight:600; background:#f0eaff; }}
- .p2ms       {{ font-size:0.82em; color:#666; text-align:right; white-space:nowrap; }}
+ .p2name   {{ font-weight:600; font-size:0.88em; display:block; margin-bottom:3px;
+              color:var(--text); }}
+ .p2desc   {{ font-size:0.75em; color:var(--muted); line-height:1.45; max-width:300px; }}
+ .p2x11    {{ font-family:inherit; font-size:0.82em; color:var(--warn); }}
+ .p2speedcell {{ text-align:center !important; padding:5px 8px; }}
+ .p2badge  {{ display:inline-block; padding:2px 9px; border-radius:12px;
+              font-size:0.8em; font-weight:700; white-space:nowrap; }}
+ .p2up     {{ background:#12261A; color:#3FB950; border:1px solid #2EA043; }}
+ .p2down   {{ background:#2A1217; color:#F85149; border:1px solid #CF222E; }}
+ .p2flat   {{ background:#1C2128; color:var(--muted); border:1px solid var(--border); }}
+ .p2fail   {{ background:#2A1217; color:#F85149; border:1px solid #CF222E; }}
+ .p2na     {{ background:#1C2128; color:var(--muted); border:1px solid var(--border); }}
+ .p2delta  {{ font-size:0.77em; color:var(--muted); }}
+ .p2green  {{ background:#0F1F14 !important; color:#3FB950; font-weight:600; }}
+ .p2red    {{ background:#1F0C0C !important; color:#F85149; font-weight:600; }}
+ .p2zero   {{ color:var(--muted); }}
+ .p2summary td {{ background:#161B22; color:var(--muted); font-size:0.82em;
+                  border-top:2px solid var(--border); }}
+ .p2tactive {{ font-weight:700; background:#1A1F2E !important; color:var(--purple); }}
+ .p2ms     {{ font-size:0.82em; color:var(--muted); text-align:right;
+              white-space:nowrap; }}
+ /* ── Compile-time header rows inside P2 table ── */
+ th[style*="fff8e6"] {{ background:#1C1A12 !important; color:var(--warn) !important; }}
+ th[style*="f5edff"] {{ background:#1A1427 !important; color:var(--purple) !important; }}
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 {cache_effect_section(base_rows, no_cache)}
