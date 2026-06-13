@@ -824,8 +824,8 @@ class MainWindow(QMainWindow):
         root = QWidget()
         root.setObjectName("AppRoot")
         root_layout = QVBoxLayout(root)
-        root_layout.setContentsMargins(12, 12, 12, 10)
-        root_layout.setSpacing(10)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
         root_layout.addWidget(self._build_top_bar())
         root_layout.addWidget(self._build_body())
@@ -847,7 +847,7 @@ class MainWindow(QMainWindow):
         bar = QFrame()
         bar.setObjectName("TopBar")
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(12, 7, 10, 7)
+        layout.setContentsMargins(14, 0, 10, 0)
         layout.setSpacing(10)
 
         mark = QLabel()
@@ -987,7 +987,7 @@ class MainWindow(QMainWindow):
 
         container = QWidget()
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(8, 8, 8, 8)
         layout.addWidget(splitter)
         return container
 

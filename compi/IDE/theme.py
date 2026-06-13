@@ -13,9 +13,10 @@ QMainWindow {
 }
 
 #TopBar {
-    background: #2D2D2D;
-    border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    background: #252526;
+    border: none;
+    border-bottom: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #BrandMark {
@@ -35,21 +36,6 @@ QMainWindow {
     color: #F3F3F3;
     font-size: 13px;
     font-weight: 700;
-}
-
-#AppSubtitle {
-    color: #858585;
-    font-size: 10px;
-}
-
-#ProjectBadge {
-    background: #252526;
-    color: #CCCCCC;
-    border: 1px solid #3C3C3C;
-    border-radius: 6px;
-    padding: 5px 10px;
-    font-size: 11px;
-    font-weight: 600;
 }
 
 #TopIconButton {
@@ -190,8 +176,9 @@ QSplitter::handle:hover {
 
 #Sidebar {
     background: #252526;
-    border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    border: none;
+    border-right: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #SectionTitle {
@@ -293,33 +280,34 @@ QSplitter::handle:hover {
 
 QTabWidget::pane {
     border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    border-radius: 0;
     background: #1E1E1E;
     top: -1px;
 }
 
 QTabBar::tab {
     background: #2D2D2D;
-    color: #969696;
+    color: #858585;
     padding: 8px 8px 8px 14px;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    border: 1px solid #3C3C3C;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border: 1px solid transparent;
     border-bottom: none;
-    margin-right: 3px;
+    margin-right: 2px;
     font-size: 12px;
 }
 
 QTabBar::tab:hover {
     background: #37373D;
     color: #CCCCCC;
+    border-color: #3C3C3C;
 }
 
 QTabBar::tab:selected {
     background: #1E1E1E;
     color: #FFFFFF;
     border: 1px solid #3C3C3C;
-    border-bottom: none;
+    border-bottom: 1px solid #1E1E1E;
 }
 
 #TabCloseContainer {
@@ -510,8 +498,13 @@ QTabBar::tab:selected {
     height: 0;
 }
 
+#OutputTabs QTabWidget::pane {
+    background: #1C1C1C;
+    border: 1px solid #3C3C3C;
+}
+
 #OutputPanel {
-    background: #1E1E1E;
+    background: #1C1C1C;
     color: #CCCCCC;
     border: none;
     padding: 13px 14px;
@@ -631,8 +624,9 @@ QTabBar::tab:selected {
 
 #StatusBar {
     background: #252526;
-    border: 1px solid #3C3C3C;
-    border-radius: 7px;
+    border: none;
+    border-top: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #StatusItem,
