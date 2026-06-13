@@ -52,7 +52,7 @@ from workspace import Workspace
 APP_TITLE = "Craft Studio"
 IDE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = IDE_DIR.parent.parent
-LOGO_PATH = IDE_DIR / "CS.png"
+LOGO_PATH = IDE_DIR / "CS_transparente_blanco.png"
 READY_OUTPUT_TEXT = "Listo para compilar."
 NO_PROBLEMS_TEXT = "No hay errores ni advertencias."
 PROBLEM_OUTPUT_MARKER = "Revise la pestana Problemas."
