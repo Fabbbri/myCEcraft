@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from IR.basic_blocks import ControlFlowGraph
-from IR.instructions import IRInstruction
+from IR.instructions import IRAssign, IRInstruction
 
 from .common import IROptimizationStats
 from IR.ir_analysis import defs, is_memory_read, is_schedulable, uses
 
 
 class IRInstructionReorderer:
-    def __init__(self, stats: IROptimizationStats) -> None:
+    def __init__(self, stats: IROptimizationStats, global_names: set[str] | None = None) -> None:
         self.stats = stats
+        self._global_names: set[str] = global_names or set()
 
     def run(self, instructions: list[IRInstruction]) -> list[IRInstruction]:
         if not instructions:
@@ -95,6 +96,11 @@ class IRInstructionReorderer:
         )
         return scheduled
 
+    def _is_global_load(self, instr: IRInstruction) -> bool:
+        if not isinstance(instr, IRAssign) or not isinstance(instr.source, str):
+            return False
+        return instr.source in self._global_names
+
     def _must_preserve_order(
         self,
         left_defs: set[str],
@@ -121,7 +127,7 @@ class IRInstructionReorderer:
 
         previous_index = scheduled_indexes[-1]
         previous = segment[previous_index]
-        if not is_memory_read(previous):
+        if not (is_memory_read(previous) or self._is_global_load(previous)):
             return ordered_ready[0]
 
         load_defs = instr_defs[previous_index]

@@ -20,6 +20,7 @@ from pathlib import Path
 
 ARQUI = Path(__file__).resolve().parent.parent
 SIM_VVP = ARQUI / "sim" / "build" / "tb_topG_bench.vvp"
+P2_SRC = ARQUI.parent / "compi" / "Defensa" / "P2"
 
 # mismos directorios de fuentes que el Makefile (sin make: funciona igual
 # desde PowerShell, cmd o bash, y compila UNA sola vez para toda la suite)
@@ -59,11 +60,65 @@ COMPI_OUT = ARQUI.parent / "compi" / "output" / "bin_output"
 # O0 y O1 (la optimizacion preserva el resultado): sirve de oraculo.
 BENCHMARKS = [
     {"name": "while loop x<5", "rom": "program.hex", "x11": None,    "max": 20000},
-    {"name": "bench_seq",    "src": "bench_seq",    "x11": "7F80",  "max": 300000, "opts": ["O0", "O1"]},
-    {"name": "bench_stride", "src": "bench_stride", "x11": "F80",   "max": 300000, "opts": ["O0", "O1"]},
-    {"name": "bench_random", "src": "bench_random", "x11": "1C110", "max": 600000, "opts": ["O0", "O1"]},
-    {"name": "bench_mmul",   "src": "bench_mmul",   "x11": "3F00",  "max": 600000, "opts": ["O0", "O1"]},
+    {"name": "bench_seq",    "src": "bench_seq",    "x11": "7F80",  "max": 300000, "opts": ["O0", "O1", "O2", "O3"]},
+    {"name": "bench_stride", "src": "bench_stride", "x11": "F80",   "max": 300000, "opts": ["O0", "O1", "O2", "O3"]},
+    {"name": "bench_random", "src": "bench_random", "x11": "1C110", "max": 600000, "opts": ["O0", "O1", "O2", "O3"]},
+    {"name": "bench_mmul",   "src": "bench_mmul",   "x11": "3F00",  "max": 600000, "opts": ["O0", "O1", "O2", "O3"]},
 ]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Benchmarks de Defensa P2: 12 programas agrupados por optimizacion objetivo.
+# Cada programa se corre con O0 (baseline) y con su flag especifico activado.
+# El flag especifico se pasa directamente al compilador (--unroll, --rename-registers,
+# --dce, --reorder); el nivel resultante lo determina el compilador.
+# x11 = resultado esperado (hexadecimal sin '0x'), extraido de los comentarios.
+# ──────────────────────────────────────────────────────────────────────────────
+P2_OPT_FLAG = {
+    "unroll":  "--unroll",
+    "rename":  "--rename-registers",
+    "dce":     "--dce",
+    "reorder": "--reorder",
+}
+
+P2_BENCHMARKS = [
+    # ── grupo unroll ──────────────────────────────────────────────────────────
+    {"group": "unroll",  "file": "01_unroll_for_limite_literal",     "x11": "1C",  "max": 100000,
+     "label": "unroll_for_cte",      "desc": "FOR N=8 literal, 2 acumuladores; unroller elimina 6 de cada 8 saltos (suma=28)"},
+    {"group": "unroll",  "file": "02_unroll_while_limite_variable",  "x11": "F",   "max": 100000,
+     "label": "unroll_while_varN",   "desc": "WHILE con limite en variable N=6; unroller propaga la constante y aplica factor 2 (suma=15)"},
+    {"group": "unroll",  "file": "03_unroll_for_factor_grande",      "x11": "1F0", "max": 200000,
+     "label": "unroll_for_grande",   "desc": "FOR N=32 literal, factor auto 8; 32 iter -> 4 bloques, saltos /8 (suma=496)"},
+    # ── grupo rename ──────────────────────────────────────────────────────────
+    {"group": "rename",  "file": "04_rename_waw_secuencial",         "x11": "42",  "max": 100000,
+     "label": "rename_for_WAW",      "desc": "WAW: 'a' reescrita 3 veces; rename asigna registros fisicos distintos a t0,t1,t2 (suma=66)"},
+    {"group": "rename",  "file": "05_rename_war_if_else",            "x11": "36",  "max": 100000,
+     "label": "rename_if_WAR",       "desc": "WAR: 'lim' leida en condicion y sobreescrita en else; rename crea versiones SSA (total=54)"},
+    {"group": "rename",  "file": "06_rename_waw_war_funcion",        "x11": "42",  "max": 100000,
+     "label": "rename_func_mixto",   "desc": "WAW+WAR en funcion con if/else; rename crea versiones independientes por rama (total=66)"},
+    # ── grupo dce ────────────────────────────────────────────────────────────
+    {"group": "dce",     "file": "07_dce_ramas_muertas_if",          "x11": "5",   "max": 50000,
+     "label": "dce_if_muerto",       "desc": "IF/ELSE con ambas ramas calculando valores muertos; DCE elimina todo excepto el summon (estado=5)"},
+    {"group": "dce",     "file": "08_dce_muerto_en_funcion_y_main",  "x11": "7",   "max": 50000,
+     "label": "dce_func_y_main",     "desc": "Cadena muerta dentro de funcion + cadena muerta en main entre dos summons (acum=7)"},
+    {"group": "dce",     "file": "09_dce_cadenas_pre_post_llamada",  "x11": "6",   "max": 50000,
+     "label": "dce_cadenas_post",    "desc": "Cadenas muertas antes y despues de summon; retorno de llamada alimenta cadena muerta (ctr=6)"},
+    # ── grupo reorder ────────────────────────────────────────────────────────
+    {"group": "reorder", "file": "10_reorder_1load_uso_inmediato",   "x11": "24",  "max": 100000,
+     "label": "reorder_1load_if",    "desc": "1 load global con uso inmediato; scheduler mueve w1,w2,w3 entre lw y uso (total=36)"},
+    {"group": "reorder", "file": "11_reorder_2loads_uso_inmediato",  "x11": "41",  "max": 100000,
+     "label": "reorder_2loads",      "desc": "2 loads globales con uso inmediato; scheduler llena stall de cada lw con trabajo independiente (total=65)"},
+    {"group": "reorder", "file": "12_reorder_3loads_uso_inmediato",  "x11": "1B",  "max": 100000,
+     "label": "reorder_3loads_if",   "desc": "3 loads globales con uso inmediato; scheduler intercala trabajo independiente entre cada lw y su uso (total=27)"},
+]
+
+# Niveles que se corren para cada programa P2: O0 baseline + flag especifico
+P2_VARIANTS = ["O0", "opt"]   # "opt" = flag especifico del grupo
+
+
+def p2_rom_name(label, variant):
+    """Nombre del .hex para un benchmark P2."""
+    return f"p2_{label}.{variant}.hex"
 
 
 def rom_name(base, opt):
@@ -111,7 +166,8 @@ def code_size_bytes(rom):
 # sidecar con las metricas que solo se conocen al compilar (--compile)
 COMPILE_STATS_COLS = ["base", "opt", "Compile_ms", "Opt_Unrolled",
                       "Opt_DCE_Removed", "Opt_Reordered", "Opt_Renamed"]
-COMPILE_STATS_CSV = ARQUI / "outputs" / "reports" / "compile_stats.csv"
+COMPILE_STATS_CSV    = ARQUI / "outputs" / "reports" / "compile_stats.csv"
+P2_COMPILE_STATS_CSV = ARQUI / "outputs" / "reports" / "compile_stats_p2.csv"
 
 
 def parse_opt_stats(stdout, compile_ms):
@@ -159,6 +215,34 @@ def load_compile_stats():
     return stats
 
 
+def save_p2_compile_stats(stats):
+    """Persiste {(label, variant): {...}} al sidecar P2."""
+    P2_COMPILE_STATS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(P2_COMPILE_STATS_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=COMPILE_STATS_COLS)
+        w.writeheader()
+        for (label, variant), d in sorted(stats.items()):
+            row = {"base": label, "opt": variant}
+            row.update(d)
+            w.writerow(row)
+    print(f"[STATS] {P2_COMPILE_STATS_CSV}")
+
+
+def load_p2_compile_stats():
+    """Lee el sidecar P2 -> {(label, variant): {Compile_ms, Opt_*}}."""
+    stats = {}
+    if not P2_COMPILE_STATS_CSV.exists():
+        return stats
+    try:
+        with open(P2_COMPILE_STATS_CSV, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                stats[(r["base"], r["opt"])] = {
+                    k: r.get(k, "") for k in COMPILE_STATS_COLS[2:]}
+    except (OSError, KeyError):
+        pass
+    return stats
+
+
 def compile_programs():
     """Recompila los ROM de los benchmarks desde su fuente .craft con el
     compilador propio (O0 y O1) y los copia a programs/. Esto es lo que 'mete
@@ -187,6 +271,61 @@ def compile_programs():
                 ok = False
     save_compile_stats(stats)
     return ok, stats
+
+
+def compile_p2_programs():
+    """Compila los 12 programas de Defensa/P2 en dos variantes cada uno:
+    O0 (baseline sin ninguna opt) y la flag especifica de su grupo
+    (--unroll, --rename-registers, --dce o --reorder).
+    Los .hex se guardan en programs/ con nombre p2_{label}.{variant}.hex."""
+    import shutil
+    ok = True
+    stats = {}   # (label, variant) -> metricas del compilador
+    for b in P2_BENCHMARKS:
+        src = P2_SRC / f'{b["file"]}.craft'
+        flag = P2_OPT_FLAG[b["group"]]
+        for variant, extra_flags in [("O0", ["-O0"]), ("opt", [flag])]:
+            cmd = [sys.executable, str(COMPILER), "-r", "-b"] + extra_flags + [str(src)]
+            t0 = time.perf_counter()
+            proc = subprocess.run(cmd, cwd=COMPILER.parent.parent,
+                                  capture_output=True, text=True)
+            ms = (time.perf_counter() - t0) * 1000.0
+            # El compilador genera el hex con el nombre del stem del archivo fuente.
+            # Para O0 -> {file}.hex; para flags individuales el compilador usa el
+            # nivel resultante (ej. --unroll => nivel 1 => {file}.O1.hex).
+            # Buscamos cualquier .hex generado con ese stem en COMPI_OUT.
+            stem = b["file"]
+            dest = PROG / p2_rom_name(b["label"], variant)
+            if proc.returncode == 0:
+                # Encuentra el .hex generado (puede ser {stem}.hex o {stem}.O1.hex etc.)
+                # Excluye los .data.hex para ordenar solo los hex de instrucciones
+                candidates = sorted(
+                    [p for p in COMPI_OUT.glob(f"{stem}*.hex") if not p.name.endswith(".data.hex")],
+                    key=lambda p: len(p.name))
+                if candidates:
+                    shutil.copy(candidates[0], dest)
+                    # Copia el .data.hex (RAM de globales) si existe
+                    data_candidates = list(COMPI_OUT.glob(f"{stem}*.data.hex"))
+                    data_dest = PROG / p2_rom_name(b["label"], variant).replace(".hex", ".data.hex")
+                    if data_candidates:
+                        shutil.copy(data_candidates[0], data_dest)
+                    elif data_dest.exists():
+                        data_dest.unlink()
+                    stats[(b["label"], variant)] = parse_opt_stats(proc.stdout, ms)
+                    print(f"[P2] {dest.name}  ({ms:.0f} ms)")
+                    # Limpia los artefactos del compilador para no mezclar corridas
+                    for c in COMPI_OUT.glob(f"{stem}*"):
+                        c.unlink(missing_ok=True)
+                else:
+                    print(f"[ERROR] no encontro hex para {stem} ({variant})")
+                    ok = False
+            else:
+                tail = "\n".join((proc.stdout + proc.stderr).strip().splitlines()[-4:])
+                print(f"[ERROR] no compilo {b['file']} ({variant}):\n{tail}")
+                ok = False
+    save_p2_compile_stats(stats)
+    return ok, stats
+
 
 CSV_COLS = [
     "Test Ejecutado", "Ciclos", "Instr", "CPI",
@@ -381,6 +520,72 @@ def enrich_row(row, run, stats):
         row.update(st)
 
 
+def run_p2_benchmarks(p2_stats):
+    """Corre los 12 benchmarks de Defensa/P2 (O0 + variante opt) y devuelve
+    una lista de dicts con los resultados, listos para pasar a p2_section."""
+    results = []
+    for b in P2_BENCHMARKS:
+        entry = {"label": b["label"], "group": b["group"],
+                 "desc": b["desc"], "x11": b["x11"],
+                 "variants": {}}
+        for variant in P2_VARIANTS:
+            rom = p2_rom_name(b["label"], variant)
+            rom_path = PROG / rom
+            if not rom_path.exists():
+                entry["variants"][variant] = None
+                continue
+            halt = freeze_halt(rom_path)
+            if halt is None:
+                print(f"[P2][FAIL] {b['label']} ({variant}): sin freeze")
+                entry["variants"][variant] = {"_status": "SIN HALT"}
+                continue
+            safe_name = re.sub(r"[^A-Za-z0-9_-]", "_",
+                               f"p2_{b['label']}_{variant}")
+            data_rom = rom.replace(".hex", ".data.hex")
+            data_rom_path = PROG / data_rom
+            ram_arg = f"programs/{data_rom}" if data_rom_path.exists() else "programs/data.hex"
+            cmd = [
+                "vvp", str(SIM_VVP),
+                f"+TEST_NAME={safe_name}",
+                f"+HALT_PC={halt}",
+                f"+MAX_CYCLES={b['max']}",
+                f"+FILE_ROM=programs/{rom}",
+                f"+FILE_RAM={ram_arg}",
+            ]
+            if b["x11"]:
+                cmd.append(f"+EXPECT_X11={b['x11']}")
+            print(f"[P2] {b['label']} ({variant})")
+            proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
+            out = proc.stdout + proc.stderr
+            row = parse_metrics(out)
+            if row is None:
+                status = "TIMEOUT/ERROR"
+                tail = "\n".join(out.strip().splitlines()[-3:])
+                print(f"       {tail}")
+            elif "[FAIL]" in out:
+                status = "FAIL"
+            else:
+                status = "OK"
+            print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {b['label']} ({variant}): {status}")
+            if row is not None:
+                row["_status"] = status
+                ipc = _ipc(row)
+                if ipc is not None:
+                    row["IPC"] = f"{ipc:.4f}"
+                amat = _amat_row(row)
+                if amat is not None:
+                    row["AMAT"] = f"{amat:.2f}"
+                cs = code_size_bytes(rom_path)
+                if cs is not None:
+                    row["Code_Size_Bytes"] = cs
+                st = p2_stats.get((b["label"], variant))
+                if st:
+                    row.update(st)
+            entry["variants"][variant] = row
+        results.append(entry)
+    return results
+
+
 def _card(title, big, sub):
     return (f'<div class="card"><div class="ct">{title}</div>'
             f'<div class="cb">{big}</div><div class="cs">{sub}</div></div>')
@@ -480,79 +685,204 @@ def _num(v, dec=0, suffix=""):
     return (f"{f:.{dec}f}" if dec else f"{int(f):,}") + suffix
 
 
+_OPT_LEVEL_META = {
+    "O0": {"color": "#6c757d", "label": "O0", "desc": "Sin optimizar (baseline)"},
+    "O1": {"color": "#3b5bdb", "label": "O1", "desc": "Unroll + Rename"},
+    "O2": {"color": "#0ca678", "label": "O2", "desc": "DCE + Reorder"},
+    "O3": {"color": "#e67700", "label": "O3", "desc": "Todas las optimizaciones"},
+}
+
+_OPT_TRANSF_META = [
+    ("Opt_Unrolled",    "Unroll",  "#3b5bdb"),
+    ("Opt_Renamed",     "Rename",  "#0ca678"),
+    ("Opt_DCE_Removed", "DCE",     "#e67700"),
+    ("Opt_Reordered",   "Reorder", "#862e9c"),
+]
+
+
+def _opt_badge(o):
+    """Chip coloreado para un nivel de optimizacion."""
+    m = _OPT_LEVEL_META.get(o, {})
+    c = m.get("color", "#999")
+    return (f'<span class="optbadge" style="background:{c}1a;color:{c};'
+            f'border:1px solid {c}55">{o}</span>')
+
+
+def _speed_badge_opt(sp, broke, o):
+    """Badge de speedup igual al de P2 pero con el color del nivel."""
+    if broke:
+        return f'<span class="p2badge p2fail">&#10007; {o}</span>'
+    if sp is None:
+        return '<span class="p2badge p2na">&mdash;</span>'
+    if sp >= 1.05:
+        pct = int(round((sp - 1) * 100))
+        return f'<span class="p2badge p2up">+{pct}% &#9650;</span>'
+    if sp <= 0.96:
+        pct = int(round((1 - sp) * 100))
+        return f'<span class="p2badge p2down">-{pct}% &#9660;</span>'
+    return f'<span class="p2badge p2flat">{sp:.2f}&times; &#9644;</span>'
+
+
 def compiler_section(rows):
-    """Compara cada benchmark en O0 vs O1: cuanto acelera el compilador y como
-    afecta al cache. El resultado (x11) valida cada corrida; una O1 que rompe
-    el resultado se marca y no cuenta como aceleracion."""
+    """Compara cada benchmark en todos los niveles de optimizacion (O0..O3).
+    El resultado (x11) valida cada corrida; un nivel que rompe el resultado
+    se marca y no cuenta como aceleracion."""
     bases = {}
     for r in rows:
         if r.get("_base") and r.get("_opt"):
             bases.setdefault(r["_base"], {})[r["_opt"]] = r
-    pairs = sorted((b, v) for b, v in bases.items() if "O0" in v and "O1" in v)
+    all_opts = sorted({opt for v in bases.values() for opt in v},
+                      key=lambda o: int(o[1:]) if o[1:].isdigit() else 99)
+    pairs = sorted((b, v) for b, v in bases.items() if "O0" in v)
     if not pairs:
         return ""
-    # tabla A: efecto en rendimiento
+
+    non_base = [o for o in all_opts if o != "O0"]
+
+    # ── Leyenda de niveles ────────────────────────────────────────────────────
+    legend_chips = "".join(
+        f'{_opt_badge(o)} <span class="clvldesc">{_OPT_LEVEL_META.get(o,{}).get("desc","")}</span>'
+        for o in all_opts)
+
+    # ── TABLA A: Rendimiento ──────────────────────────────────────────────────
+    # cabecera fila 1: grupos por nivel
+    hdr1_a = f'<th rowspan="2" class="cname">Benchmark</th>'
+    for o in all_opts:
+        c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
+        span = 3  # Ciclos + IPC + CPI
+        hdr1_a += (f'<th colspan="{span}" class="p2hgroup" '
+                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'{_opt_badge(o)}</th>')
+    # columna speedup por nivel no-base
+    for o in non_base:
+        c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
+        hdr1_a += (f'<th rowspan="2" class="p2hgroup" '
+                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'Speedup<br>{_opt_badge(o)}</th>')
+
+    hdr2_a = "".join(
+        "<th>Ciclos</th><th>IPC</th><th>CPI</th>" for _ in all_opts)
+
     perf = ""
     for base, v in pairs:
-        o0, o1 = v["O0"], v["O1"]
-        broke = o1.get("_status", "OK") != "OK" or _fnum(o1.get("Ciclos")) is None
-        c0, c1 = _fnum(o0.get("Ciclos")), _fnum(o1.get("Ciclos"))
-        speed = f"{c0 / c1:.2f}&times;" if (c0 and c1 and not broke) else "&mdash;"
-        name = base + (' <span class="bad">&#10007; resultado incorrecto</span>'
-                       if broke else "")
-        perf += (
-            f"<tr><td>{name}</td>"
-            f"<td>{_num(o0.get('Ciclos'))}</td><td>{_num(o1.get('Ciclos'))}</td>"
-            f"<td>{speed}</td>"
-            f"<td>{_num(o0.get('IPC'), 3)}</td><td>{_num(o1.get('IPC'), 3)}</td>"
-            f"<td>{_num(o0.get('CPI'), 2)}</td><td>{_num(o1.get('CPI'), 2)}</td>"
-            f"<td>{_num(o0.get('L1_Hit_Rate'), 1, '%')}</td>"
-            f"<td>{_num(o1.get('L1_Hit_Rate'), 1, '%')}</td></tr>\n")
-    # tabla B: transformaciones del compilador + costo (spec seccion 6)
+        o0 = v.get("O0", {})
+        c0 = _fnum(o0.get("Ciclos"))
+        # marca si algun nivel rompio
+        bad_levels = [o for o in non_base
+                      if v.get(o, {}).get("_status", "OK") != "OK"
+                      and _fnum(v.get(o, {}).get("Ciclos")) is not None]
+        name_cell = base
+        if bad_levels:
+            marks = " ".join(f'<span class="bad">&#10007;{o}</span>' for o in bad_levels)
+            name_cell = f"{base} {marks}"
+
+        cells_by_level = ""
+        for o in all_opts:
+            ox = v.get(o, {})
+            cx = _fnum(ox.get("Ciclos"))
+            # delta de ciclos vs O0 para niveles no-base
+            if o == "O0" or c0 is None or cx is None:
+                cyc_cell = f"<td>{_num(ox.get('Ciclos'))}</td>"
+            else:
+                diff = cx - c0
+                sign = "+" if diff > 0 else ""
+                cls = "p2green" if diff < 0 else ("p2red" if diff > 0 else "p2zero")
+                cyc_cell = (f'<td class="{cls}">{_num(ox.get("Ciclos"))}'
+                            f'<span class="p2delta"> ({sign}{int(diff)})</span></td>')
+            cells_by_level += (
+                cyc_cell
+                + f"<td>{_num(ox.get('IPC'), 3)}</td>"
+                + f"<td>{_num(ox.get('CPI'), 2)}</td>"
+            )
+
+        speed_cells = ""
+        for o in non_base:
+            ox = v.get(o, {})
+            broke = ox.get("_status", "OK") != "OK" or _fnum(ox.get("Ciclos")) is None
+            cx = _fnum(ox.get("Ciclos"))
+            sp = (c0 / cx) if (c0 and cx and not broke) else None
+            speed_cells += f"<td class='p2speedcell'>{_speed_badge_opt(sp, broke, o)}</td>"
+
+        perf += (f"<tr><td class='cname'>{name_cell}</td>"
+                 f"{cells_by_level}{speed_cells}</tr>\n")
+
+    # ── TABLA B: Transformaciones ─────────────────────────────────────────────
+    # cabecera fila 1: Instr / Cod (B) agrupados por nivel; luego bloque transf por nivel
+    hdr1_b = '<th rowspan="2" class="cname">Benchmark</th>'
+    for o in all_opts:
+        c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
+        hdr1_b += (f'<th colspan="2" class="p2hgroup" '
+                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'{_opt_badge(o)}</th>')
+    for o in non_base:
+        c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
+        hdr1_b += (f'<th colspan="4" class="p2hgroup" '
+                   f'style="background:{c}18;color:{c};border-bottom:2px solid {c}">'
+                   f'Transformaciones {_opt_badge(o)}</th>')
+
+    hdr2_b = "".join("<th>Instr</th><th>Cod&nbsp;(B)</th>" for _ in all_opts)
+    # sub-cabeceras de transformaciones con chip de color
+    for _ in non_base:
+        for _, tlabel, tc in _OPT_TRANSF_META:
+            hdr2_b += (f'<th class="p2tsub" style="background:{tc}18;color:{tc}">'
+                       f'{tlabel}</th>')
+
     transf = ""
     for base, v in pairs:
-        o0, o1 = v["O0"], v["O1"]
-        transf += (
-            f"<tr><td>{base}</td>"
-            f"<td>{_num(o0.get('Instr'))}</td><td>{_num(o1.get('Instr'))}</td>"
-            f"<td>{_num(o0.get('Code_Size_Bytes'))}</td>"
-            f"<td>{_num(o1.get('Code_Size_Bytes'))}</td>"
-            f"<td>{_num(o0.get('Ciclos'))}</td><td>{_num(o1.get('Ciclos'))}</td>"
-            f"<td>{_num(o1.get('Compile_ms'))}</td>"
-            f"<td>{_num(o1.get('Opt_Unrolled'))}</td>"
-            f"<td>{_num(o1.get('Opt_DCE_Removed'))}</td>"
-            f"<td>{_num(o1.get('Opt_Reordered'))}</td>"
-            f"<td>{_num(o1.get('Opt_Renamed'))}</td></tr>\n")
+        o0 = v.get("O0", {})
+        cells_instr_code = ""
+        for o in all_opts:
+            ox = v.get(o, {})
+            instr0 = _fnum(o0.get("Instr"))
+            instrx = _fnum(ox.get("Instr"))
+            if o == "O0" or instr0 is None or instrx is None:
+                ic = f"<td>{_num(ox.get('Instr'))}</td>"
+            else:
+                diff = instrx - instr0
+                sign = "+" if diff > 0 else ""
+                cls = "p2green" if diff < 0 else ("p2red" if diff > 0 else "p2zero")
+                ic = (f'<td class="{cls}">{_num(ox.get("Instr"))}'
+                      f'<span class="p2delta"> ({sign}{int(diff)})</span></td>')
+            cells_instr_code += ic + f"<td>{_num(ox.get('Code_Size_Bytes'))}</td>"
+
+        cells_transf = ""
+        for o in non_base:
+            ox = v.get(o, {})
+            for tkey, tlabel, tc in _OPT_TRANSF_META:
+                val = _num(ox.get(tkey))
+                nonzero = _fnum(ox.get(tkey)) not in (None, 0.0)
+                style = f' style="background:{tc}18;font-weight:600;color:{tc}"' if nonzero else ""
+                cells_transf += f"<td{style}>{val}</td>"
+
+        transf += (f"<tr><td class='cname'>{base}</td>"
+                   f"{cells_instr_code}{cells_transf}</tr>\n")
+
+    levels_str = " &rarr; ".join(_opt_badge(o) for o in all_opts)
     return f"""
-<section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
-<p class="nota"><b>O0</b> = el programa compilado <b>sin optimizar</b>;
- <b>O1</b> = el mismo programa <b>optimizado</b> por el compilador (desenrolla
- bucles y renombra registros). Se comparan los dos para ver cu&aacute;nto ayuda el
- compilador. Cada corrida se valida con el resultado esperado en <code>x11</code>.</p>
-<h3>Rendimiento &mdash; qu&eacute; tan r&aacute;pido corre</h3>
-<p class="nota"><b>Acelera</b> = veces m&aacute;s r&aacute;pido (Ciclos O0 / Ciclos O1).
- O1 baja los ciclos, pero a veces baja el hit rate de L1: al eliminar las
- instrucciones baratas del control del bucle, los fallos obligatorios de
- cach&eacute; quedan como mayor fracci&oacute;n.
- <span class="bad">&#10007; resultado incorrecto</span> significa que la versi&oacute;n
- O1 dio un valor distinto al esperado en x11: la optimizaci&oacute;n rompi&oacute; ese
- programa (es un bug del compilador, no del cach&eacute;), por eso no se mide su
- aceleraci&oacute;n.</p>
-<table><thead><tr>
- <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
- <th>IPC O0</th><th>IPC O1</th><th>CPI O0</th><th>CPI O1</th>
- <th>L1 Hit O0</th><th>L1 Hit O1</th>
-</tr></thead><tbody>{perf}</tbody></table>
-<h3>Transformaciones del compilador y costo (Secci&oacute;n 6 del enunciado)</h3>
-<table><thead><tr>
- <th>Benchmark</th><th>Instr O0</th><th>Instr O1</th>
- <th>C&oacute;digo O0 (B)</th><th>C&oacute;digo O1 (B)</th>
- <th>Ciclos O0</th><th>Ciclos O1</th><th>Compilaci&oacute;n (ms)</th>
- <th>Unrolled</th><th>DCE</th><th>Reord.</th><th>Renamed</th>
-</tr></thead><tbody>{transf}</tbody></table>
-<p class="nota">C&oacute;digo en bytes = #instrucciones &times; 4. Unrolled/DCE/Reord./Renamed:
- instrucciones desenrolladas / eliminadas / reordenadas / renombradas por el
- compilador (de su salida). Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+<section id="compiler">
+<h2>Efecto del compilador</h2>
+<div class="clvlrow">{legend_chips}</div>
+<p class="nota">Cada corrida se valida con el resultado esperado en <code>x11</code>.
+ Los deltas entre par&eacute;ntesis en <em>Ciclos</em> e <em>Instr</em> son la diferencia
+ absoluta respecto a O0 (negativo = menos = mejor).
+ <span class="p2badge p2fail" style="font-size:0.8em">&#10007; Ox</span>
+ = la optimizaci&oacute;n rompi&oacute; el resultado (bug del compilador).</p>
+
+<h3>Tabla A &mdash; Rendimiento por nivel</h3>
+<p class="nota"><b>Speedup</b> = Ciclos O0 / Ciclos Ox. Verde &gt;5%, gris marginal, rojo regresiona.</p>
+<div class="tablewrap"><table class="p2table"><thead>
+ <tr>{hdr1_a}</tr>
+ <tr>{hdr2_a}</tr>
+</thead><tbody>{perf}</tbody></table></div>
+
+<h3>Tabla B &mdash; Instrucciones, tama&ntilde;o de c&oacute;digo y transformaciones aplicadas</h3>
+<p class="nota">Unroll/Rename/DCE/Reorder = n&uacute;mero de instrucciones afectadas por cada
+ transformaci&oacute;n. Celdas coloreadas = la optimizaci&oacute;n actuo en ese benchmark.
+ Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+<div class="tablewrap"><table class="p2table"><thead>
+ <tr>{hdr1_b}</tr>
+ <tr>{hdr2_b}</tr>
+</thead><tbody>{transf}</tbody></table></div>
 </section>
 """
 
@@ -680,16 +1010,220 @@ def memory_section(rows):
 """
 
 
-def render_html(rows, path, no_cache):
+_P2_GROUP_META = {
+    "unroll":  {"color": "#3b5bdb", "label": "Desenrollado de bucles",
+                "flag": "--unroll",
+                "desc": "El compilador replica el cuerpo del loop (factor auto hasta 8) para reducir "
+                        "los saltos de control. Mejora visible en Instr/Ciclos cuando N es constante "
+                        "y el cuerpo tiene m&aacute;s de una operaci&oacute;n."},
+    "rename":  {"color": "#0ca678", "label": "Renombrado de registros",
+                "flag": "--rename-registers",
+                "desc": "Asigna pistas de registro f&iacute;sico distintas a cada versi&oacute;n de un temporal "
+                        "(WAW/WAR). Rompe dependencias falsas en loops densos, permitiendo al backend "
+                        "usar m&aacute;s registros en paralelo y reducir spills al stack."},
+    "dce":     {"color": "#e67700", "label": "Eliminación de código muerto",
+                "flag": "--dce",
+                "desc": "Elimina cadenas de instrucciones cuyos resultados nunca alcanzan un "
+                        "<code>return</code> ni una llamada con efecto (summon). Cuantas m&aacute;s "
+                        "instrucciones muertas haya, mayor la reducci&oacute;n de Instr y Ciclos."},
+    "reorder": {"color": "#862e9c", "label": "Reordenamiento de instrucciones",
+                "flag": "--reorder",
+                "desc": "Mueve instrucciones independientes justo despu&eacute;s de un load para "
+                        "rellenar los ciclos de latencia de memoria. El scheduler actua dentro "
+                        "de segmentos sin barreras (calls, branches); segmentos &ge;3 instrucciones."},
+}
+
+
+def _p2_speedup_badge(sp, broke):
+    """Genera el badge de speedup con color semantico."""
+    if broke:
+        return '<span class="p2badge p2fail">&#10007; FAIL</span>'
+    if sp is None:
+        return '<span class="p2badge p2na">&mdash;</span>'
+    if sp >= 1.05:
+        pct = int(round((sp - 1) * 100))
+        return f'<span class="p2badge p2up">+{pct}% &#9650;</span>'
+    if sp <= 0.96:
+        pct = int(round((1 - sp) * 100))
+        return f'<span class="p2badge p2down">-{pct}% &#9660;</span>'
+    return f'<span class="p2badge p2flat">{sp:.2f}&times; &#9644;</span>'
+
+
+def _p2_delta(v0, vopt, higher_is_better=False):
+    """Genera celda con delta coloreado (verde=mejora, rojo=regresion)."""
+    f0, fo = _fnum(v0), _fnum(vopt)
+    if f0 is None or fo is None:
+        return f"<td>{_num(vopt)}</td>"
+    diff = fo - f0
+    if diff == 0:
+        return f'<td class="p2zero">{_num(vopt)}</td>'
+    improved = (diff < 0) if not higher_is_better else (diff > 0)
+    cls = "p2green" if improved else "p2red"
+    sign = "+" if diff > 0 else ""
+    return f'<td class="{cls}">{_num(vopt)} <span class="p2delta">({sign}{int(diff)})</span></td>'
+
+
+def p2_section(p2_results):
+    """Seccion HTML con los 12 benchmarks de Defensa/P2, agrupados por
+    optimizacion. Por cada grupo: descripcion, tabla comparativa O0 vs opt,
+    y una fila de resumen con el speedup medio."""
+    if not p2_results:
+        return ""
+
+    groups = {}
+    for entry in p2_results:
+        groups.setdefault(entry["group"], []).append(entry)
+
+    sections_html = ""
+    for group_key, entries in groups.items():
+        meta = _P2_GROUP_META.get(group_key, {})
+        color  = meta.get("color", "#555")
+        glabel = meta.get("label", group_key)
+        gflag  = meta.get("flag", "")
+        gdesc  = meta.get("desc", "")
+
+        body = ""
+        speedups = []
+        for e in entries:
+            r0   = e["variants"].get("O0")  or {}
+            ropt = e["variants"].get("opt") or {}
+
+            c0   = _fnum(r0.get("Ciclos"))
+            copt = _fnum(ropt.get("Ciclos"))
+            broke = (ropt.get("_status", "OK") != "OK") or copt is None
+            sp = (c0 / copt) if (c0 and copt and not broke) else None
+            if sp is not None:
+                speedups.append(sp)
+
+            badge = _p2_speedup_badge(sp, broke)
+
+            # columnas de transformaciones del compilador (solo opt)
+            opt_transf = (
+                f"<td>{_num(ropt.get('Opt_Unrolled'))}</td>"
+                f"<td>{_num(ropt.get('Opt_DCE_Removed'))}</td>"
+                f"<td>{_num(ropt.get('Opt_Reordered'))}</td>"
+                f"<td>{_num(ropt.get('Opt_Renamed'))}</td>"
+            )
+
+            # transformaciones con resaltado si el valor es > 0
+            def _transf_cell(val_str, key, ropt=ropt):
+                v = _fnum(ropt.get(key))
+                nonzero = v is not None and v > 0
+                style = ' class="p2tactive"' if nonzero else ""
+                return f"<td{style}>{val_str}</td>"
+
+            body += (
+                f"<tr>"
+                # nombre + descripcion
+                f"<td class='p2namecell'>"
+                f"<span class='p2name'>{e['label']}</span>"
+                f"<div class='p2desc'>{e['desc']}</div>"
+                f"</td>"
+                # resultado esperado
+                f"<td class='p2x11'>0x{e['x11']}</td>"
+                # speedup badge
+                f"<td class='p2speedcell'>{badge}</td>"
+                # ciclos simulador: O0 y opt con delta
+                f"<td>{_num(r0.get('Ciclos'))}</td>"
+                f"{_p2_delta(r0.get('Ciclos'), ropt.get('Ciclos'))}"
+                # instrucciones: O0 y opt con delta
+                f"<td>{_num(r0.get('Instr'))}</td>"
+                f"{_p2_delta(r0.get('Instr'), ropt.get('Instr'))}"
+                # tamaño de codigo en bytes: O0 y opt con delta
+                f"<td>{_num(r0.get('Code_Size_Bytes'))}</td>"
+                f"{_p2_delta(r0.get('Code_Size_Bytes'), ropt.get('Code_Size_Bytes'))}"
+                # IPC: O0 y opt
+                f"<td>{_num(r0.get('IPC'), 3)}</td>"
+                f"<td>{_num(ropt.get('IPC'), 3)}</td>"
+                # tiempo de compilacion (solo opt)
+                f"<td class='p2ms'>{_num(ropt.get('Compile_ms'))} ms</td>"
+                # transformaciones del compilador (resaltadas si actuan)
+                f"{_transf_cell(_num(ropt.get('Opt_Unrolled')),    'Opt_Unrolled')}"
+                f"{_transf_cell(_num(ropt.get('Opt_DCE_Removed')), 'Opt_DCE_Removed')}"
+                f"{_transf_cell(_num(ropt.get('Opt_Reordered')),   'Opt_Reordered')}"
+                f"{_transf_cell(_num(ropt.get('Opt_Renamed')),     'Opt_Renamed')}"
+                f"</tr>\n"
+            )
+
+        # fila resumen del grupo
+        n = len(entries)
+        TOTAL_COLS = 15  # nombre+x11+speedup + 2*3 pares + IPC*2 + ms + 4 transf
+        if speedups:
+            avg_sp = sum(speedups) / len(speedups)
+            ok_count = len(speedups)
+            arrow = "&#9650;" if avg_sp >= 1.05 else ("&#9660;" if avg_sp <= 0.96 else "&#9644;")
+            pct = (avg_sp - 1) * 100
+            sign = "+" if pct >= 0 else ""
+            summary = (
+                f"<tr class='p2summary'>"
+                f"<td colspan='2'><b>Media del grupo ({ok_count}/{n} OK)</b></td>"
+                f"<td><b>{sign}{pct:.1f}% {arrow}</b></td>"
+                f"<td colspan='{TOTAL_COLS - 3}'></td>"
+                f"</tr>\n"
+            )
+        else:
+            summary = ""
+
+        sections_html += f"""
+<div class="p2group" style="border-left:4px solid {color}">
+ <div class="p2gtitle">
+  <span class="p2gicon" style="background:{color}"></span>
+  <span style="color:{color};font-weight:700;font-size:1.05em">{glabel}</span>
+  &nbsp;<code style="background:{color}1a;color:{color};border:1px solid {color}55">{gflag}</code>
+ </div>
+ <p class="p2gdesc">{gdesc}</p>
+ <div class="tablewrap">
+ <table class="p2table"><thead>
+  <tr>
+   <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
+   <th rowspan="2">x11</th>
+   <th rowspan="2">Speedup</th>
+   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
+   <th colspan="2" class="p2hgroup">Instrucciones</th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">IPC</th>
+   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+  </tr>
+  <tr>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
+   <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
+  </tr>
+ </thead><tbody>{body}{summary}</tbody></table>
+ </div>
+</div>
+"""
+
+    return f"""
+<section id="p2">
+<h2>Defensa P2 &mdash; optimizaciones individuales del compilador</h2>
+<p class="nota">12 programas, uno por transformaci&oacute;n objetivo, comparados con su baseline
+ <b>O0</b> (sin optimizar). <b>Speedup</b> = Ciclos O0 / Ciclos opt &mdash; verde si mejora
+ &gt;5%, gris si es marginal, rojo si regresiona.
+ Los deltas entre par&eacute;ntesis en <em>Ciclos</em> e <em>Instr</em> indican la diferencia
+ absoluta respecto a O0 (negativo = menos = mejor).
+ <span class="p2badge p2fail" style="font-size:0.8em">&#10007; FAIL</span>
+ = el resultado en x11 no coincide con el esperado (bug en el compilador).</p>
+{sections_html}
+</section>
+"""
+
+
+def render_html(rows, path, no_cache, p2_results=None):
     # Las tablas 5.1/5.2/5.3 usan el baseline sin optimizar (O0); las variantes
-    # O1 viven en la seccion del compilador y en el CSV completo.
+    # O1+ viven en la seccion del compilador y en el CSV completo.
     base_rows = [r for r in rows if r.get("_opt") in (None, "O0")]
+    p2_html = p2_section(p2_results) if p2_results else ""
 
     html = f"""<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
 <title>Benchmarks - rendimiento de cache</title>
 <style>
- body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1000px; }}
+ body {{ font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1100px; }}
  h1 {{ font-size: 1.4em; }}  h2 {{ font-size: 1.05em; margin: 20px 0 6px; }}
  h3 {{ font-size: 0.92em; margin: 12px 0 4px; color: #334; }}
  table {{ border-collapse: collapse; font-size: 0.86em; }}
@@ -718,6 +1252,43 @@ def render_html(rows, path, no_cache):
  .f {{ border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }}
  .f pre {{ margin: 4px 0 0; font-size: 0.8em; }}
  .bad {{ color: #b00; font-size: 0.8em; font-weight: 600; }}
+ /* ── Compiler levels ── */
+ .optbadge {{ display:inline-block; padding:1px 7px; border-radius:10px;
+              font-size:0.8em; font-weight:700; white-space:nowrap; }}
+ .clvlrow  {{ display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 12px;
+              align-items:center; }}
+ .clvldesc {{ font-size:0.82em; color:#555; }}
+ .cname    {{ text-align:left !important; font-weight:600; white-space:nowrap; }}
+ /* ── Defensa P2 ── */
+ #p2 {{ border-top: 2px solid #d0d7de; margin-top: 32px; padding-top: 8px; }}
+ .p2group {{ margin: 20px 0 28px; padding: 14px 16px 10px; border-radius: 6px;
+             background: #fafbfc; }}
+ .p2gtitle {{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }}
+ .p2gicon  {{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }}
+ .p2gdesc  {{ font-size:0.83em; color:#555; margin:4px 0 10px; line-height:1.5; }}
+ .p2table  {{ font-size:0.84em; width:100%; }}
+ .p2hname  {{ text-align:left !important; min-width:200px; max-width:280px; }}
+ .p2hgroup {{ text-align:center; background:#e8edf4; }}
+ .p2tsub   {{ background:#f0eaff; font-size:0.82em; }}
+ .p2namecell {{ text-align:left !important; }}
+ .p2name   {{ font-weight:600; font-size:0.88em; display:block; margin-bottom:2px; }}
+ .p2desc   {{ font-size:0.76em; color:#666; line-height:1.4; max-width:280px; }}
+ .p2x11    {{ font-family:monospace; font-size:0.82em; color:#444; }}
+ .p2speedcell {{ text-align:center !important; padding:4px 6px; }}
+ .p2badge  {{ display:inline-block; padding:2px 8px; border-radius:12px;
+              font-size:0.82em; font-weight:600; white-space:nowrap; }}
+ .p2up     {{ background:#d4edda; color:#155724; border:1px solid #c3e6cb; }}
+ .p2down   {{ background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }}
+ .p2flat   {{ background:#e2e3e5; color:#383d41; border:1px solid #d6d8db; }}
+ .p2fail   {{ background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }}
+ .p2na     {{ background:#e2e3e5; color:#6c757d; border:1px solid #d6d8db; }}
+ .p2delta  {{ font-size:0.78em; color:#888; }}
+ .p2green  {{ background:#f0fff4; }}
+ .p2red    {{ background:#fff5f5; }}
+ .p2zero   {{ color:#999; }}
+ .p2summary td {{ background:#f0f0f0; font-size:0.82em; border-top:2px solid #ccc; }}
+ .p2tactive  {{ font-weight:600; background:#f0eaff; }}
+ .p2ms       {{ font-size:0.82em; color:#666; text-align:right; white-space:nowrap; }}
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 {processor_section(base_rows)}
@@ -725,6 +1296,7 @@ def render_html(rows, path, no_cache):
 {memory_section(base_rows)}
 {causal_chain(base_rows)}
 {compiler_section(rows)}
+{p2_html}
 {formulas_section()}
 </body></html>"""
     path.write_text(html, encoding="utf-8")
@@ -737,13 +1309,20 @@ def main():
     ap.add_argument("--list", action="store_true", help="listar benchmarks")
     ap.add_argument("--no-open", action="store_true", help="no abrir el HTML")
     ap.add_argument("--compile", action="store_true",
-                    help="recompilar los ROM desde .craft con el compilador (O0 y O1)")
+                    help="recompilar los ROM de benchmarks principales (O0..O3)")
+    ap.add_argument("--compile-p2", action="store_true",
+                    help="compilar los 12 programas de Defensa/P2 (O0 + flag especifico)")
+    ap.add_argument("--no-p2", action="store_true",
+                    help="omitir la seccion P2 del HTML aunque existan los .hex")
     args = ap.parse_args()
 
     if args.list:
         for b in BENCHMARKS:
             opts = "/".join(b["opts"]) if "src" in b else "pre-construido"
             print(f"  {b['name']:20s} {opts}")
+        print("\nDefensa P2:")
+        for b in P2_BENCHMARKS:
+            print(f"  {b['label']:30s} [{b['group']}]  {b['desc']}")
         return 0
 
     todo = [b for b in BENCHMARKS if not args.only or b["name"] == args.only]
@@ -756,11 +1335,19 @@ def main():
         if not ok:
             return 1
     else:
-        stats = load_compile_stats()   # del sidecar de una corrida previa con --compile
+        stats = load_compile_stats()
+
+    if args.compile_p2:
+        ok_p2, p2_stats = compile_p2_programs()
+        if not ok_p2:
+            print("[WARN] algunos programas P2 no compilaron; se incluiran los que si.")
+    else:
+        p2_stats = load_p2_compile_stats()
 
     if not build_sim():
         return 1
 
+    # ── benchmarks principales ────────────────────────────────────────────────
     rows, failures = [], 0
     for run in expand_runs(todo):
         row, status = run_benchmark(run)
@@ -774,16 +1361,29 @@ def main():
             if status != "OK":
                 failures += 1
 
+    # ── benchmarks P2 ────────────────────────────────────────────────────────
+    p2_results = None
+    if not args.no_p2:
+        any_p2_hex = any(
+            (PROG / p2_rom_name(b["label"], v)).exists()
+            for b in P2_BENCHMARKS for v in P2_VARIANTS
+        )
+        if any_p2_hex:
+            print("\n-- Defensa P2 ------------------------------------------")
+            p2_results = run_p2_benchmarks(p2_stats)
+        else:
+            print("[P2] No hay .hex de P2; usa --compile-p2 para generarlos.")
+
     reports = ARQUI / "outputs" / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     write_csv(rows, reports / "results.csv")
     html_path = reports / "results.html"
-    render_html(rows, html_path, load_no_cache())
+    render_html(rows, html_path, load_no_cache(), p2_results)
 
     if not args.no_open:
         webbrowser.open(html_path.as_uri())
 
-    print(f"\n{len(rows) - failures}/{len(rows)} benchmarks OK")
+    print(f"\n{len(rows) - failures}/{len(rows)} benchmarks principales OK")
     return 0 if failures == 0 else 1
 
 

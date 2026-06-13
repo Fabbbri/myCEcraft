@@ -74,10 +74,10 @@ main:
     addi x2, x2, 0x7FF0                                 ; pc=0x001C
 
     ; prologue
-    addiSigned x2, x2, -916                             ; pc=0x0020
+    addiSigned x2, x2, -912                             ; pc=0x0020
     sw x1, 0(x2)                                        ; pc=0x0024
     sw x17, 4(x2)                                       ; pc=0x0028
-    addi x17, x2, 916                                   ; pc=0x002C
+    addi x17, x2, 912                                   ; pc=0x002C
 
     addi x5, x0, 0                                      ; pc=0x0030
     sw x5, -256(x17) ; a                                ; pc=0x0034
@@ -337,87 +337,87 @@ L_while_end_7:
     add x8, x9, x6                                      ; pc=0x03F4
     sw x8, -852(x17) ; t13__x8                          ; pc=0x03F8
     lw x5, -792(x17) ; acc                              ; pc=0x03FC
-    lw x10, -856(x17) ; t13                             ; pc=0x0400
-    add x7, x10, x10                                    ; pc=0x0404
-    add x7, x7, x7                                      ; pc=0x0408
-    addiSigned x8, x17, -768                            ; pc=0x040C
-    add x8, x8, x7                                      ; pc=0x0410
-    sw x5, 0(x8)                                        ; pc=0x0414
+    lw x8, -852(x17) ; t13__x8                          ; pc=0x0400
+    add x10, x8, x8                                     ; pc=0x0404
+    add x10, x10, x10                                   ; pc=0x0408
+    addiSigned x7, x17, -768                            ; pc=0x040C
+    add x7, x7, x10                                     ; pc=0x0410
+    sw x5, 0(x7)                                        ; pc=0x0414
     lw x6, -776(x17) ; j                                ; pc=0x0418
     addi x9, x0, 1                                      ; pc=0x041C
-    add x7, x6, x9                                      ; pc=0x0420
-    sw x7, -776(x17) ; j                                ; pc=0x0424
+    add x10, x6, x9                                     ; pc=0x0420
+    sw x10, -776(x17) ; j                               ; pc=0x0424
     jal x0, -312                                        ; pc=0x0428 ; target=L_while_start_4 ; addr=0x02F0
 L_while_end_5:
-    addi x10, x0, 1                                     ; pc=0x042C
-    add x8, x3, x10                                     ; pc=0x0430
-    add x3, x8, x0 ; promote i                          ; pc=0x0434
+    addi x8, x0, 1                                      ; pc=0x042C
+    add x7, x3, x8                                      ; pc=0x0430
+    add x3, x7, x0 ; promote i                          ; pc=0x0434
     lw x5, -784(x17) ; ia                               ; pc=0x0438
-    addi x7, x0, 8                                      ; pc=0x043C
-    add x9, x5, x7                                      ; pc=0x0440
+    addi x10, x0, 8                                     ; pc=0x043C
+    add x9, x5, x10                                     ; pc=0x0440
     sw x9, -784(x17) ; ia                               ; pc=0x0444
     jal x0, -384                                        ; pc=0x0448 ; target=L_while_start_2 ; addr=0x02C8
 L_while_end_3:
     addi x6, x0, 0                                      ; pc=0x044C
     add x4, x6, x0 ; promote suma                       ; pc=0x0450
-    addi x8, x0, 0                                      ; pc=0x0454
-    add x3, x8, x0 ; promote i                          ; pc=0x0458
+    addi x7, x0, 0                                      ; pc=0x0454
+    add x3, x7, x0 ; promote i                          ; pc=0x0458
 L_while_start_8:
-    addi x10, x0, 64                                    ; pc=0x045C
+    addi x8, x0, 64                                     ; pc=0x045C
     addi x9, x0, 0                                      ; pc=0x0460
-    blt x3, x10, 8                                      ; pc=0x0464 ; target=.L_ir_10_ir_cmp_true ; addr=0x046C
+    blt x3, x8, 8                                       ; pc=0x0464 ; target=.L_ir_10_ir_cmp_true ; addr=0x046C
     jal x0, 8                                           ; pc=0x0468 ; target=.L_ir_11_ir_cmp_end ; addr=0x0470
 .L_ir_10_ir_cmp_true:
     addi x9, x0, 1                                      ; pc=0x046C
 .L_ir_11_ir_cmp_end:
-    sw x9, -872(x17) ; t23__x4                          ; pc=0x0470
-    lw x7, -872(x17) ; t23__x4                          ; pc=0x0474
-    beq x7, x0, 188                                     ; pc=0x0478 ; target=L_while_end_9 ; addr=0x0534
+    sw x9, -868(x17) ; t23__x4                          ; pc=0x0470
+    lw x10, -868(x17) ; t23__x4                         ; pc=0x0474
+    beq x10, x0, 188                                    ; pc=0x0478 ; target=L_while_end_9 ; addr=0x0534
     add x5, x3, x3                                      ; pc=0x047C
     add x5, x5, x5                                      ; pc=0x0480
     addiSigned x6, x17, -768                            ; pc=0x0484
     add x6, x6, x5                                      ; pc=0x0488
-    lw x8, 0(x6)                                        ; pc=0x048C
-    sw x8, -876(x17) ; t24__x5                          ; pc=0x0490
-    lw x5, -876(x17) ; t24__x5                          ; pc=0x0494
+    lw x7, 0(x6)                                        ; pc=0x048C
+    sw x7, -872(x17) ; t24__x5                          ; pc=0x0490
+    lw x5, -872(x17) ; t24__x5                          ; pc=0x0494
     add x9, x4, x5                                      ; pc=0x0498
     add x4, x9, x0 ; promote suma                       ; pc=0x049C
-    addi x10, x0, 1                                     ; pc=0x04A0
-    add x7, x3, x10                                     ; pc=0x04A4
-    add x6, x7, x7                                      ; pc=0x04A8
+    addi x8, x0, 1                                      ; pc=0x04A0
+    add x10, x3, x8                                     ; pc=0x04A4
+    add x6, x10, x10                                    ; pc=0x04A8
     add x6, x6, x6                                      ; pc=0x04AC
-    addiSigned x8, x17, -768                            ; pc=0x04B0
-    add x8, x8, x6                                      ; pc=0x04B4
-    lw x9, 0(x8)                                        ; pc=0x04B8
-    sw x9, -884(x17) ; t26__x7                          ; pc=0x04BC
-    lw x7, -884(x17) ; t26__x7                          ; pc=0x04C0
+    addiSigned x7, x17, -768                            ; pc=0x04B0
+    add x7, x7, x6                                      ; pc=0x04B4
+    lw x9, 0(x7)                                        ; pc=0x04B8
+    sw x9, -880(x17) ; t26__x7                          ; pc=0x04BC
+    lw x7, -880(x17) ; t26__x7                          ; pc=0x04C0
     add x5, x4, x7                                      ; pc=0x04C4
     add x4, x5, x0 ; promote suma                       ; pc=0x04C8
-    addi x10, x0, 2                                     ; pc=0x04CC
-    add x6, x3, x10                                     ; pc=0x04D0
-    add x8, x6, x6                                      ; pc=0x04D4
-    add x8, x8, x8                                      ; pc=0x04D8
+    addi x8, x0, 2                                      ; pc=0x04CC
+    add x6, x3, x8                                      ; pc=0x04D0
+    add x10, x6, x6                                     ; pc=0x04D4
+    add x10, x10, x10                                   ; pc=0x04D8
     addiSigned x9, x17, -768                            ; pc=0x04DC
-    add x9, x9, x8                                      ; pc=0x04E0
+    add x9, x9, x10                                     ; pc=0x04E0
     lw x5, 0(x9)                                        ; pc=0x04E4
-    sw x5, -892(x17) ; t28__x9                          ; pc=0x04E8
-    lw x9, -892(x17) ; t28__x9                          ; pc=0x04EC
+    sw x5, -888(x17) ; t28__x9                          ; pc=0x04E8
+    lw x9, -888(x17) ; t28__x9                          ; pc=0x04EC
     add x7, x4, x9                                      ; pc=0x04F0
     add x4, x7, x0 ; promote suma                       ; pc=0x04F4
-    addi x10, x0, 3                                     ; pc=0x04F8
-    add x8, x3, x10                                     ; pc=0x04FC
-    add x6, x8, x8                                      ; pc=0x0500
+    addi x8, x0, 3                                      ; pc=0x04F8
+    add x10, x3, x8                                     ; pc=0x04FC
+    add x6, x10, x10                                    ; pc=0x0500
     add x6, x6, x6                                      ; pc=0x0504
     addiSigned x5, x17, -768                            ; pc=0x0508
     add x5, x5, x6                                      ; pc=0x050C
     lw x7, 0(x5)                                        ; pc=0x0510
-    sw x7, -900(x17) ; t30__x3                          ; pc=0x0514
-    lw x9, -900(x17) ; t30__x3                          ; pc=0x0518
-    add x10, x4, x9                                     ; pc=0x051C
-    add x4, x10, x0 ; promote suma                      ; pc=0x0520
+    sw x7, -896(x17) ; t30__x3                          ; pc=0x0514
+    lw x9, -896(x17) ; t30__x3                          ; pc=0x0518
+    add x8, x4, x9                                      ; pc=0x051C
+    add x4, x8, x0 ; promote suma                       ; pc=0x0520
     addi x6, x0, 4                                      ; pc=0x0524
-    add x8, x3, x6                                      ; pc=0x0528
-    add x3, x8, x0 ; promote i                          ; pc=0x052C
+    add x10, x3, x6                                     ; pc=0x0528
+    add x3, x10, x0 ; promote i                         ; pc=0x052C
     jal x0, -212                                        ; pc=0x0530 ; target=L_while_start_8 ; addr=0x045C
 L_while_end_9:
     add x11, x4, x0                                     ; pc=0x0534
@@ -425,5 +425,5 @@ L_while_end_9:
 .L_ir_1_main_end:
     ; epilogue
     lw x17, 4(x2)                                       ; pc=0x053C
-    addi x2, x2, 916                                    ; pc=0x0540
+    addi x2, x2, 912                                    ; pc=0x0540
     freeze                                              ; pc=0x0544

@@ -1,0 +1,33 @@
+// DCE elimina cadenas muertas dentro de un IF/ELSE:
+// ambas ramas calculan valores que nunca llegan al return ni a summon.
+// El DCE recorre dependencias desde las raices observables y descarta
+// todo lo que no conecta. La llamada con efecto se conserva siempre.
+// Resultado esperado: 5 (estado tras marcar(5)).
+
+estado:int = 0;
+
+craft:int marcar(v:int) {
+    estado = estado + v;
+    return estado;
+}
+
+@EnterCraftWorld
+craft:int main() {
+    base:int = 7;
+
+    if (base > 0) {
+        // rama muerta: ninguno de estos valores se retorna ni se pasa a summon
+        m1:int = base + 3;
+        m2:int = m1 + m1;
+        m3:int = m2 + m1;
+        m4:int = m3 + m2;
+    } else {
+        n1:int = base + 9;
+        n2:int = n1 + n1;
+        n3:int = n2 + n1;
+        n4:int = n3 + n2;
+    }
+
+    summon:marcar(5);
+    return estado;
+}

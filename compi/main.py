@@ -381,12 +381,19 @@ def main() -> int:
             ir_gen = IRGenerator()
             ir_instructions = ir_gen.generate(ast)
             if optimization_requested:
+                from symbol_table import SymbolKind as _SymbolKind
+                global_names = {
+                    name
+                    for name, sym in symbol_table.global_scope.symbols.items()
+                    if sym.kind == _SymbolKind.VARIABLE
+                }
                 ir_instructions, optimization_stats = optimize_ir(
                     ir_instructions,
                     unroll_factor=unroll_factor,
                     rename_static_registers=rename_static_registers,
                     eliminate_dead_code=eliminate_dead_code,
                     reorder_instructions=reorder_instructions,
+                    global_names=global_names,
                 )
                 optimization_name = (
                     f"[{artifact_tag}]"

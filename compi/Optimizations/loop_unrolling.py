@@ -78,10 +78,19 @@ class IRLoopUnroller:
             not isinstance(condition, IRBinOp)
             or condition.op not in {"<", "<="}
             or not isinstance(condition.left, str)
-            or not isinstance(condition.right, int)
             or not isinstance(branch, IRJumpIfFalse)
             or branch.condition != condition.result
         ):
+            return None
+
+        # El limite puede ser un literal entero o una variable con valor conocido
+        if isinstance(condition.right, int):
+            limit_value: int | None = condition.right
+        elif isinstance(condition.right, str):
+            limit_value = constants.get(condition.right)
+        else:
+            limit_value = None
+        if limit_value is None:
             return None
 
         variable = condition.left
@@ -106,7 +115,7 @@ class IRLoopUnroller:
         if step <= 0 or self._has_unroll_barrier(body_without_increment):
             return None
 
-        limit = condition.right + (1 if condition.op == "<=" else 0)
+        limit = limit_value + (1 if condition.op == "<=" else 0)
         iterations = max(0, (limit - start_value + step - 1) // step)
         if iterations <= 0:
             return None

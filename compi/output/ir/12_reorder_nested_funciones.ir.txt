@@ -1,114 +1,67 @@
-combinar:
-  t0 = a * 2
-  parcial = t0
-  t1 = b + 3
-  extra = t1
-  t2 = a == b
-  ifFalse t2 goto L_else_0
-  t3 = parcial + extra
-  return t3
-  goto L_end_if_1
-L_else_0:
-L_end_if_1:
-  t4 = parcial - extra
-  return t4
+  da = 4
+  db = 8
+  dc = 12
 main:
-  datos = [5, 12]
-  t5 = datos[0]
-  x = t5
-  y = 5
-  t6 = 9 + 4
-  independiente = t6
-  t7 = call combinar(x, y)
-  valor = t7
-  t8 = valor > independiente
-  ifFalse t8 goto L_else_2
-  t9 = x < 10
-  ifFalse t9 goto L_else_4
-  t10 = valor + independiente
-  return t10
-  goto L_end_if_5
-L_else_4:
-L_end_if_5:
-  return valor
-  goto L_end_if_3
-L_else_2:
-  t11 = independiente - valor
-  return t11
-L_end_if_3:
+  a = da
+  t0 = a + 1
+  parta = t0
+  t1 = 2 + 3
+  w1 = t1
+  t2 = 4 + 5
+  w2 = t2
+  b = db
+  t3 = b + 1
+  partb = t3
+  t4 = w1 + w2
+  w3 = t4
+  c = dc
+  t5 = c + 1
+  partc = t5
+  t6 = w1 + w2
+  w4 = t6
+  t7 = w3 + w4
+  w5 = t7
+  t8 = w5 + w1
+  w6 = t8
+  t9 = parta + partb
+  t10 = t9 + partc
+  t11 = t10 + w6
+  total = t11
+  return total
 
 === Control Flow Graph & Basic Blocks ===
 
-[B_label_combinar]
-  -> Sucesores: B_label_L_else_0, B_fallthrough_1
-    combinar:
-    t0 = a * 2
-    parcial = t0
-    t1 = b + 3
-    extra = t1
-    t2 = a == b
-    ifFalse t2 goto L_else_0
-
-[B_fallthrough_1]
-    t3 = parcial + extra
-    return t3
-
-[B_fallthrough_2]
-  -> Sucesores: B_label_L_end_if_1
-    goto L_end_if_1
-
-[B_label_L_else_0]
-  -> Sucesores: B_label_L_end_if_1
-    L_else_0:
-
-[B_label_L_end_if_1]
-    L_end_if_1:
-    t4 = parcial - extra
-    return t4
+[B_entry]
+  -> Sucesores: B_label_main
+    da = 4
+    db = 8
+    dc = 12
 
 [B_label_main]
-  -> Sucesores: B_label_L_else_2, B_fallthrough_6
     main:
-    datos = [5, 12]
-    t5 = datos[0]
-    x = t5
-    y = 5
-    t6 = 9 + 4
-    independiente = t6
-    t7 = call combinar(x, y)
-    valor = t7
-    t8 = valor > independiente
-    ifFalse t8 goto L_else_2
-
-[B_fallthrough_6]
-  -> Sucesores: B_label_L_else_4, B_fallthrough_7
-    t9 = x < 10
-    ifFalse t9 goto L_else_4
-
-[B_fallthrough_7]
-    t10 = valor + independiente
-    return t10
-
-[B_fallthrough_8]
-  -> Sucesores: B_label_L_end_if_5
-    goto L_end_if_5
-
-[B_label_L_else_4]
-  -> Sucesores: B_label_L_end_if_5
-    L_else_4:
-
-[B_label_L_end_if_5]
-    L_end_if_5:
-    return valor
-
-[B_fallthrough_11]
-  -> Sucesores: B_label_L_end_if_3
-    goto L_end_if_3
-
-[B_label_L_else_2]
-    L_else_2:
-    t11 = independiente - valor
-    return t11
-
-[B_label_L_end_if_3]
-    L_end_if_3:
+    a = da
+    t0 = a + 1
+    parta = t0
+    t1 = 2 + 3
+    w1 = t1
+    t2 = 4 + 5
+    w2 = t2
+    b = db
+    t3 = b + 1
+    partb = t3
+    t4 = w1 + w2
+    w3 = t4
+    c = dc
+    t5 = c + 1
+    partc = t5
+    t6 = w1 + w2
+    w4 = t6
+    t7 = w3 + w4
+    w5 = t7
+    t8 = w5 + w1
+    w6 = t8
+    t9 = parta + partb
+    t10 = t9 + partc
+    t11 = t10 + w6
+    total = t11
+    return total

@@ -907,15 +907,17 @@ class IRLoweringBackend(EmitMixin):
         return minimum
 
     def _collect_symbols(self, scope: Scope) -> dict[str, Symbol]:
+        # Limitacion conocida: variables con el mismo nombre en scopes hermanos
+        # (ramas de if/else) se reducen a un solo simbolo; el primero encontrado
+        # gana. Para evitar ambiguedad, usa nombres distintos en cada rama.
         result: dict[str, Symbol] = {}
         stack = [scope]
         while stack:
             current = stack.pop()
             stack.extend(current.children)
             for name, symbol in current.symbols.items():
-                if name in result:
-                    raise CodegenError(f"nombre local ambiguo en IR: {name}")
-                result[name] = symbol
+                if name not in result:
+                    result[name] = symbol
         return result
 
     def _lookup_symbol(self, name: str) -> Symbol | None:

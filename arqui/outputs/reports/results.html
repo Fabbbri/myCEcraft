@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <title>Benchmarks - rendimiento de cache</title>
 <style>
- body { font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1000px; }
+ body { font-family: system-ui, sans-serif; margin: 24px; color: #222; max-width: 1100px; }
  h1 { font-size: 1.4em; }  h2 { font-size: 1.05em; margin: 20px 0 6px; }
  h3 { font-size: 0.92em; margin: 12px 0 4px; color: #334; }
  table { border-collapse: collapse; font-size: 0.86em; }
@@ -31,6 +31,43 @@
  .f { border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; }
  .f pre { margin: 4px 0 0; font-size: 0.8em; }
  .bad { color: #b00; font-size: 0.8em; font-weight: 600; }
+ /* ── Compiler levels ── */
+ .optbadge { display:inline-block; padding:1px 7px; border-radius:10px;
+              font-size:0.8em; font-weight:700; white-space:nowrap; }
+ .clvlrow  { display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 12px;
+              align-items:center; }
+ .clvldesc { font-size:0.82em; color:#555; }
+ .cname    { text-align:left !important; font-weight:600; white-space:nowrap; }
+ /* ── Defensa P2 ── */
+ #p2 { border-top: 2px solid #d0d7de; margin-top: 32px; padding-top: 8px; }
+ .p2group { margin: 20px 0 28px; padding: 14px 16px 10px; border-radius: 6px;
+             background: #fafbfc; }
+ .p2gtitle { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+ .p2gicon  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+ .p2gdesc  { font-size:0.83em; color:#555; margin:4px 0 10px; line-height:1.5; }
+ .p2table  { font-size:0.84em; width:100%; }
+ .p2hname  { text-align:left !important; min-width:200px; max-width:280px; }
+ .p2hgroup { text-align:center; background:#e8edf4; }
+ .p2tsub   { background:#f0eaff; font-size:0.82em; }
+ .p2namecell { text-align:left !important; }
+ .p2name   { font-weight:600; font-size:0.88em; display:block; margin-bottom:2px; }
+ .p2desc   { font-size:0.76em; color:#666; line-height:1.4; max-width:280px; }
+ .p2x11    { font-family:monospace; font-size:0.82em; color:#444; }
+ .p2speedcell { text-align:center !important; padding:4px 6px; }
+ .p2badge  { display:inline-block; padding:2px 8px; border-radius:12px;
+              font-size:0.82em; font-weight:600; white-space:nowrap; }
+ .p2up     { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+ .p2down   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+ .p2flat   { background:#e2e3e5; color:#383d41; border:1px solid #d6d8db; }
+ .p2fail   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+ .p2na     { background:#e2e3e5; color:#6c757d; border:1px solid #d6d8db; }
+ .p2delta  { font-size:0.78em; color:#888; }
+ .p2green  { background:#f0fff4; }
+ .p2red    { background:#fff5f5; }
+ .p2zero   { color:#999; }
+ .p2summary td { background:#f0f0f0; font-size:0.82em; border-top:2px solid #ccc; }
+ .p2tactive  { font-weight:600; background:#f0eaff; }
+ .p2ms       { font-size:0.82em; color:#666; text-align:right; white-space:nowrap; }
 </style></head><body>
 <h1>Benchmarks del procesador &mdash; rendimiento de la jerarqu&iacute;a de cach&eacute;</h1>
 
@@ -41,11 +78,11 @@
 <table><thead><tr>
  <th>Benchmark</th><th>Ciclos</th><th>Instr</th><th>IPC</th><th>CPI</th>
  <th>Stalls MEM</th><th>Stalls control</th>
-</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>45,396</td><td>20,743</td><td>0.457</td><td>2.19</td><td>21,100</td><td>788</td></tr>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>21,983</td><td>9,263</td><td>0.421</td><td>2.37</td><td>9,644</td><td>1,029</td></tr>
+<tr><td>bench_random (O0)</td><td>60,213</td><td>23,976</td><td>0.398</td><td>2.51</td><td>28,072</td><td>2,885</td></tr>
 <tr><td>while loop x<5</td><td>179</td><td>71</td><td>0.397</td><td>2.52</td><td>96</td><td>7</td></tr>
-<tr><td>bench_seq (O0)</td><td>21,992</td><td>8,232</td><td>0.374</td><td>2.67</td><td>11,713</td><td>515</td></tr>
-<tr><td>bench_random (O0)</td><td>57,509</td><td>20,469</td><td>0.356</td><td>2.81</td><td>32,241</td><td>1,443</td></tr>
-<tr><td>bench_stride (O0)</td><td>4,085</td><td>1,064</td><td>0.261</td><td>3.84</td><td>2,798</td><td>67</td></tr>
+<tr><td>bench_stride (O0)</td><td>4,060</td><td>1,199</td><td>0.295</td><td>3.39</td><td>2,473</td><td>133</td></tr>
+<tr><td>bench_mmul (O0)</td><td>110,629</td><td>28,811</td><td>0.260</td><td>3.84</td><td>73,536</td><td>1,575</td></tr>
 </tbody></table>
 </section>
 
@@ -59,13 +96,13 @@
 <tr><th>Reads</th><th>Writes</th><th>R-Hit</th><th>R-Miss</th><th>W-Hit</th>
  <th>W-Miss</th><th>Hit%</th><th>Miss%</th>
  <th>Reads</th><th>Writes</th><th>Acc</th><th>Hits</th><th>Miss</th><th>Hit%</th><th>Miss%</th></tr>
-</thead><tbody><tr><td>bench_mmul (O0)</td><td>6,116</td><td>2,216</td><td>6,090</td><td>26</td><td>2,018</td><td>198</td><td style="background:#1a9850;color:#fff">97.31</td><td>2.69</td><td>26</td><td>2,216</td><td>2,242</td><td>2,018</td><td>224</td><td style="background:#1a9850;color:#fff">90.01</td><td>9.99</td><td>1.28</td></tr>
+</thead><tbody><tr><td>bench_seq (O0)</td><td>1,026</td><td>1,029</td><td>992</td><td>34</td><td>772</td><td>257</td><td style="background:#91cf60;color:#fff">85.84</td><td>14.16</td><td>34</td><td>1,029</td><td>1,063</td><td>772</td><td>291</td><td style="background:#91cf60;color:#fff">72.62</td><td>27.38</td><td>3.10</td></tr>
+<tr><td>bench_random (O0)</td><td>2,883</td><td>2,886</td><td>2,821</td><td>62</td><td>2,404</td><td>482</td><td style="background:#1a9850;color:#fff">90.57</td><td>9.43</td><td>62</td><td>2,886</td><td>2,948</td><td>2,404</td><td>544</td><td style="background:#91cf60;color:#fff">81.55</td><td>18.45</td><td>2.19</td></tr>
 <tr><td>while loop x<5</td><td>12</td><td>8</td><td>11</td><td>1</td><td>5</td><td>3</td><td style="background:#91cf60;color:#fff">80.00</td><td>20.00</td><td>1</td><td>8</td><td>9</td><td>5</td><td>4</td><td style="background:#fee08b;color:#fff">55.56</td><td>44.44</td><td>4.82</td></tr>
-<tr><td>bench_seq (O0)</td><td>2,051</td><td>1,030</td><td>2,018</td><td>33</td><td>773</td><td>257</td><td style="background:#1a9850;color:#fff">90.59</td><td>9.41</td><td>33</td><td>1,030</td><td>1,063</td><td>773</td><td>290</td><td style="background:#91cf60;color:#fff">72.72</td><td>27.28</td><td>2.39</td></tr>
-<tr><td>bench_random (O0)</td><td>5,144</td><td>2,749</td><td>5,083</td><td>61</td><td>2,267</td><td>482</td><td style="background:#1a9850;color:#fff">93.12</td><td>6.88</td><td>61</td><td>2,749</td><td>2,810</td><td>2,267</td><td>543</td><td style="background:#91cf60;color:#fff">80.68</td><td>19.32</td><td>1.88</td></tr>
-<tr><td>bench_stride (O0)</td><td>259</td><td>134</td><td>227</td><td>32</td><td>98</td><td>36</td><td style="background:#91cf60;color:#fff">82.70</td><td>17.30</td><td>32</td><td>134</td><td>166</td><td>98</td><td>68</td><td style="background:#fee08b;color:#fff">59.04</td><td>40.96</td><td>4.16</td></tr>
+<tr><td>bench_stride (O0)</td><td>130</td><td>133</td><td>97</td><td>33</td><td>97</td><td>36</td><td style="background:#91cf60;color:#fff">73.76</td><td>26.24</td><td>33</td><td>133</td><td>166</td><td>97</td><td>69</td><td style="background:#fee08b;color:#fff">58.43</td><td>41.57</td><td>5.83</td></tr>
+<tr><td>bench_mmul (O0)</td><td>8,412</td><td>5,479</td><td>8,384</td><td>28</td><td>5,280</td><td>199</td><td style="background:#1a9850;color:#fff">98.37</td><td>1.63</td><td>28</td><td>5,479</td><td>5,507</td><td>5,280</td><td>227</td><td style="background:#1a9850;color:#fff">95.88</td><td>4.12</td><td>1.15</td></tr>
 </tbody></table></div>
-<p class="nota"><b>AMAT global</b> (miss rates promediados: L1 11.26%, L2 28.40%) = <b>2.70 ciclos</b>.</p>
+<p class="nota"><b>AMAT global</b> (miss rates promediados: L1 14.29%, L2 27.19%) = <b>3.11 ciclos</b>.</p>
 </section>
 
 
@@ -76,11 +113,11 @@
 <table><thead><tr>
  <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
  <th>BW %</th>
-</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>2,242</td><td>40,165</td><td>88.48</td></tr>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>1,063</td><td>19,000</td><td>86.43</td></tr>
+<tr><td>bench_random (O0)</td><td>2,948</td><td>52,796</td><td>87.68</td></tr>
 <tr><td>while loop x<5</td><td>9</td><td>104</td><td>58.10</td></tr>
-<tr><td>bench_seq (O0)</td><td>1,063</td><td>18,978</td><td>86.30</td></tr>
-<tr><td>bench_random (O0)</td><td>2,810</td><td>50,282</td><td>87.43</td></tr>
-<tr><td>bench_stride (O0)</td><td>166</td><td>2,888</td><td>70.70</td></tr>
+<tr><td>bench_stride (O0)</td><td>166</td><td>2,891</td><td>71.21</td></tr>
+<tr><td>bench_mmul (O0)</td><td>5,507</td><td>98,918</td><td>89.41</td></tr>
 </tbody></table>
 
 <h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
@@ -92,11 +129,11 @@
 <table><thead><tr>
  <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
  <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
-</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td>8,332</td><td>2,242</td><td><b>3.7&times;</b></td><td>0.402</td><td>0.108</td></tr>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>2,055</td><td>1,063</td><td><b>1.9&times;</b></td><td>0.222</td><td>0.115</td></tr>
+<tr><td>bench_random (O0)</td><td>5,769</td><td>2,948</td><td><b>2.0&times;</b></td><td>0.241</td><td>0.123</td></tr>
 <tr><td>while loop x<5</td><td>20</td><td>9</td><td><b>2.2&times;</b></td><td>0.282</td><td>0.127</td></tr>
-<tr><td>bench_seq (O0)</td><td>3,081</td><td>1,063</td><td><b>2.9&times;</b></td><td>0.374</td><td>0.129</td></tr>
-<tr><td>bench_random (O0)</td><td>7,893</td><td>2,810</td><td><b>2.8&times;</b></td><td>0.386</td><td>0.137</td></tr>
-<tr><td>bench_stride (O0)</td><td>393</td><td>166</td><td><b>2.4&times;</b></td><td>0.369</td><td>0.156</td></tr>
+<tr><td>bench_stride (O0)</td><td>263</td><td>166</td><td><b>1.6&times;</b></td><td>0.219</td><td>0.138</td></tr>
+<tr><td>bench_mmul (O0)</td><td>13,891</td><td>5,507</td><td><b>2.5&times;</b></td><td>0.482</td><td>0.191</td></tr>
 </tbody></table>
 </section>
 
@@ -107,52 +144,204 @@
  Es la misma cadena para todos: el patr&oacute;n de acceso manda.</p>
 <table><thead><tr>
  <th>Benchmark</th><th>L1 aciertos</th><th>Espera mem</th><th>CPI</th>
-</tr></thead><tbody><tr><td>bench_mmul (O0)</td><td style="background:#1a9850;color:#fff">97.3%</td><td style="background:#fee08b">46.5%</td><td>2.19</td></tr>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td style="background:#91cf60;color:#fff">85.8%</td><td style="background:#fee08b">43.9%</td><td>2.37</td></tr>
+<tr><td>bench_random (O0)</td><td style="background:#1a9850;color:#fff">90.6%</td><td style="background:#fee08b">46.6%</td><td>2.51</td></tr>
 <tr><td>while loop x<5</td><td style="background:#91cf60;color:#fff">80.0%</td><td style="background:#fc8d59">53.6%</td><td>2.52</td></tr>
-<tr><td>bench_seq (O0)</td><td style="background:#1a9850;color:#fff">90.6%</td><td style="background:#fc8d59">53.3%</td><td>2.67</td></tr>
-<tr><td>bench_random (O0)</td><td style="background:#1a9850;color:#fff">93.1%</td><td style="background:#fc8d59">56.1%</td><td>2.81</td></tr>
-<tr><td>bench_stride (O0)</td><td style="background:#91cf60;color:#fff">82.7%</td><td style="background:#fc8d59">68.5%</td><td>3.84</td></tr>
+<tr><td>bench_stride (O0)</td><td style="background:#91cf60;color:#fff">73.8%</td><td style="background:#fc8d59">60.9%</td><td>3.39</td></tr>
+<tr><td>bench_mmul (O0)</td><td style="background:#1a9850;color:#fff">98.4%</td><td style="background:#fc8d59">66.5%</td><td>3.84</td></tr>
 </tbody></table>
 </section>
 
 
-<section><h2>Efecto del compilador (O0 &rarr; O1)</h2>
-<p class="nota"><b>O0</b> = el programa compilado <b>sin optimizar</b>;
- <b>O1</b> = el mismo programa <b>optimizado</b> por el compilador (desenrolla
- bucles y renombra registros). Se comparan los dos para ver cu&aacute;nto ayuda el
- compilador. Cada corrida se valida con el resultado esperado en <code>x11</code>.</p>
-<h3>Rendimiento &mdash; qu&eacute; tan r&aacute;pido corre</h3>
-<p class="nota"><b>Acelera</b> = veces m&aacute;s r&aacute;pido (Ciclos O0 / Ciclos O1).
- O1 baja los ciclos, pero a veces baja el hit rate de L1: al eliminar las
- instrucciones baratas del control del bucle, los fallos obligatorios de
- cach&eacute; quedan como mayor fracci&oacute;n.
- <span class="bad">&#10007; resultado incorrecto</span> significa que la versi&oacute;n
- O1 dio un valor distinto al esperado en x11: la optimizaci&oacute;n rompi&oacute; ese
- programa (es un bug del compilador, no del cach&eacute;), por eso no se mide su
- aceleraci&oacute;n.</p>
-<table><thead><tr>
- <th>Benchmark</th><th>Ciclos O0</th><th>Ciclos O1</th><th>Acelera</th>
- <th>IPC O0</th><th>IPC O1</th><th>CPI O0</th><th>CPI O1</th>
- <th>L1 Hit O0</th><th>L1 Hit O1</th>
-</tr></thead><tbody><tr><td>bench_mmul <span class="bad">&#10007; resultado incorrecto</span></td><td>45,396</td><td>108,787</td><td>&mdash;</td><td>0.457</td><td>0.264</td><td>2.19</td><td>3.78</td><td>97.3%</td><td>98.3%</td></tr>
-<tr><td>bench_random</td><td>57,509</td><td>51,813</td><td>1.11&times;</td><td>0.356</td><td>0.406</td><td>2.81</td><td>2.46</td><td>93.1%</td><td>89.0%</td></tr>
-<tr><td>bench_seq</td><td>21,992</td><td>13,681</td><td>1.61&times;</td><td>0.374</td><td>0.436</td><td>2.67</td><td>2.29</td><td>90.6%</td><td>76.2%</td></tr>
-<tr><td>bench_stride</td><td>4,085</td><td>3,020</td><td>1.35&times;</td><td>0.261</td><td>0.261</td><td>3.84</td><td>3.84</td><td>82.7%</td><td>56.6%</td></tr>
+<section id="compiler">
+<h2>Efecto del compilador</h2>
+<div class="clvlrow"><span class="optbadge" style="background:#6c757d1a;color:#6c757d;border:1px solid #6c757d55">O0</span> <span class="clvldesc">Sin optimizar (baseline)</span><span class="optbadge" style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">O1</span> <span class="clvldesc">Unroll + Rename</span><span class="optbadge" style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">O2</span> <span class="clvldesc">DCE + Reorder</span><span class="optbadge" style="background:#e677001a;color:#e67700;border:1px solid #e6770055">O3</span> <span class="clvldesc">Todas las optimizaciones</span></div>
+<p class="nota">Cada corrida se valida con el resultado esperado en <code>x11</code>.
+ Los deltas entre par&eacute;ntesis en <em>Ciclos</em> e <em>Instr</em> son la diferencia
+ absoluta respecto a O0 (negativo = menos = mejor).
+ <span class="p2badge p2fail" style="font-size:0.8em">&#10007; Ox</span>
+ = la optimizaci&oacute;n rompi&oacute; el resultado (bug del compilador).</p>
+
+<h3>Tabla A &mdash; Rendimiento por nivel</h3>
+<p class="nota"><b>Speedup</b> = Ciclos O0 / Ciclos Ox. Verde &gt;5%, gris marginal, rojo regresiona.</p>
+<div class="tablewrap"><table class="p2table"><thead>
+ <tr><th rowspan="2" class="cname">Benchmark</th><th colspan="3" class="p2hgroup" style="background:#6c757d18;color:#6c757d;border-bottom:2px solid #6c757d"><span class="optbadge" style="background:#6c757d1a;color:#6c757d;border:1px solid #6c757d55">O0</span></th><th colspan="3" class="p2hgroup" style="background:#3b5bdb18;color:#3b5bdb;border-bottom:2px solid #3b5bdb"><span class="optbadge" style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">O1</span></th><th colspan="3" class="p2hgroup" style="background:#0ca67818;color:#0ca678;border-bottom:2px solid #0ca678"><span class="optbadge" style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">O2</span></th><th colspan="3" class="p2hgroup" style="background:#e6770018;color:#e67700;border-bottom:2px solid #e67700"><span class="optbadge" style="background:#e677001a;color:#e67700;border:1px solid #e6770055">O3</span></th><th rowspan="2" class="p2hgroup" style="background:#3b5bdb18;color:#3b5bdb;border-bottom:2px solid #3b5bdb">Speedup<br><span class="optbadge" style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">O1</span></th><th rowspan="2" class="p2hgroup" style="background:#0ca67818;color:#0ca678;border-bottom:2px solid #0ca678">Speedup<br><span class="optbadge" style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">O2</span></th><th rowspan="2" class="p2hgroup" style="background:#e6770018;color:#e67700;border-bottom:2px solid #e67700">Speedup<br><span class="optbadge" style="background:#e677001a;color:#e67700;border:1px solid #e6770055">O3</span></th></tr>
+ <tr><th>Ciclos</th><th>IPC</th><th>CPI</th><th>Ciclos</th><th>IPC</th><th>CPI</th><th>Ciclos</th><th>IPC</th><th>CPI</th><th>Ciclos</th><th>IPC</th><th>CPI</th></tr>
+</thead><tbody><tr><td class='cname'>bench_mmul</td><td>110,629</td><td>0.260</td><td>3.84</td><td class="p2green">108,787<span class="p2delta"> (-1842)</span></td><td>0.264</td><td>3.78</td><td class="p2red">121,973<span class="p2delta"> (+11344)</span></td><td>0.246</td><td>4.07</td><td class="p2red">118,935<span class="p2delta"> (+8306)</span></td><td>0.250</td><td>4.00</td><td class='p2speedcell'><span class="p2badge p2flat">1.02&times; &#9644;</span></td><td class='p2speedcell'><span class="p2badge p2down">-9% &#9660;</span></td><td class='p2speedcell'><span class="p2badge p2down">-7% &#9660;</span></td></tr>
+<tr><td class='cname'>bench_random</td><td>60,213</td><td>0.398</td><td>2.51</td><td class="p2green">51,813<span class="p2delta"> (-8400)</span></td><td>0.406</td><td>2.46</td><td class="p2red">69,803<span class="p2delta"> (+9590)</span></td><td>0.357</td><td>2.80</td><td class="p2red">61,403<span class="p2delta"> (+1190)</span></td><td>0.358</td><td>2.79</td><td class='p2speedcell'><span class="p2badge p2up">+16% &#9650;</span></td><td class='p2speedcell'><span class="p2badge p2down">-14% &#9660;</span></td><td class='p2speedcell'><span class="p2badge p2flat">0.98&times; &#9644;</span></td></tr>
+<tr><td class='cname'>bench_seq</td><td>21,983</td><td>0.421</td><td>2.37</td><td class="p2green">13,681<span class="p2delta"> (-8302)</span></td><td>0.436</td><td>2.29</td><td class="p2red">27,035<span class="p2delta"> (+5052)</span></td><td>0.362</td><td>2.77</td><td class="p2green">13,681<span class="p2delta"> (-8302)</span></td><td>0.436</td><td>2.29</td><td class='p2speedcell'><span class="p2badge p2up">+61% &#9650;</span></td><td class='p2speedcell'><span class="p2badge p2down">-19% &#9660;</span></td><td class='p2speedcell'><span class="p2badge p2up">+61% &#9650;</span></td></tr>
+<tr><td class='cname'>bench_stride</td><td>4,060</td><td>0.295</td><td>3.39</td><td class="p2green">3,020<span class="p2delta"> (-1040)</span></td><td>0.261</td><td>3.84</td><td class="p2red">4,683<span class="p2delta"> (+623)</span></td><td>0.270</td><td>3.71</td><td class="p2green">3,038<span class="p2delta"> (-1022)</span></td><td>0.259</td><td>3.86</td><td class='p2speedcell'><span class="p2badge p2up">+34% &#9650;</span></td><td class='p2speedcell'><span class="p2badge p2down">-13% &#9660;</span></td><td class='p2speedcell'><span class="p2badge p2up">+34% &#9650;</span></td></tr>
+</tbody></table></div>
+
+<h3>Tabla B &mdash; Instrucciones, tama&ntilde;o de c&oacute;digo y transformaciones aplicadas</h3>
+<p class="nota">Unroll/Rename/DCE/Reorder = n&uacute;mero de instrucciones afectadas por cada
+ transformaci&oacute;n. Celdas coloreadas = la optimizaci&oacute;n actuo en ese benchmark.
+ Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+<div class="tablewrap"><table class="p2table"><thead>
+ <tr><th rowspan="2" class="cname">Benchmark</th><th colspan="2" class="p2hgroup" style="background:#6c757d18;color:#6c757d;border-bottom:2px solid #6c757d"><span class="optbadge" style="background:#6c757d1a;color:#6c757d;border:1px solid #6c757d55">O0</span></th><th colspan="2" class="p2hgroup" style="background:#3b5bdb18;color:#3b5bdb;border-bottom:2px solid #3b5bdb"><span class="optbadge" style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">O1</span></th><th colspan="2" class="p2hgroup" style="background:#0ca67818;color:#0ca678;border-bottom:2px solid #0ca678"><span class="optbadge" style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">O2</span></th><th colspan="2" class="p2hgroup" style="background:#e6770018;color:#e67700;border-bottom:2px solid #e67700"><span class="optbadge" style="background:#e677001a;color:#e67700;border:1px solid #e6770055">O3</span></th><th colspan="4" class="p2hgroup" style="background:#3b5bdb18;color:#3b5bdb;border-bottom:2px solid #3b5bdb">Transformaciones <span class="optbadge" style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">O1</span></th><th colspan="4" class="p2hgroup" style="background:#0ca67818;color:#0ca678;border-bottom:2px solid #0ca678">Transformaciones <span class="optbadge" style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">O2</span></th><th colspan="4" class="p2hgroup" style="background:#e6770018;color:#e67700;border-bottom:2px solid #e67700">Transformaciones <span class="optbadge" style="background:#e677001a;color:#e67700;border:1px solid #e6770055">O3</span></th></tr>
+ <tr><th>Instr</th><th>Cod&nbsp;(B)</th><th>Instr</th><th>Cod&nbsp;(B)</th><th>Instr</th><th>Cod&nbsp;(B)</th><th>Instr</th><th>Cod&nbsp;(B)</th><th class="p2tsub" style="background:#3b5bdb18;color:#3b5bdb">Unroll</th><th class="p2tsub" style="background:#0ca67818;color:#0ca678">Rename</th><th class="p2tsub" style="background:#e6770018;color:#e67700">DCE</th><th class="p2tsub" style="background:#862e9c18;color:#862e9c">Reorder</th><th class="p2tsub" style="background:#3b5bdb18;color:#3b5bdb">Unroll</th><th class="p2tsub" style="background:#0ca67818;color:#0ca678">Rename</th><th class="p2tsub" style="background:#e6770018;color:#e67700">DCE</th><th class="p2tsub" style="background:#862e9c18;color:#862e9c">Reorder</th><th class="p2tsub" style="background:#3b5bdb18;color:#3b5bdb">Unroll</th><th class="p2tsub" style="background:#0ca67818;color:#0ca678">Rename</th><th class="p2tsub" style="background:#e6770018;color:#e67700">DCE</th><th class="p2tsub" style="background:#862e9c18;color:#862e9c">Reorder</th></tr>
+</thead><tbody><tr><td class='cname'>bench_mmul</td><td>28,811</td><td>736</td><td class="p2green">28,746<span class="p2delta"> (-65)</span></td><td>1,352</td><td class="p2red">29,951<span class="p2delta"> (+1140)</span></td><td>704</td><td class="p2red">29,758<span class="p2delta"> (+947)</span></td><td>1,312</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">27</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="background:#e6770018;font-weight:600;color:#e67700">6</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">7</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">27</td><td style="background:#e6770018;font-weight:600;color:#e67700">6</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">10</td></tr>
+<tr><td class='cname'>bench_random</td><td>23,976</td><td>336</td><td class="p2green">21,036<span class="p2delta"> (-2940)</span></td><td>588</td><td class="p2red">24,934<span class="p2delta"> (+958)</span></td><td>336</td><td class="p2green">21,994<span class="p2delta"> (-1982)</span></td><td>588</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">1</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">9</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="background:#e6770018;font-weight:600;color:#e67700">1</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">3</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">1</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">9</td><td style="background:#e6770018;font-weight:600;color:#e67700">1</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">3</td></tr>
+<tr><td class='cname'>bench_seq</td><td>9,263</td><td>252</td><td class="p2green">5,967<span class="p2delta"> (-3296)</span></td><td>636</td><td class="p2red">9,775<span class="p2delta"> (+512)</span></td><td>260</td><td class="p2green">5,967<span class="p2delta"> (-3296)</span></td><td>636</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">3</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">12</td><td>0</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">6</td></tr>
+<tr><td class='cname'>bench_stride</td><td>1,199</td><td>252</td><td class="p2green">787<span class="p2delta"> (-412)</span></td><td>636</td><td class="p2red">1,263<span class="p2delta"> (+64)</span></td><td>260</td><td class="p2green">787<span class="p2delta"> (-412)</span></td><td>636</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">3</td><td style="background:#3b5bdb18;font-weight:600;color:#3b5bdb">2</td><td style="background:#0ca67818;font-weight:600;color:#0ca678">12</td><td>0</td><td style="background:#862e9c18;font-weight:600;color:#862e9c">6</td></tr>
+</tbody></table></div>
+</section>
+
+
+<section id="p2">
+<h2>Defensa P2 &mdash; optimizaciones individuales del compilador</h2>
+<p class="nota">12 programas, uno por transformaci&oacute;n objetivo, comparados con su baseline
+ <b>O0</b> (sin optimizar). <b>Speedup</b> = Ciclos O0 / Ciclos opt &mdash; verde si mejora
+ &gt;5%, gris si es marginal, rojo si regresiona.
+ Los deltas entre par&eacute;ntesis en <em>Ciclos</em> e <em>Instr</em> indican la diferencia
+ absoluta respecto a O0 (negativo = menos = mejor).
+ <span class="p2badge p2fail" style="font-size:0.8em">&#10007; FAIL</span>
+ = el resultado en x11 no coincide con el esperado (bug en el compilador).</p>
+
+<div class="p2group" style="border-left:4px solid #3b5bdb">
+ <div class="p2gtitle">
+  <span class="p2gicon" style="background:#3b5bdb"></span>
+  <span style="color:#3b5bdb;font-weight:700;font-size:1.05em">Desenrollado de bucles</span>
+  &nbsp;<code style="background:#3b5bdb1a;color:#3b5bdb;border:1px solid #3b5bdb55">--unroll</code>
+ </div>
+ <p class="p2gdesc">El compilador replica el cuerpo del loop (factor auto hasta 8) para reducir los saltos de control. Mejora visible en Instr/Ciclos cuando N es constante y el cuerpo tiene m&aacute;s de una operaci&oacute;n.</p>
+ <div class="tablewrap">
+ <table class="p2table"><thead>
+  <tr>
+   <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
+   <th rowspan="2">x11</th>
+   <th rowspan="2">Speedup</th>
+   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
+   <th colspan="2" class="p2hgroup">Instrucciones</th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">IPC</th>
+   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+  </tr>
+  <tr>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
+   <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
+  </tr>
+ </thead><tbody><tr><td class='p2namecell'><span class='p2name'>unroll_for_cte</span><div class='p2desc'>FOR N=8 literal, 2 acumuladores; unroller elimina 6 de cada 8 saltos (suma=28)</div></td><td class='p2x11'>0x1C</td><td class='p2speedcell'><span class="p2badge p2up">+11% &#9650;</span></td><td>207</td><td class="p2green">187 <span class="p2delta">(-20)</span></td><td>112</td><td class="p2green">100 <span class="p2delta">(-12)</span></td><td>180</td><td class="p2red">228 <span class="p2delta">(+48)</span></td><td>0.541</td><td>0.535</td><td class='p2ms'>119 ms</td><td class="p2tactive">1</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>unroll_while_varN</span><div class='p2desc'>WHILE con limite en variable N=6; unroller propaga la constante y aplica factor 2 (suma=15)</div></td><td class='p2x11'>0xF</td><td class='p2speedcell'><span class="p2badge p2up">+31% &#9650;</span></td><td>124</td><td class="p2green">95 <span class="p2delta">(-29)</span></td><td>102</td><td class="p2green">85 <span class="p2delta">(-17)</span></td><td>140</td><td class="p2red">160 <span class="p2delta">(+20)</span></td><td>0.823</td><td>0.895</td><td class='p2ms'>127 ms</td><td class="p2tactive">1</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>unroll_for_grande</span><div class='p2desc'>FOR N=32 literal, factor auto 8; 32 iter -> 4 bloques, saltos /8 (suma=496)</div></td><td class='p2x11'>0x1F0</td><td class='p2speedcell'><span class="p2badge p2up">+10% &#9650;</span></td><td>471</td><td class="p2green">427 <span class="p2delta">(-44)</span></td><td>328</td><td class="p2green">256 <span class="p2delta">(-72)</span></td><td>180</td><td class="p2red">324 <span class="p2delta">(+144)</span></td><td>0.696</td><td>0.600</td><td class='p2ms'>114 ms</td><td class="p2tactive">1</td><td>0</td><td>0</td><td>0</td></tr>
+<tr class='p2summary'><td colspan='2'><b>Media del grupo (3/3 OK)</b></td><td><b>+17.2% &#9650;</b></td><td colspan='12'></td></tr>
 </tbody></table>
-<h3>Transformaciones del compilador y costo (Secci&oacute;n 6 del enunciado)</h3>
-<table><thead><tr>
- <th>Benchmark</th><th>Instr O0</th><th>Instr O1</th>
- <th>C&oacute;digo O0 (B)</th><th>C&oacute;digo O1 (B)</th>
- <th>Ciclos O0</th><th>Ciclos O1</th><th>Compilaci&oacute;n (ms)</th>
- <th>Unrolled</th><th>DCE</th><th>Reord.</th><th>Renamed</th>
-</tr></thead><tbody><tr><td>bench_mmul</td><td>20,743</td><td>28,746</td><td>616</td><td>1,352</td><td>45,396</td><td>108,787</td><td>121</td><td>2</td><td>0</td><td>0</td><td>27</td></tr>
-<tr><td>bench_random</td><td>20,469</td><td>21,036</td><td>296</td><td>588</td><td>57,509</td><td>51,813</td><td>134</td><td>1</td><td>0</td><td>0</td><td>9</td></tr>
-<tr><td>bench_seq</td><td>8,232</td><td>5,967</td><td>232</td><td>636</td><td>21,992</td><td>13,681</td><td>122</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
-<tr><td>bench_stride</td><td>1,064</td><td>787</td><td>232</td><td>636</td><td>4,085</td><td>3,020</td><td>111</td><td>2</td><td>0</td><td>0</td><td>12</td></tr>
+ </div>
+</div>
+
+<div class="p2group" style="border-left:4px solid #0ca678">
+ <div class="p2gtitle">
+  <span class="p2gicon" style="background:#0ca678"></span>
+  <span style="color:#0ca678;font-weight:700;font-size:1.05em">Renombrado de registros</span>
+  &nbsp;<code style="background:#0ca6781a;color:#0ca678;border:1px solid #0ca67855">--rename-registers</code>
+ </div>
+ <p class="p2gdesc">Asigna pistas de registro f&iacute;sico distintas a cada versi&oacute;n de un temporal (WAW/WAR). Rompe dependencias falsas en loops densos, permitiendo al backend usar m&aacute;s registros en paralelo y reducir spills al stack.</p>
+ <div class="tablewrap">
+ <table class="p2table"><thead>
+  <tr>
+   <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
+   <th rowspan="2">x11</th>
+   <th rowspan="2">Speedup</th>
+   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
+   <th colspan="2" class="p2hgroup">Instrucciones</th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">IPC</th>
+   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+  </tr>
+  <tr>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
+   <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
+  </tr>
+ </thead><tbody><tr><td class='p2namecell'><span class='p2name'>rename_for_WAW</span><div class='p2desc'>WAW: 'a' reescrita 3 veces; rename asigna registros fisicos distintos a t0,t1,t2 (suma=66)</div></td><td class='p2x11'>0x42</td><td class='p2speedcell'><span class="p2badge p2flat">1.00&times; &#9644;</span></td><td>123</td><td class="p2zero">123</td><td>46</td><td class="p2zero">46</td><td>152</td><td class="p2zero">152</td><td>0.374</td><td>0.374</td><td class='p2ms'>113 ms</td><td>0</td><td>0</td><td>0</td><td class="p2tactive">5</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>rename_if_WAR</span><div class='p2desc'>WAR: 'lim' leida en condicion y sobreescrita en else; rename crea versiones SSA (total=54)</div></td><td class='p2x11'>0x36</td><td class='p2speedcell'><span class="p2badge p2flat">1.00&times; &#9644;</span></td><td>897</td><td class="p2zero">897</td><td>311</td><td class="p2zero">311</td><td>296</td><td class="p2zero">296</td><td>0.347</td><td>0.347</td><td class='p2ms'>112 ms</td><td>0</td><td>0</td><td>0</td><td class="p2tactive">8</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>rename_func_mixto</span><div class='p2desc'>WAW+WAR en funcion con if/else; rename crea versiones independientes por rama (total=66)</div></td><td class='p2x11'>0x42</td><td class='p2speedcell'><span class="p2badge p2flat">1.00&times; &#9644;</span></td><td>908</td><td class="p2zero">908</td><td>297</td><td class="p2zero">297</td><td>332</td><td class="p2zero">332</td><td>0.327</td><td>0.327</td><td class='p2ms'>122 ms</td><td>0</td><td>0</td><td>0</td><td class="p2tactive">10</td></tr>
+<tr class='p2summary'><td colspan='2'><b>Media del grupo (3/3 OK)</b></td><td><b>+0.0% &#9644;</b></td><td colspan='12'></td></tr>
 </tbody></table>
-<p class="nota">C&oacute;digo en bytes = #instrucciones &times; 4. Unrolled/DCE/Reord./Renamed:
- instrucciones desenrolladas / eliminadas / reordenadas / renombradas por el
- compilador (de su salida). Vac&iacute;o (&mdash;) si no se corri&oacute; con <code>--compile</code>.</p>
+ </div>
+</div>
+
+<div class="p2group" style="border-left:4px solid #e67700">
+ <div class="p2gtitle">
+  <span class="p2gicon" style="background:#e67700"></span>
+  <span style="color:#e67700;font-weight:700;font-size:1.05em">Eliminación de código muerto</span>
+  &nbsp;<code style="background:#e677001a;color:#e67700;border:1px solid #e6770055">--dce</code>
+ </div>
+ <p class="p2gdesc">Elimina cadenas de instrucciones cuyos resultados nunca alcanzan un <code>return</code> ni una llamada con efecto (summon). Cuantas m&aacute;s instrucciones muertas haya, mayor la reducci&oacute;n de Instr y Ciclos.</p>
+ <div class="tablewrap">
+ <table class="p2table"><thead>
+  <tr>
+   <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
+   <th rowspan="2">x11</th>
+   <th rowspan="2">Speedup</th>
+   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
+   <th colspan="2" class="p2hgroup">Instrucciones</th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">IPC</th>
+   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+  </tr>
+  <tr>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
+   <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
+  </tr>
+ </thead><tbody><tr><td class='p2namecell'><span class='p2name'>dce_if_muerto</span><div class='p2desc'>IF/ELSE con ambas ramas calculando valores muertos; DCE elimina todo excepto el summon (estado=5)</div></td><td class='p2x11'>0x5</td><td class='p2speedcell'><span class="p2badge p2up">+76% &#9650;</span></td><td>449</td><td class="p2green">255 <span class="p2delta">(-194)</span></td><td>78</td><td class="p2green">65 <span class="p2delta">(-13)</span></td><td>332</td><td class="p2green">232 <span class="p2delta">(-100)</span></td><td>0.174</td><td>0.255</td><td class='p2ms'>120 ms</td><td>0</td><td class="p2tactive">16</td><td>0</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>dce_func_y_main</span><div class='p2desc'>Cadena muerta dentro de funcion + cadena muerta en main entre dos summons (acum=7)</div></td><td class='p2x11'>0x7</td><td class='p2speedcell'><span class="p2badge p2up">+74% &#9650;</span></td><td>435</td><td class="p2green">250 <span class="p2delta">(-185)</span></td><td>117</td><td class="p2green">81 <span class="p2delta">(-36)</span></td><td>316</td><td class="p2green">208 <span class="p2delta">(-108)</span></td><td>0.269</td><td>0.324</td><td class='p2ms'>115 ms</td><td>0</td><td class="p2tactive">19</td><td>0</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>dce_cadenas_post</span><div class='p2desc'>Cadenas muertas antes y despues de summon; retorno de llamada alimenta cadena muerta (ctr=6)</div></td><td class='p2x11'>0x6</td><td class='p2speedcell'><span class="p2badge p2up">+138% &#9650;</span></td><td>576</td><td class="p2green">242 <span class="p2delta">(-334)</span></td><td>98</td><td class="p2green">54 <span class="p2delta">(-44)</span></td><td>360</td><td class="p2green">184 <span class="p2delta">(-176)</span></td><td>0.170</td><td>0.223</td><td class='p2ms'>116 ms</td><td>0</td><td class="p2tactive">24</td><td>0</td><td>0</td></tr>
+<tr class='p2summary'><td colspan='2'><b>Media del grupo (3/3 OK)</b></td><td><b>+96.0% &#9650;</b></td><td colspan='12'></td></tr>
+</tbody></table>
+ </div>
+</div>
+
+<div class="p2group" style="border-left:4px solid #862e9c">
+ <div class="p2gtitle">
+  <span class="p2gicon" style="background:#862e9c"></span>
+  <span style="color:#862e9c;font-weight:700;font-size:1.05em">Reordenamiento de instrucciones</span>
+  &nbsp;<code style="background:#862e9c1a;color:#862e9c;border:1px solid #862e9c55">--reorder</code>
+ </div>
+ <p class="p2gdesc">Mueve instrucciones independientes justo despu&eacute;s de un load para rellenar los ciclos de latencia de memoria. El scheduler actua dentro de segmentos sin barreras (calls, branches); segmentos &ge;3 instrucciones.</p>
+ <div class="tablewrap">
+ <table class="p2table"><thead>
+  <tr>
+   <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
+   <th rowspan="2">x11</th>
+   <th rowspan="2">Speedup</th>
+   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
+   <th colspan="2" class="p2hgroup">Instrucciones</th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">IPC</th>
+   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
+  </tr>
+  <tr>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th>O0</th><th>opt</th>
+   <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
+   <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
+  </tr>
+ </thead><tbody><tr><td class='p2namecell'><span class='p2name'>reorder_1load_if</span><div class='p2desc'>1 load global con uso inmediato; scheduler mueve w1,w2,w3 entre lw y uso (total=36)</div></td><td class='p2x11'>0x24</td><td class='p2speedcell'><span class="p2badge p2flat">1.01&times; &#9644;</span></td><td>179</td><td class="p2green">178 <span class="p2delta">(-1)</span></td><td>46</td><td class="p2red">48 <span class="p2delta">(+2)</span></td><td>152</td><td class="p2red">160 <span class="p2delta">(+8)</span></td><td>0.257</td><td>0.270</td><td class='p2ms'>118 ms</td><td>0</td><td>0</td><td class="p2tactive">3</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>reorder_2loads</span><div class='p2desc'>2 loads globales con uso inmediato; scheduler llena stall de cada lw con trabajo independiente (total=65)</div></td><td class='p2x11'>0x41</td><td class='p2speedcell'><span class="p2badge p2up">+9% &#9650;</span></td><td>348</td><td class="p2green">319 <span class="p2delta">(-29)</span></td><td>61</td><td class="p2red">65 <span class="p2delta">(+4)</span></td><td>212</td><td class="p2red">228 <span class="p2delta">(+16)</span></td><td>0.175</td><td>0.204</td><td class='p2ms'>117 ms</td><td>0</td><td>0</td><td class="p2tactive">6</td><td>0</td></tr>
+<tr><td class='p2namecell'><span class='p2name'>reorder_3loads_if</span><div class='p2desc'>3 loads globales con uso inmediato; scheduler intercala trabajo independiente entre cada lw y su uso (total=27)</div></td><td class='p2x11'>0x1B</td><td class='p2speedcell'><span class="p2badge p2flat">1.05&times; &#9644;</span></td><td>347</td><td class="p2green">332 <span class="p2delta">(-15)</span></td><td>62</td><td class="p2red">66 <span class="p2delta">(+4)</span></td><td>216</td><td class="p2red">232 <span class="p2delta">(+16)</span></td><td>0.179</td><td>0.199</td><td class='p2ms'>127 ms</td><td>0</td><td>0</td><td class="p2tactive">9</td><td>0</td></tr>
+<tr class='p2summary'><td colspan='2'><b>Media del grupo (3/3 OK)</b></td><td><b>+4.7% &#9644;</b></td><td colspan='12'></td></tr>
+</tbody></table>
+ </div>
+</div>
+
 </section>
 
 

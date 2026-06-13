@@ -100,7 +100,7 @@ class IRStaticRegisterRenamer:
 
             if isinstance(instruction, IRAssign):
                 source = self._rename_operand(instruction.source)
-                target = instruction.result
+                target = self._rename_operand(instruction.result)
 
                 if TEMP_RE.fullmatch(target):
                     output.append(

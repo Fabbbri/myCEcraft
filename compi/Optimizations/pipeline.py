@@ -16,6 +16,7 @@ def optimize_ir(
     rename_static_registers: bool,
     eliminate_dead_code: bool = False,
     reorder_instructions: bool = False,
+    global_names: set[str] | None = None,
 ) -> tuple[list[IRInstruction], IROptimizationStats]:
     stats = IROptimizationStats(
         unroll_factor=unroll_factor if unroll_factor == AUTO_UNROLL_FACTOR else max(1, unroll_factor),
@@ -28,5 +29,5 @@ def optimize_ir(
     if rename_static_registers:
         optimized = IRStaticRegisterRenamer(stats).run(optimized)
     if reorder_instructions:
-        optimized = IRInstructionReorderer(stats).run(optimized)
+        optimized = IRInstructionReorderer(stats, global_names=global_names).run(optimized)
     return optimized, stats
