@@ -195,11 +195,74 @@ Secuencia de fills en un conjunto:
 
 FIFO no se ajusta de forma dinámica a cambios en los patrones de acceso. En aplicaciones que alternan entre diferentes conjuntos de trabajo (working sets), la política puede reemplazar líneas que aún resultan útiles, ya que la decisión de reemplazo se basa únicamente en el orden de llegada y no en el historial reciente de uso. No obstante, dado que la caché L1 cuenta con solo dos vías, el impacto de esta limitación es reducido. 
 
-### Funcionamiento de caché L1-D con políticas elegidas
+---
+
+## 5. Arquitectura de Control L1
+
+A diferencia de L2, cuyo controlador se implementa mediante una máquina de estados finitos (FSM), el controlador de L1 está compuesto principalmente por lógica combinacional. 
+
+---
+
+### 5.0 Flujo conceptual del controlador L1
+
+El siguiente diagrama ilustra el flujo de decisión de alto nivel del controlador. Se trata de una representación conceptual del comportamiento de l1_con ante accesos de lectura y escritura, tanto en condiciones de hit como de miss. Con el fin de mantener la claridad del diagrama, se omiten algunas señales de control y detalles específicos de implementación que se describen posteriormente en esta sección.
 
 ![image:con_l1](DF-L1Con.png)
 
+En el caso de un Store Hit, la palabra se actualiza en la vía correspondiente durante el mismo ciclo de reloj, siguiendo una política write-through. Simultáneamente, la operación de escritura se reenvía al write buffer gestionado por l2_con.
+
+Ante un Store Miss, la escritura se envía directamente al write buffer sin provocar la carga de una nueva línea en la caché.
+
+Para un Load Hit, el dato solicitado se obtiene directamente desde L1 y la señal dato_cpu se resuelve de forma combinacional dentro del mismo ciclo, evitando detener (stall) el procesador.
+
+Finalmente, cuando ocurre un Load Miss, el procesador se detiene mientras l2_con mientras se obtiene el bloque de memoria principal. Una vez completado el burst de DRAM y recibida la última palabra del bloque, inv_en invalida la línea actualmente almacenada en el conjunto correspondiente. En el ciclo siguiente, fill_en habilita la escritura de la nueva línea completa en L1, restaurando la operación normal del procesador.
+
 ---
+
+### 5.1 Señal de llenado (`fill_en`)
+
+```verilog
+fill_en_comb = (block_offset_counter == 3'b111) & ~hit_l1 
+always_ff @(posedge clk) 
+  fill_en <= fill_en_comb & ~hit_l1 // retrasado 1 ciclo
+```
+
+La señal `fill_en_comb` se activa cuando el *burst* de DRAM transfiere la última palabra del bloque (`block_offset_counter == 3'b111`) y existe un miss activo en L1. Esta condición indica que el bloque completo ha sido recibido y está listo para ser escrito en la caché.
+
+La activación de `fill_en` se pospone hasta el ciclo posterior a la recepción de la última palabra del bloque. Esto garantiza que el contenido de `fill_line` incluya las ocho palabras válidas antes de iniciar la escritura de la nueva línea en L1. Sin esta separación temporal, el llenado podría ejecutarse antes de que la actualización de `refill_regs` se refleje completamente en el bloque ensamblado.
+
+---
+
+### 5.2 Señal de invalidación (`inv_en`)
+
+```verilog
+always_ff @(posedge clk)
+    fill_en_comb_d <= fill_en_comb;
+
+inv_en = fill_en_comb & ~fill_en_comb_d & ~hit_l1 & ~is_write
+```
+
+La señal `inv_en` se genera mediante detección de flanco de subida sobre `fill_en_comb`. Para ello, se compara el valor actual de la señal con su versión registrada (`fill_en_comb_d`), produciendo un pulso de un único ciclo cuando se completa la recepción del bloque.
+
+Este mecanismo garantiza que la invalidación se complete antes de la operación de llenado (*fill*), evitando cualquier conflicto entre ambas acciones. La invalidación se aplica únicamente ante misses de lectura (`~is_write`), ya que las escrituras siguen una política *no-write-allocate* y, por lo tanto, no requieren cargar nuevas líneas en L1.
+
+
+---
+
+### 5.3 Puntero de reemplazo FIFO (`WayReg`)
+
+```verilog
+replace = fill_en | (is_write & hit_l1)
+
+set_reg #(.NUM_SETS(64), .NUM_WAYS(2)) WayReg (
+    .set(addr_set), .fill_en(replace), .way_out(way_to_fill)
+)
+```
+
+El módulo `WayReg` implementa el mecanismo de selección de vía mediante un puntero FIFO asociado a cada set. Su señal de actualización, denominada `replace`, provoca que el puntero del set indexado avance a la siguiente vía en orden circular.
+
+La lógica de control de L1 genera `replace` a partir de la señal de llenado (`fill_en`) y de la condición de *store hit* (`is_write & hit_l1`). Como resultado, el mecanismo de reemplazo se actualiza tanto durante los llenados como durante las escrituras que impactan en la caché.
+
 
 ## Caché L2: Decisiones de diseño, políticas de escritura, reemplazo y parámetros
 
@@ -448,7 +511,7 @@ Cuatro condiciones combinadas garantizan exactamente un push por miss:
 | Escritura L1 | **Write-through** | Simplicidad de coherencia: L2 y RAM siempre tienen el dato. No requiere dirty bits ni eviction de lineas sucias. |
 | Escritura L2 | **Write-through** (con autorizacion del profesor; el enunciado pedia write-back) | Uniformidad con L1 y simplicidad. El costo medido es alto trafico de escritura a RAM (ver analisis de rendimiento: 86-88% de utilizacion del bus). |
 | Asignacion en write miss | **No-write-allocate** | Un store que falla no trae la linea: escribe hacia abajo. Combinacion clasica con write-through. |
-| Reemplazo L1 y L2 | **FIFO** (puntero por set, `set_reg.sv`) | 1 contador chico por set, sin actualizacion en hits. Trade-off aceptado: puede expulsar lineas calientes que LRU conservaria. |
+| Reemplazo L1 y L2 | **FIFO** (puntero por set, `set_reg.sv`) | 1 contador chico por set, sin actualizacion en hits. Trade-off aceptado: puede expulsar lineas que LRU conservaria. |
 | Write buffers | Request queue (8) y write buffer (8) en `l2_con`; cola asincrona (8) y write buffer (8) en `mem_controller` | Absorben los stores para que el pipeline no espere los ~25 ciclos de RAM por cada escritura. |
 
 ---
