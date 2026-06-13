@@ -5,9 +5,10 @@ organizacion interna se integra en `arqui/rtl/top.sv`, donde se conectan las
 etapas de fetch, decode, execute, memory y writeback mediante registros de
 pipeline. El diseno incluye banco de registros general, ALU, unidad de control,
 RAM de datos, ROM de instrucciones y una boveda de llaves compuesta por banco de
-registros Vault, RAM Vault y control de Secure Mode.
+registros Vault, RAM Vault y control de Secure Mode. Note además que se realizó la extensión del bloque negro **MEMORY HIERARCHY** el cuál consiste en los niveles L1 y L2 de caché seguidos de la DRAM realista. Para mayor referencia de su implementación, decisiones de diseño y aspectos de organización revisar: [jerarquia_memoria.md](jerarquia_memoria.md)
 
 ![Diagrama de bloques de la microarquitectura Craft21](microarch.png)
+
 
 ## Vista general del datapath
 

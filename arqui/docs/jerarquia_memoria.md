@@ -538,6 +538,8 @@ Cuatro condiciones combinadas garantizan exactamente un push por miss:
 
 ## Integración con el pipeline del procesador
 
+La jerarquía de memoria ya explicada se integra con el pipeline del procesador de forma similar a como se muestra en los primeros diagramas de este documento MarkDown. Su integración es bastante similar y no varía mucho de iteraciones pasadas del proyecto debido a las pocas entradas y salidas que tiene. Si desea observar la organización/microarquitectura la integración en el pipeline puede observar el documento: [microarchitecture.md](microarchitecture.md)
+
 ### Manejo de stalls de pipeline por misses
 
 - `stall_mem = stall_l2 | stall_mc | (load & ~hit_l1 & ~hit_l2)`: un load sin
