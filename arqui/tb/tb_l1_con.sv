@@ -109,6 +109,7 @@ module tb_l1_con;
         $display(" fill_way_out despues (FIFO avanzado) = %b", fill_way_out);
         $display(" fill_en (esp 0)  = %b", fill_en);
         $display(" inv_en  (esp 0)  = %b", inv_en);
+        #0;   
         show();
 
         // ==== Read miss, burst ciclos 0-6 (sin fill_en ni inv_en) ================
