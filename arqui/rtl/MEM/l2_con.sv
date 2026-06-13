@@ -9,7 +9,7 @@
 //  Loads:  entran a request_queue → procesados por FSM Load
 //
 //  WB_DRAIN bloqueado mientras FSM Load está en ACCESS
-//  fill_line se acumula internamente desde burst_rdata + burst_counter
+//  fill_line viene de refill_regs y se pasa directo a l2_cache
 // ============================================================
 
 module l2_con (
@@ -31,7 +31,9 @@ module l2_con (
     // Burst desde mem_controller
     input  logic [2:0]  burst_counter,
     input  logic        burst_active,
-    input  logic [31:0] burst_rdata,
+
+    // fill_line acumulada desde refill_regs
+    input  logic [255:0] fill_line,
 
     // Desde l2_cache: lectura
     input  logic        hit_l2,
@@ -63,7 +65,6 @@ module l2_con (
 
     // Hacia mem_con: loads
     output logic        miss_l2_out,
-    output logic        hit_l2_out,
     output logic [31:0] addr_out,
     output logic [1:0]  size_out,
 
@@ -210,30 +211,6 @@ assign wb_push = miss_l1 & is_write & ~wb_full
                & (~wb_pushed | (addr != wb_last_addr));
 
 // ==========================================================
-// Acumulador de fill_line desde burst_rdata
-//
-// FIX: Icarus no soporta "burst_counter*32 +: 32" dentro de
-// always_ff. Se reemplaza con case explícito de 8 entradas.
-// ==========================================================
-logic [255:0] fill_line_reg;
-
-always_ff @(posedge clk) begin
-    if (burst_active) begin
-        case (burst_counter)
-            3'd0: fill_line_reg[  31:  0] <= burst_rdata;
-            3'd1: fill_line_reg[  63: 32] <= burst_rdata;
-            3'd2: fill_line_reg[  95: 64] <= burst_rdata;
-            3'd3: fill_line_reg[ 127: 96] <= burst_rdata;
-            3'd4: fill_line_reg[ 159:128] <= burst_rdata;
-            3'd5: fill_line_reg[ 191:160] <= burst_rdata;
-            3'd6: fill_line_reg[ 223:192] <= burst_rdata;
-            3'd7: fill_line_reg[ 255:224] <= burst_rdata;
-            default: ; // no-op
-        endcase
-    end
-end
-
-// ==========================================================
 // FSM Load: IDLE → ACCESS (8 ciclos) → DONE
 // ==========================================================
 
@@ -327,7 +304,7 @@ assign fill_en = burst_last_d;
 assign fill_way_out  = way_to_fill;
 assign fill_set      = rq_addr[11:5];
 assign fill_tag      = rq_addr[31:12];
-assign fill_line_out = fill_line_reg;
+assign fill_line_out = fill_line;
 
 assign way_replace = fill_en
                    | (wb_state == WB_COMMIT & hit_l2_wb);
@@ -357,7 +334,6 @@ assign stall    = (load_state == ACCESS) | rq_full
 // ==========================================================
 // Hacia mem_con
 // ==========================================================
-assign hit_l2_out  = hit_l2;
 // Gateado por ACCESS: solo válido cuando la FSM tiene una request en vuelo.
 // Evita que mem_controller arranque en ciclo 0 por caché fría (hit_l2=0).
 assign miss_l2_out = (load_state == ACCESS) & ~hit_l2;

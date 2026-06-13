@@ -7,8 +7,6 @@ module tb_l2_cache;
     logic [31:0] addr;
     logic [31:0] data_out;
     logic hit;
-    logic [1:0] hit_way;
-
     logic fill_en;
     logic [1:0] fill_way;
     logic [6:0] fill_set;
@@ -25,7 +23,6 @@ module tb_l2_cache;
         .addr(addr), 
         .data_out(data_out), 
         .hit(hit), 
-        .hit_way(hit_way),
         .fill_en(fill_en), 
         .fill_way(fill_way), 
         .fill_set(fill_set),

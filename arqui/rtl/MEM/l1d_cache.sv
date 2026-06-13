@@ -10,7 +10,6 @@ module l1d_cache (
     input  logic [31:0] addr,
     output logic [31:0] data_out,
     output logic        hit,
-    output logic        hit_way,
 
     input  logic         fill_en,
     input  logic         fill_way,
@@ -23,9 +22,7 @@ module l1d_cache (
     input  logic [5:0]  inv_set,
 
     input  logic        is_write,
-    input  logic [31:0] wdata,
-
-    output logic        store_hit_l1
+    input  logic [31:0] wdata
 );
 
     localparam int NUM_SETS  = 64;
@@ -39,6 +36,8 @@ module l1d_cache (
     logic [TAG_BITS-1:0] addr_tag;
     logic [5:0]          addr_set;
     logic [2:0]          addr_word;
+    logic store_hit_l1;
+    logic hit_way;
 
     assign addr_tag  = addr[31:11];
     assign addr_set  = addr[10:5];

@@ -33,13 +33,6 @@ logic is_write = we_mem;
 // L1 → L2
 logic        miss_l1,    hit_l1;
 logic [31:0] l1_data_out;
-logic        hit_l1_way;
-logic        store_way_hit_l1;
-
-// FIX 1: wire separado para dato_cpu de l1_con
-// (l1_data_out ya está driven por l1d_cache.data_out;
-//  no puede ser driven también por l1_con.dato_cpu)
-logic [31:0] dato_cpu_l1_unused;
 
 // L1 → l1d_cache (fill, inv)
 logic        fill_en_l1;
@@ -68,12 +61,6 @@ logic [31:0] store_data_l2;
 logic        hit_l2;
 logic [31:0] l2_data_out;
 logic        hit_l2_wb;
-logic [1:0]  hit_way_wb;
-// para refill de L1 desde L2
-logic [2:0]  l2_word_counter;
-logic        l2_refill_active;
-logic [31:0] l2_refill_rdata;
-logic [1:0]  hit_way_l2;
 
 // FIX 2: addr_set_l2 declarado con ancho correcto (7 bits)
 logic [6:0]  addr_set_l2;
@@ -97,6 +84,8 @@ logic [255:0] fill_line_burst;
 logic [31:0] dato_cpu_l2;
 logic        stall_l2;
 
+logic [31:0] dato_cpu_l1;
+
 // mem_controller (backend)
 logic        ram_we;
 logic [1:0]  ram_size;
@@ -107,8 +96,6 @@ logic        stall_mc;
 // FIX 3: fill_line_to_caches solo driven por refill_regs
 // l2_con.fill_line_out se captura en wire separado (no se reusa)
 logic [255:0] fill_line_to_caches;
-logic         fill_line_ready;
-logic [255:0] fill_line_l2_raw;   // wire de descarte para l2_con.fill_line_out
 
 // burst
 logic        burst_active;
@@ -138,7 +125,6 @@ l1d_cache L1D(
     .addr         (alu_result),
     .data_out     (l1_data_out),
     .hit          (hit_l1),
-    .hit_way      (hit_l1_way),
     .fill_en      (fill_en_l1),
     .fill_way     (fill_way_l1),
     .fill_set     (fill_set_l1),
@@ -148,8 +134,7 @@ l1d_cache L1D(
     .inv_way      (inv_way_l1),
     .inv_set      (inv_set_l1),
     .is_write     (we_mem),
-    .wdata        (rd2),
-    .store_hit_l1 (store_way_hit_l1)
+    .wdata        (rd2)
 );
 
 // ==========================================================
@@ -165,7 +150,7 @@ l1_con L1Con(
     // direccion del request SERVIDO (head de la cola de l2_con), no la
     // instruccion actual en MEM: el fill de un burst tardio con la addr
     // actual escribia la linea en set/tag equivocados (cache envenenado)
-    .addr                (addr_l2),
+    .addr                (alu_result),
     .size                ({size, 1'b0}),
     .wdata               (rd2),
     .fill_line           (fill_line_to_caches),
@@ -182,13 +167,8 @@ l1_con L1Con(
     .inv_en              (inv_en_l1),
     .inv_way             (inv_way_l1),
     .inv_set             (inv_set_l1),
-    .dato_cpu            (dato_cpu_l1_unused),  // FIX 1: wire propio
-    .miss_l1_out         (miss_l1),
-    .hit_l1_out          (),
-    .is_write_out        (),
-    .wdata_out           (),
-    .addr_out            (),
-    .size_out            ()
+    .dato_cpu            (dato_cpu_l1),  
+    .miss_l1_out         (miss_l1)
 );
 
 // ==========================================================
@@ -201,12 +181,11 @@ l2_cache L2(
     .addr             (alu_result),
     .data_out         (l2_data_out),
     .hit              (hit_l2),
-    .hit_way          (hit_way_l2),
     .fill_en          (fill_en_l2),
     .fill_way         (fill_way_l2),
     .fill_set         (fill_set_l2),
     .fill_tag         (fill_tag_l2),
-    .fill_line        (fill_line_to_caches),
+    .fill_line        (fill_line_l2),
     .inv_en           (inv_en_l2),
     .inv_way          (inv_way_l2),
     .inv_set          (inv_set_l2),
@@ -214,16 +193,12 @@ l2_cache L2(
     .store_addr       (store_addr_l2),
     .store_data       (store_data_l2),
     .hit_l2_wb        (hit_l2_wb),
-    .hit_way_wb       (hit_way_wb),
-    .l2_refill_word   (l2_word_counter),
-    .l2_refill_way    (hit_way_l2),
-    .l2_refill_set    (addr_set_l2),        // FIX 2: 7 bits
-    .l2_refill_rdata  (l2_refill_rdata)
+
+    .l2_refill_set    (addr_set_l2)        // FIX 2: 7 bits
 );
 
 // ==========================================================
 //  L2 CONTROLADOR
-//  FIX 3: fill_line_out → fill_line_l2_raw (no fill_line_to_caches)
 // ==========================================================
 // op de memoria real en MEM (load=result_src 01, store=we_mem):
 // hit/miss de L1 son combinacionales sobre alu_result aunque la instruccion
@@ -246,15 +221,15 @@ l2_con L2Con(
     .wdata              (rd2),
     .burst_counter      (burst_counter),
     .burst_active       (burst_active),
-    .burst_rdata        (burst_rdata),
     .hit_l2             (hit_l2),
     .l2_data_out        (l2_data_out),
     .hit_l2_wb          (hit_l2_wb),
+    .fill_line          (fill_line_to_caches),
+    .fill_line_out      (fill_line_l2),
     .fill_en            (fill_en_l2),
     .fill_way_out       (fill_way_l2),
     .fill_set           (fill_set_l2),
     .fill_tag           (fill_tag_l2),
-    .fill_line_out      (fill_line_l2_raw), // FIX 3: wire separado
     .inv_en             (inv_en_l2),
     .inv_way            (inv_way_l2),
     .inv_set            (inv_set_l2),
@@ -264,7 +239,6 @@ l2_con L2Con(
     .dato_cpu           (dato_cpu_l2),
     .stall              (stall_l2),
     .miss_l2_out        (miss_l2),
-    .hit_l2_out         (),
     .addr_out           (addr_l2),
     .size_out           (size_l2),
     .wb_write_out       (wb_write),
@@ -311,12 +285,8 @@ refill_regs RefillRegs(
     .burst_active     (burst_active),
     .burst_counter    (burst_counter),
     .burst_rdata      (burst_rdata),
-    .l2_refill_active (l2_refill_active),
-    .l2_word_counter  (l2_word_counter),
-    .l2_rdata         (l2_refill_rdata),
     .hit_l2           (hit_l2),
-    .fill_line_out    (fill_line_to_caches), // único driver de este wire
-    .fill_line_ready  (fill_line_ready)
+    .fill_line_out    (fill_line_to_caches)// único driver de este wire
 );
 
 // ==========================================================
@@ -371,7 +341,7 @@ assign instrMOUT_hz       = instrD;
 assign we_reg_MEM_hz      = we_reg;
 assign ex_mem             = alu_result;
 
-assign rMemData = hit_l1 ? l1_data_out
+assign rMemData = hit_l1 ? dato_cpu_l1
                          : dato_cpu_l2;
 
 endmodule

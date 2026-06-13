@@ -10,7 +10,6 @@ module l2_cache (
     input  logic [31:0] addr,
     output logic [31:0] data_out,
     output logic        hit,
-    output logic [1:0]  hit_way,
 
     input  logic         fill_en,
     input  logic [1:0]   fill_way,
@@ -27,12 +26,8 @@ module l2_cache (
     input  logic [31:0] store_data,
 
     output logic        hit_l2_wb,
-    output logic [1:0]  hit_way_wb,
 
-    input  logic [2:0]  l2_refill_word,
-    input  logic [1:0]  l2_refill_way,
-    input  logic [6:0]  l2_refill_set,
-    output logic [31:0] l2_refill_rdata
+    input  logic [6:0]  l2_refill_set
 );
 
     localparam int NUM_SETS  = 128;
@@ -45,8 +40,10 @@ module l2_cache (
     logic                 valid    [NUM_SETS-1:0][0:NUM_WAYS-1];
 
     logic [TAG_BITS-1:0] addr_tag;
-    logic [6:0]          addr_set;
-    logic [2:0]          addr_word;
+    logic [6:0] addr_set;
+    logic [2:0] addr_word;
+    logic [1:0]  hit_way_wb;
+    logic [1:0]  hit_way;
 
     assign addr_tag  = addr[31:12];
     assign addr_set  = addr[11:5];
@@ -89,24 +86,11 @@ module l2_cache (
     // FIX: puerto refill con case explícito
     logic [LINE_BITS-1:0] refill_line;
     always_comb
-        case (l2_refill_way)
+        case (hit_way)
             2'b11:   refill_line = data_mem[l2_refill_set][3];
             2'b10:   refill_line = data_mem[l2_refill_set][2];
             2'b01:   refill_line = data_mem[l2_refill_set][1];
             default: refill_line = data_mem[l2_refill_set][0];
-        endcase
-
-    always_comb
-        case (l2_refill_word)
-            3'd0: l2_refill_rdata = refill_line[  31:  0];
-            3'd1: l2_refill_rdata = refill_line[  63: 32];
-            3'd2: l2_refill_rdata = refill_line[  95: 64];
-            3'd3: l2_refill_rdata = refill_line[ 127: 96];
-            3'd4: l2_refill_rdata = refill_line[ 159:128];
-            3'd5: l2_refill_rdata = refill_line[ 191:160];
-            3'd6: l2_refill_rdata = refill_line[ 223:192];
-            3'd7: l2_refill_rdata = refill_line[ 255:224];
-            default: l2_refill_rdata = '0;
         endcase
 
     // WB hit logic
