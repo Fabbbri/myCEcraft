@@ -34,11 +34,6 @@ logic is_write = we_mem;
 logic        miss_l1,    hit_l1;
 logic [31:0] l1_data_out;
 
-// FIX 1: wire separado para dato_cpu de l1_con
-// (l1_data_out ya está driven por l1d_cache.data_out;
-//  no puede ser driven también por l1_con.dato_cpu)
-logic [31:0] dato_cpu_l1_unused;
-
 // L1 → l1d_cache (fill, inv)
 logic        fill_en_l1;
 logic        fill_way_l1;
@@ -89,6 +84,8 @@ logic [255:0] fill_line_burst;
 // L2 con → pipeline
 logic [31:0] dato_cpu_l2;
 logic        stall_l2;
+
+logic [31:0] dato_cpu_l1;
 
 // mem_controller (backend)
 logic        ram_we;
@@ -154,7 +151,7 @@ l1_con L1Con(
     // direccion del request SERVIDO (head de la cola de l2_con), no la
     // instruccion actual en MEM: el fill de un burst tardio con la addr
     // actual escribia la linea en set/tag equivocados (cache envenenado)
-    .addr                (addr_l2),
+    .addr                (alu_result),
     .size                ({size, 1'b0}),
     .wdata               (rd2),
     .fill_line           (fill_line_to_caches),
@@ -171,7 +168,7 @@ l1_con L1Con(
     .inv_en              (inv_en_l1),
     .inv_way             (inv_way_l1),
     .inv_set             (inv_set_l1),
-    .dato_cpu            (dato_cpu_l1_unused),  // FIX 1: wire propio
+    .dato_cpu            (dato_cpu_l1),  
     .miss_l1_out         (miss_l1)
 );
 
@@ -347,7 +344,7 @@ assign instrMOUT_hz       = instrD;
 assign we_reg_MEM_hz      = we_reg;
 assign ex_mem             = alu_result;
 
-assign rMemData = hit_l1 ? l1_data_out
+assign rMemData = hit_l1 ? dato_cpu_l1
                          : dato_cpu_l2;
 
 endmodule
