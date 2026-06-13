@@ -4,6 +4,8 @@
 // main tiene otro bloque muerto entre las dos llamadas.
 // Resultado esperado: 1 + 2 + 4 = 7.
 
+@EnterCraftWorld
+
 acumulado:int = 1;
 
 craft:int acumular(v:int) {
@@ -17,7 +19,7 @@ craft:int acumular(v:int) {
     return acumulado;
 }
 
-@EnterCraftWorld
+
 craft:int main() {
     semilla:int = 3;
 

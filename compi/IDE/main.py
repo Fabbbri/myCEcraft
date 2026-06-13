@@ -2,7 +2,7 @@ import sys
 import re
 from pathlib import Path
 
-from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal
+from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal, QTimer
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -667,6 +667,124 @@ class LL1TableView(QWidget):
         )
 
 
+class Minimap(QWidget):
+    """Minimap estilo VS Code: renderiza el texto del editor a escala muy pequeña."""
+
+    WIDTH = 90
+    CHAR_H = 2
+    CHAR_W = 1
+    LINE_SPACING = 3
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._lines: list[str] = []
+        self._scroll_fraction: float = 0.0
+        self._visible_fraction: float = 1.0
+        self.setFixedWidth(self.WIDTH)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+    def set_document(self, editor: "CodeEditor") -> None:
+        editor.document().contentsChanged.connect(lambda e=editor: self._sync(e))
+        editor.verticalScrollBar().valueChanged.connect(lambda _v, e=editor: self._sync(e))
+        self._sync(editor)
+
+    def _sync(self, editor: "CodeEditor") -> None:
+        self._lines = editor.toPlainText().splitlines()
+        sb = editor.verticalScrollBar()
+        max_val = sb.maximum()
+        if max_val > 0:
+            self._scroll_fraction = sb.value() / max_val
+        else:
+            self._scroll_fraction = 0.0
+        page = sb.pageStep()
+        total = max_val + page
+        self._visible_fraction = page / total if total > 0 else 1.0
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, False)
+
+        # fondo
+        painter.fillRect(self.rect(), QColor("#1A1A1A"))
+
+        total_lines = len(self._lines)
+        if total_lines == 0:
+            painter.end()
+            return
+
+        h = self.height()
+        w = self.WIDTH
+        total_height = total_lines * self.LINE_SPACING
+
+        # viewport highlight (banda que indica la zona visible del editor)
+        if total_height > h:
+            band_h = max(20, int(self._visible_fraction * h))
+            band_y = int(self._scroll_fraction * (h - band_h))
+        else:
+            band_h = h
+            band_y = 0
+
+        painter.fillRect(0, band_y, w, band_h, QColor("#2A2D2E"))
+
+        # lineas de codigo
+        max_visible = h // self.LINE_SPACING + 1
+        start_line = 0
+        if total_height > h:
+            start_line = int(self._scroll_fraction * max(0, total_lines - max_visible))
+        start_line = max(0, min(start_line, total_lines - 1))
+
+        for i, line in enumerate(self._lines[start_line:start_line + max_visible + 1]):
+            y = i * self.LINE_SPACING + 1
+            if y >= h:
+                break
+            indent = len(line) - len(line.lstrip())
+            content = line.strip()
+            if not content:
+                continue
+
+            x = 4 + indent * self.CHAR_W
+            # color según tipo de token (muy simplificado)
+            if content.startswith("//") or content.startswith("/*") or content.startswith("*"):
+                color = QColor("#4A6741")
+            elif any(content.startswith(kw) for kw in ("craft", "return", "if", "for", "while", "else")):
+                color = QColor("#7B5EA7")
+            elif content.startswith("@"):
+                color = QColor("#8B7340")
+            else:
+                color = QColor("#4A5568")
+
+            painter.fillRect(x, y, min(len(content) * self.CHAR_W, w - x - 2), self.CHAR_H, color)
+
+        # borde izquierdo sutil
+        painter.setPen(QColor("#3C3C3C"))
+        painter.drawLine(0, 0, 0, h)
+
+        painter.end()
+
+    def mousePressEvent(self, event) -> None:
+        self._seek(event.position().y())
+
+    def mouseMoveEvent(self, event) -> None:
+        if event.buttons() & Qt.LeftButton:
+            self._seek(event.position().y())
+
+    def _seek(self, y: float) -> None:
+        fraction = max(0.0, min(1.0, y / self.height()))
+        self._scroll_fraction = fraction
+        # propagar al editor padre buscando en la jerarquía
+        p = self.parent()
+        while p is not None:
+            if isinstance(p, QWidget) and hasattr(p, "_minimap_editor"):
+                editor: CodeEditor = p._minimap_editor
+                sb = editor.verticalScrollBar()
+                sb.setValue(int(fraction * sb.maximum()))
+                break
+            p = p.parent()
+        self.update()
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -677,6 +795,7 @@ class MainWindow(QMainWindow):
         self.open_editors: dict[Path, CodeEditor] = {}
         self.editor_paths: dict[CodeEditor, Path] = {}
         self.editor_diagnostics: dict[CodeEditor, list[Diagnostic]] = {}
+        self.editor_minimaps: dict[CodeEditor, Minimap] = {}
         self.ll1_table_view: LL1TableView | None = None
         self._loading_editor = False
         self.current_optimization_label = "Sin optimizaciones"
@@ -755,6 +874,7 @@ class MainWindow(QMainWindow):
         title = QLabel(APP_TITLE)
         title.setObjectName("AppTitle")
         title_layout.addWidget(title)
+
         layout.addWidget(title_group)
 
         layout.addStretch(1)
@@ -843,7 +963,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.compile_button)
 
         self.run_button = QPushButton("Ejecutar O0")
-        self.run_button.setObjectName("PrimaryButton")
+        self.run_button.setObjectName("RunButton")
         self.run_button.setToolTip(
             "Compila el archivo activo y lo ejecuta en tb_general_dump"
         )
@@ -979,6 +1099,19 @@ class MainWindow(QMainWindow):
         )
         return editor
 
+    def _wrap_editor_with_minimap(self, editor: CodeEditor) -> QWidget:
+        wrapper = QWidget()
+        wrapper._minimap_editor = editor
+        layout = QHBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        minimap = Minimap(wrapper)
+        minimap.set_document(editor)
+        layout.addWidget(editor, 1)
+        layout.addWidget(minimap)
+        self.editor_minimaps[editor] = minimap
+        return wrapper
+
     def _build_output_panel(self, placeholder: str) -> QTextEdit:
         output = QTextEdit()
         output.setObjectName("OutputPanel")
@@ -1084,7 +1217,9 @@ class MainWindow(QMainWindow):
     def open_file(self, path: Path) -> None:
         path = path.resolve()
         if path in self.open_editors:
-            self.editor_tabs.setCurrentWidget(self.open_editors[path])
+            index = self._tab_index_for_editor(self.open_editors[path])
+            if index != -1:
+                self.editor_tabs.setCurrentIndex(index)
             self._select_file_in_sidebar(path)
             return
 
@@ -1104,7 +1239,8 @@ class MainWindow(QMainWindow):
 
         self.open_editors[path] = editor
         self.editor_paths[editor] = path
-        index = self.editor_tabs.addTab(editor, path.name)
+        wrapper = self._wrap_editor_with_minimap(editor)
+        index = self.editor_tabs.addTab(wrapper, path.name)
         self.editor_tabs.tabBar().setTabButton(
             index,
             QTabBar.RightSide,
@@ -1206,21 +1342,36 @@ class MainWindow(QMainWindow):
         if not started:
             self.pending_run = False
 
+    def _tab_index_for_editor(self, editor: CodeEditor) -> int:
+        for i in range(self.editor_tabs.count()):
+            w = self.editor_tabs.widget(i)
+            if w is editor:
+                return i
+            if hasattr(w, "_minimap_editor") and w._minimap_editor is editor:
+                return i
+        return -1
+
     def close_editor(self, editor: CodeEditor) -> None:
-        index = self.editor_tabs.indexOf(editor)
+        index = self._tab_index_for_editor(editor)
         if index == -1:
             return
         self.close_editor_at_index(index)
 
     def close_editor_at_index(self, index: int) -> None:
         widget = self.editor_tabs.widget(index)
-        if not isinstance(widget, CodeEditor):
+        # obtener el editor real ya sea directo o desde wrapper
+        if isinstance(widget, CodeEditor):
+            editor = widget
+        elif hasattr(widget, "_minimap_editor"):
+            editor = widget._minimap_editor
+        else:
             return
 
-        path = self.editor_paths.pop(widget, None)
+        path = self.editor_paths.pop(editor, None)
         if path is not None:
             self.open_editors.pop(path, None)
-        self.editor_diagnostics.pop(widget, None)
+        self.editor_diagnostics.pop(editor, None)
+        self.editor_minimaps.pop(editor, None)
 
         self.editor_tabs.removeTab(index)
         widget.deleteLater()
@@ -1249,6 +1400,9 @@ class MainWindow(QMainWindow):
         widget = self.editor_tabs.currentWidget()
         if isinstance(widget, CodeEditor):
             return widget
+        # el tab puede ser un wrapper (editor + minimap)
+        if widget is not None and hasattr(widget, "_minimap_editor"):
+            return widget._minimap_editor
         return None
 
     def show_artifacts_tab(self) -> None:
@@ -1874,7 +2028,7 @@ class MainWindow(QMainWindow):
         if path is None:
             return
 
-        index = self.editor_tabs.indexOf(editor)
+        index = self._tab_index_for_editor(editor)
         if index == -1:
             return
 
@@ -1926,6 +2080,7 @@ class MainWindow(QMainWindow):
 
             if self.pending_run:
                 hex_path = self.compiler.generated_hex_path
+                data_hex_path = self.compiler.generated_data_hex_path
                 if hex_path is None:
                     self.pending_run = False
                     self._set_problem_text(
@@ -1938,12 +2093,19 @@ class MainWindow(QMainWindow):
                 else:
                     self.output_panel.moveCursor(QTextCursor.End)
                     self.output_panel.insertPlainText(
-                        "\n"
-                        "============================================================\n"
-                        f"  EJECUTANDO EN RTL: {hex_path.name}\n"
-                        "============================================================\n"
+                        (
+                            "\n"
+                            "============================================================\n"
+                            f"  EJECUTANDO EN RTL: {hex_path.name}\n"
+                        )
+                        + (
+                            f"  DATOS INICIALES: {data_hex_path.name}\n"
+                            if data_hex_path is not None
+                            else ""
+                        )
+                        + "============================================================\n"
                     )
-                    self.simulator.run(hex_path)
+                    self.simulator.run(hex_path, data_hex_path)
             else:
                 self._set_execution_controls_enabled(True)
         else:
@@ -2026,6 +2188,21 @@ class MainWindow(QMainWindow):
     def _set_state(self, text: str) -> None:
         self.status_state.setText(text)
 
+    def _read_git_branch(self) -> str:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+                timeout=2,
+            )
+            branch = result.stdout.strip()
+            return branch if branch else "main"
+        except Exception:
+            return "main"
+
     def _build_status_bar(self) -> QWidget:
         bar = QFrame()
         bar.setObjectName("StatusBar")
@@ -2053,7 +2230,8 @@ class MainWindow(QMainWindow):
 
         layout.addStretch(1)
 
-        branch = QLabel("main")
+        branch_name = self._read_git_branch()
+        branch = QLabel(f"⎇ {branch_name}")
         branch.setObjectName("StatusItem")
         layout.addWidget(branch)
 

@@ -5,6 +5,8 @@
 // se conservan porque si son observables.
 // Resultado esperado: 6 (contador tras registrar(6)).
 
+@EnterCraftWorld
+
 contador:int = 0;
 
 craft:int registrar(v:int) {
@@ -12,7 +14,7 @@ craft:int registrar(v:int) {
     return v + 1;
 }
 
-@EnterCraftWorld
+
 craft:int main() {
     // bloque lineal muerto antes de la llamada
     local:int = 4;

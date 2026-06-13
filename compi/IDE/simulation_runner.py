@@ -22,7 +22,11 @@ class SimulationRunner(QObject):
     def is_running(self) -> bool:
         return self.process.state() != QProcess.NotRunning
 
-    def run(self, hex_path: Path) -> None:
+    def run(
+        self,
+        hex_path: Path,
+        data_hex_path: Path | None = None,
+    ) -> None:
         if self.is_running():
             return
         if not self.run_script.is_file():
@@ -37,13 +41,22 @@ class SimulationRunner(QObject):
             )
             self.finished.emit(2)
             return
+        if data_hex_path is not None and not data_hex_path.is_file():
+            self.output_ready.emit(
+                f"No se encontro la imagen de datos compilada: {data_hex_path}\n"
+            )
+            self.finished.emit(2)
+            return
 
         self.output_text = ""
         self.process.setWorkingDirectory(str(self.repo_root))
         self.started.emit()
+        arguments = ["run", "tb_general_dump", str(hex_path.resolve())]
+        if data_hex_path is not None:
+            arguments.append(f"+DATA={data_hex_path.resolve()}")
         self.process.start(
             str(self.run_script),
-            ["run", "tb_general_dump", str(hex_path.resolve())],
+            arguments,
         )
 
     def _read_output(self) -> None:

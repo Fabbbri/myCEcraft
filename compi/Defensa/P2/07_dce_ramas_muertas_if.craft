@@ -3,6 +3,7 @@
 // El DCE recorre dependencias desde las raices observables y descarta
 // todo lo que no conecta. La llamada con efecto se conserva siempre.
 // Resultado esperado: 5 (estado tras marcar(5)).
+@EnterCraftWorld
 
 estado:int = 0;
 
@@ -11,7 +12,7 @@ craft:int marcar(v:int) {
     return estado;
 }
 
-@EnterCraftWorld
+
 craft:int main() {
     base:int = 7;
 

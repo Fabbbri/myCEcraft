@@ -16,6 +16,7 @@ class CompilerRunner(QObject):
         self.repo_root = repo_root
         self.compiler_path = repo_root / "compi" / "main.py"
         self.generated_hex_path: Path | None = None
+        self.generated_data_hex_path: Path | None = None
         self._stdout = ""
         self.process = QProcess(self)
         self.process.readyReadStandardOutput.connect(self._read_stdout)
@@ -70,6 +71,7 @@ class CompilerRunner(QObject):
         args.append(str(source_path))
 
         self.generated_hex_path = None
+        self.generated_data_hex_path = None
         self._stdout = ""
         self.process.setWorkingDirectory(str(self.repo_root))
         self.started.emit()
@@ -95,6 +97,15 @@ class CompilerRunner(QObject):
             )
             if matches:
                 self.generated_hex_path = Path(matches[-1].strip()).resolve()
+            data_matches = re.findall(
+                r"Codigo hexadecimal de datos generado:\s*(.+?\.data\.hex)\s*$",
+                self._stdout,
+                flags=re.MULTILINE,
+            )
+            if data_matches:
+                self.generated_data_hex_path = Path(
+                    data_matches[-1].strip()
+                ).resolve()
         self.finished.emit(exit_code)
 
     def _handle_process_error(self, error: QProcess.ProcessError) -> None:

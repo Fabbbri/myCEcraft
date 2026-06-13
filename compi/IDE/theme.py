@@ -23,10 +23,10 @@ QMainWindow {
     max-width: 34px;
     min-height: 34px;
     max-height: 34px;
-    background: #F3F3F3;
-    border: 1px solid #4A4A4A;
+    background: transparent;
+    border: none;
     border-radius: 8px;
-    color: #1E1E1E;
+    color: #FFFFFF;
     font-size: 12px;
     font-weight: 800;
 }
@@ -102,6 +102,17 @@ QMainWindow {
     border-color: #5A5A5A;
 }
 
+#PrimaryButton:pressed {
+    background: #2A2D30;
+    border-color: #3C3C3C;
+}
+
+#PrimaryButton:disabled {
+    background: #2A2D30;
+    border-color: #3C3C3C;
+    color: #6B6B6B;
+}
+
 #TopControlLabel {
     color: #AFAFAF;
     font-size: 11px;
@@ -148,6 +159,17 @@ QMenu::item:selected {
 #RunButton:hover {
     background: #1A9A6E;
     border-color: #25B985;
+}
+
+#RunButton:pressed {
+    background: #0F6347;
+    border-color: #16825D;
+}
+
+#RunButton:disabled {
+    background: #1E3D30;
+    border-color: #2A4A38;
+    color: #558064;
 }
 
 QSplitter::handle {
@@ -625,5 +647,10 @@ QTabBar::tab:selected {
 #StatusItemPrimary {
     color: #FFFFFF;
     font-weight: 750;
+}
+
+Minimap {
+    background: #1A1A1A;
+    border-left: 1px solid #2A2A2A;
 }
 """

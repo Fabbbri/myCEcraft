@@ -74,6 +74,7 @@ class Workspace:
             self.output_root / "asm_resolved" / f"{stem}.resolved.asm",
             self.output_root / "bin_output" / f"{stem}.bin",
             self.output_root / "bin_output" / f"{stem}.hex",
+            self.output_root / "bin_output" / f"{stem}.data.hex",
             self.output_root / "bin_output" / f"{stem}.lst",
         ]
         expanded_stem = f"{stem}.expanded"
@@ -83,6 +84,7 @@ class Workspace:
                 self.output_root / "asm_resolved" / f"{expanded_stem}.resolved.asm",
                 self.output_root / "bin_output" / f"{expanded_stem}.bin",
                 self.output_root / "bin_output" / f"{expanded_stem}.hex",
+                self.output_root / "bin_output" / f"{expanded_stem}.data.hex",
                 self.output_root / "bin_output" / f"{expanded_stem}.lst",
             ]
         )
