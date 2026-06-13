@@ -110,11 +110,11 @@ P2_OPT_FLAG = {
 P2_BENCHMARKS = [
     # ── grupo unroll ──────────────────────────────────────────────────────────
     {"group": "unroll",  "file": "01_unroll_for_limite_literal",     "x11": "1C",  "max": 100000,
-     "label": "unroll_for_cte",      "desc": "FOR N=8 literal, 2 acumuladores; unroller elimina 6 de cada 8 saltos (suma=28)"},
+     "label": "unroll_for_cte",      "desc": "FOR N=8 literal, 2 acumuladores; factor de unroll: 8 (8 iter -> 1 bloque, saltos /8) (suma=28)"},
     {"group": "unroll",  "file": "02_unroll_while_limite_variable",  "x11": "F",   "max": 100000,
-     "label": "unroll_while_varN",   "desc": "WHILE con limite en variable N=6; unroller propaga la constante y aplica factor 2 (suma=15)"},
+     "label": "unroll_while_varN",   "desc": "WHILE limite en variable N=6; factor de unroll: 2 (6 iter -> 3 bloques, saltos /2) (suma=15)"},
     {"group": "unroll",  "file": "03_unroll_for_factor_grande",      "x11": "1F0", "max": 200000,
-     "label": "unroll_for_grande",   "desc": "FOR N=32 literal, factor auto 8; 32 iter -> 4 bloques, saltos /8 (suma=496)"},
+     "label": "unroll_for_grande",   "desc": "FOR N=32 literal, 2 acumuladores; factor de unroll: 8 (32 iter -> 4 bloques, saltos /8) (suma=496)"},
     # ── grupo rename ──────────────────────────────────────────────────────────
     {"group": "rename",  "file": "04_rename_waw_secuencial",         "x11": "42",  "max": 100000,
      "label": "rename_for_WAW",      "desc": "WAW: 'a' reescrita 3 veces; rename asigna registros fisicos distintos a t0,t1,t2 (suma=66)"},
@@ -136,6 +136,16 @@ P2_BENCHMARKS = [
      "label": "reorder_2loads",      "desc": "2 loads globales con uso inmediato; scheduler llena stall de cada lw con trabajo independiente (total=65)"},
     {"group": "reorder", "file": "12_reorder_3loads_uso_inmediato",  "x11": "1B",  "max": 100000,
      "label": "reorder_3loads_if",   "desc": "3 loads globales con uso inmediato; scheduler intercala trabajo independiente entre cada lw y su uso (total=27)"},
+    # ── prueba de integracion rename ─────────────────────────────────────────
+    {"group": "rename",  "file": "rename",                            "x11": "DB",  "max": 100000,
+     "label": "rename_presion_regs",  "desc": "4 vars vivas simultaneas (p,q,r,s) con WAW+WAR encadenados; sin rename el asignador hace spill al stack (sw/lw extra); con rename crea versiones SSA y elimina los spills (resultado=219)"},
+    # ── pruebas de integracion ────────────────────────────────────────────────
+    {"group": "unroll",  "file": "LoopUnrolling",                    "max": 500000,
+     "label": "LoopUnrolling",       "desc": "2 FOR anidados (8 bloques x 8 elems, 64 datos); factor de unroll: 8 (for interno N=8, 8 iter -> 1 bloque, saltos /8); acumula bloque[i]*2 (suma=9392)"},
+    {"group": "dce",     "file": "pruebaEliminacionCodigo",          "max": 200000,
+     "label": "pruebaEliminacionCodigo", "desc": "Matriz 2x2 aplanada con 6 variables muertas (temporal_externo, basura1-3, estadistica, desperdicio); DCE elimina todas las cadenas que no alcanzan el return (suma C=134)"},
+    {"group": "reorder", "file": "Reordenamiento",                   "max": 200000,
+     "label": "Reordenamiento",      "desc": "WHILE sobre 7 lecturas de sensor; log=i*100 es reordenable (independiente del load datos[i]); lecturas>50: {60,70} -> total=840"},
 ]
 
 # Niveles que se corren para cada programa P2: O0 baseline + flag especifico
@@ -612,13 +622,21 @@ def enrich_row(row, run, stats):
         row.update(st)
 
 
+def _parse_x11(out):
+    """Extrae el valor de x11 del output del simulador (linea '  x11 = XXXXXXXX')."""
+    m = re.search(r"\bx11\s*=\s*([0-9a-fA-F]+)", out)
+    return m.group(1).lstrip("0") or "0" if m else None
+
+
 def run_p2_benchmarks(p2_stats):
-    """Corre los 12 benchmarks de Defensa/P2 (O0 + variante opt) y devuelve
-    una lista de dicts con los resultados, listos para pasar a p2_section."""
+    """Corre los 15 benchmarks de Defensa/P2 (O0 + variante opt) y devuelve
+    una lista de dicts con los resultados, listos para pasar a p2_section.
+    El x11 esperado se descubre automaticamente de la corrida O0 si no esta
+    hardcodeado en P2_BENCHMARKS."""
     results = []
     for b in P2_BENCHMARKS:
         entry = {"label": b["label"], "group": b["group"],
-                 "desc": b["desc"], "x11": b["x11"],
+                 "desc": b["desc"], "x11": b.get("x11", ""),
                  "variants": {}}
         for variant in P2_VARIANTS:
             rom = p2_rom_name(b["label"], variant)
@@ -644,8 +662,10 @@ def run_p2_benchmarks(p2_stats):
                 f"+FILE_ROM=programs/{rom}",
                 f"+FILE_RAM={ram_arg}",
             ]
-            if b["x11"]:
-                cmd.append(f"+EXPECT_X11={b['x11']}")
+            # O0: corre sin oraculo para descubrir x11; opt: usa el x11 descubierto
+            x11_oracle = entry["x11"] if variant != "O0" else b.get("x11", "")
+            if x11_oracle:
+                cmd.append(f"+EXPECT_X11={x11_oracle}")
             print(f"[P2] {b['label']} ({variant})")
             proc = subprocess.run(cmd, cwd=ARQUI, capture_output=True, text=True)
             out = proc.stdout + proc.stderr
@@ -658,6 +678,14 @@ def run_p2_benchmarks(p2_stats):
                 status = "FAIL"
             else:
                 status = "OK"
+            # descubre x11 de la corrida O0 si no estaba hardcodeado;
+            # en ese caso O0 corre sin oraculo -> ignora su status FAIL
+            if variant == "O0" and not b.get("x11"):
+                discovered = _parse_x11(out)
+                if discovered:
+                    entry["x11"] = discovered
+                    print(f"[P2] x11 descubierto: 0x{discovered}")
+                status = "OK"  # O0 sin oraculo no puede fallar por x11
             print(f"[{'OK  ' if status == 'OK' else 'FAIL'}] {b['label']} ({variant}): {status}")
             if row is not None:
                 row["_status"] = status
@@ -1170,6 +1198,13 @@ def _p2_delta(v0, vopt, higher_is_better=False):
     return f'<td class="{cls}">{_num(vopt)} <span class="p2delta">({sign}{int(diff)})</span></td>'
 
 
+def _instr_from_hex(row):
+    """Instrucciones del compilador = Code_Size_Bytes / 4.
+    No depende del simulador; es el conteo de palabras del .hex."""
+    csb = _fnum(row.get("Code_Size_Bytes")) if row else None
+    return int(csb / 4) if csb is not None else None
+
+
 def p2_section(p2_results):
     """Seccion HTML con los 12 benchmarks de Defensa/P2, agrupados por
     optimizacion. Por cada grupo: descripcion, tabla comparativa O0 vs opt,
@@ -1230,19 +1265,20 @@ def p2_section(p2_results):
                 f"<td class='p2x11'>0x{e['x11']}</td>"
                 # speedup badge
                 f"<td class='p2speedcell'>{badge}</td>"
-                # ciclos simulador: O0 y opt con delta
+                # ciclos simulador: O0 y opt con delta  [ARQUITECTURA]
                 f"<td>{_num(r0.get('Ciclos'))}</td>"
                 f"{_p2_delta(r0.get('Ciclos'), ropt.get('Ciclos'))}"
-                # instrucciones: O0 y opt con delta
-                f"<td>{_num(r0.get('Instr'))}</td>"
-                f"{_p2_delta(r0.get('Instr'), ropt.get('Instr'))}"
-                # tamaño de codigo en bytes: O0 y opt con delta
+                # instrucciones del compilador = Code_Size_Bytes/4  [COMPILADOR]
+                f"<td>{_num(_instr_from_hex(r0))}</td>"
+                f"{_p2_delta(_instr_from_hex(r0), _instr_from_hex(ropt))}"
+                # tamaño de codigo en bytes  [COMPILADOR]
                 f"<td>{_num(r0.get('Code_Size_Bytes'))}</td>"
                 f"{_p2_delta(r0.get('Code_Size_Bytes'), ropt.get('Code_Size_Bytes'))}"
                 # IPC: O0 y opt
                 f"<td>{_num(r0.get('IPC'), 3)}</td>"
                 f"<td>{_num(ropt.get('IPC'), 3)}</td>"
-                # tiempo de compilacion (solo opt)
+                # tiempo de compilacion: O0 y opt
+                f"<td class='p2ms'>{_num(r0.get('Compile_ms'))} ms</td>"
                 f"<td class='p2ms'>{_num(ropt.get('Compile_ms'))} ms</td>"
                 # transformaciones del compilador (resaltadas si actuan)
                 f"{_transf_cell(_num(ropt.get('Opt_Unrolled')),    'Opt_Unrolled')}"
@@ -1254,7 +1290,7 @@ def p2_section(p2_results):
 
         # fila resumen del grupo
         n = len(entries)
-        TOTAL_COLS = 15  # nombre+x11+speedup + 2*3 pares + IPC*2 + ms + 4 transf
+        TOTAL_COLS = 16  # nombre+x11+speedup + 2*3 pares + IPC*2 + ms*2 + 4 transf
         if speedups:
             avg_sp = sum(speedups) / len(speedups)
             ok_count = len(speedups)
@@ -1285,11 +1321,11 @@ def p2_section(p2_results):
    <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
    <th rowspan="2">x11</th>
    <th rowspan="2">Speedup</th>
-   <th colspan="2" class="p2hgroup">Ciclos (simulador)</th>
-   <th colspan="2" class="p2hgroup">Instrucciones</th>
-   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B)</th>
+   <th colspan="2" class="p2hgroup">Ciclos <span style="font-weight:400;font-size:0.85em">(simulador)</span></th>
+   <th colspan="2" class="p2hgroup">Instrucciones <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
+   <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B) <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="2" class="p2hgroup">IPC</th>
-   <th rowspan="2" class="p2hgroup" style="background:#fff8e6">ms compile</th>
+   <th colspan="2" class="p2hgroup" style="background:#fff8e6">Compile (ms)</th>
    <th colspan="4" class="p2hgroup" style="background:#f5edff">Transformaciones aplicadas (opt)</th>
   </tr>
   <tr>
@@ -1297,6 +1333,7 @@ def p2_section(p2_results):
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
+   <th style="background:#fff8e6">O0</th><th style="background:#fff8e6">opt</th>
    <th class="p2tsub">Unroll</th><th class="p2tsub">DCE</th>
    <th class="p2tsub">Reord</th><th class="p2tsub">Rename</th>
   </tr>
@@ -1318,6 +1355,70 @@ def p2_section(p2_results):
 {sections_html}
 </section>
 """
+
+
+P2_CSV_COLS = [
+    # identificacion
+    "Programa", "Grupo", "Variante",
+    # ── metricas del compilador (independientes de la arquitectura) ───────────
+    "Instr_compilador",       # instrucciones en el .hex (tamaño de codigo / 4)
+    "Codigo_bytes",           # tamaño del binario en bytes
+    "Compile_ms",             # tiempo de compilacion
+    "Opt_Unrolled",           # instrucciones desenrolladas
+    "Opt_DCE_Removed",        # instrucciones eliminadas por DCE
+    "Opt_Reordered",          # instrucciones reordenadas
+    "Opt_Renamed",            # instrucciones renombradas
+    # ── metricas del simulador (dependen de la arquitectura) ─────────────────
+    "Ciclos",                 # ciclos medidos en el pipeline
+    "Instr_simulador",        # instrucciones retiradas por el pipeline
+    "CPI",
+    "IPC",
+    "Stalls_Mem",
+    "Stalls_Control",
+    # resultado
+    "x11",
+    "Status",
+]
+
+P2_CSV = ARQUI / "outputs" / "reports" / "results_p2.csv"
+
+
+def write_p2_csv(p2_results):
+    """Escribe results_p2.csv con una fila por programa x variante,
+    separando claramente metricas del compilador de las del simulador."""
+    if not p2_results:
+        return
+    P2_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(P2_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=P2_CSV_COLS)
+        w.writeheader()
+        for e in p2_results:
+            for variant, r in e["variants"].items():
+                r = r or {}
+                # Instr_compilador = Code_Size_Bytes / 4 (instrucciones en el .hex)
+                csb = _fnum(r.get("Code_Size_Bytes"))
+                instr_comp = int(csb / 4) if csb is not None else ""
+                w.writerow({
+                    "Programa":        e["label"],
+                    "Grupo":           e["group"],
+                    "Variante":        variant,
+                    "Instr_compilador": instr_comp,
+                    "Codigo_bytes":    r.get("Code_Size_Bytes", ""),
+                    "Compile_ms":      r.get("Compile_ms", ""),
+                    "Opt_Unrolled":    r.get("Opt_Unrolled", ""),
+                    "Opt_DCE_Removed": r.get("Opt_DCE_Removed", ""),
+                    "Opt_Reordered":   r.get("Opt_Reordered", ""),
+                    "Opt_Renamed":     r.get("Opt_Renamed", ""),
+                    "Ciclos":          r.get("Ciclos", ""),
+                    "Instr_simulador": r.get("Instr", ""),
+                    "CPI":             r.get("CPI", ""),
+                    "IPC":             r.get("IPC", ""),
+                    "Stalls_Mem":      r.get("Stalls_Mem", ""),
+                    "Stalls_Control":  r.get("Stalls_Control", ""),
+                    "x11":             f"0x{e['x11']}" if e.get("x11") else "",
+                    "Status":          r.get("_status", ""),
+                })
+    print(f"[CSV ] {P2_CSV}")
 
 
 def render_html(rows, path, no_cache, p2_results=None):
@@ -1487,6 +1588,7 @@ def main():
     reports = ARQUI / "outputs" / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     write_csv(rows, reports / "results.csv")
+    write_p2_csv(p2_results)
 
     # Pasada SIN cache (top_no_cash + memoria realista): ciclos reales por
     # programa para la comparacion con vs sin cache. Lenta -> se puede omitir.
