@@ -7,7 +7,6 @@ module tb_l1d_cache;
     logic [31:0] addr;
     logic [31:0] data_out;
     logic        hit;
-    logic        hit_way;
 
     logic         fill_en;
     logic         fill_way;
@@ -21,7 +20,7 @@ module tb_l1d_cache;
 
     l1d_cache dut (
         .clk(clk), .reset(reset),
-        .addr(addr), .data_out(data_out), .hit(hit), .hit_way(hit_way),
+        .addr(addr), .data_out(data_out), .hit(hit),
         .fill_en(fill_en), .fill_way(fill_way), .fill_set(fill_set),
         .fill_tag(fill_tag), .fill_line(fill_line),
         .inv_en(inv_en), .inv_way(inv_way), .inv_set(inv_set)
@@ -79,7 +78,6 @@ module tb_l1d_cache;
         g_accesses++;
         if (hit) begin
             g_hits++;
-            lru[a[10:5]] = !hit_way;
         end else begin
             g_misses++;
             t = a[31:11];
