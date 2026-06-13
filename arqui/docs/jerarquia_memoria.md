@@ -30,15 +30,33 @@ Jian Zheng Wu
 
 Este documento describe el diseño de la jerarquia de cache de datos de Craft21
 (Proyecto Grupal II), las decisiones de politica tomadas por el grupo y su
-justificacion.
+justificacion. Dicha jerarquía se acopla al procesador pipeline diseñado e implementado previamente. El diagrama general de la conexión se muestra a continuación:
+
+![img:GENERAL-DIAG](general_diag.png)
+
+Entre los cambios realizados se encuentra el hecho de que ahora la ROM de instrucciones es de acceso directo (1 ciclo, lectura en flanco negativo, sin misses), por lo que la jerarquia solo aplica a datos. La extensión para manejo de datos seguros del primer proyecto: la bóveda (neather_ram), no se toma en consideración para la jerarquía de memoria puesto que no será evaluado, por lo tanto es un camino aparte sin caché.
 
 ## Diagrama de la jerarquía L1/L2
 
+En el diagrama mostrado previamente se puede apreciar la conexión del procesador con la ROM y la jerarquía de memoria en bloques negros. Ahora bien, el siguiente diagrama muestra las conexiones de forma más transparente, siendo posible observar todos los bused de datos de entrada y salida internos.
 
+![img:HIERARCHY](hierarchy.png)
 
-La ROM de instrucciones es de acceso directo (1 ciclo, sin misses), por lo que
-la jerarquia solo aplica a datos. La boveda (neather_ram) es un camino aparte
-sin cache.
+La jerarquía de memoria está compuesta por dos niveles de caché previas a memoria principal. Ambas cachés requieren sus respectivos controladores de forma tal que se pueda manejar correctamente sus accesos utilizando FSMs. Además, la memoria principal requiere de un controlador **mem_controller**, el cuál consiste de un bloque negro con varios módulos, entre ellos un FIFO asíncrono para el **Clock Domain Crossing** entre el el clock de `50MHz` de la memoria y el clock de `100MHz` del cpu. Otros módulos de la memoria son write buffer, FSM, lógica de burst, etc.
+
+En general, la DRAM sigue funcionando de la misma forma que en lo previo cuando no era realista (latencia de 1 ciclo), el principal cambio consiste en el uso del nuevo clock y en el control que realiza la FSM para controlar el paso de los reads y los writes. Los reads consumen consumen una latencia de 24 ciclos y detienen el pipeline (stall) pero los writes se realizan en el background mediante el write buffer, el cuál a su vez contiene una etapa posterior de `drain` (controlada por la FSM) para que la latencia de la escritura sea de ~25 ciclos pero sin detener el pipeline (en caso de riesgo el compilador genera los nops necesarios).
+
+Para mayor referencia del funcionamiento de la memoria principal realista, puede observar al diagrama de bloques de dicho diseño:
+
+![img:FIFO_ASY](fifo_async.png)
+
+![img:MEM_Controller](mem_con.png)
+
+Ahora bien, la jerarquía de memoria incluye también a los dos niveles de caché. Previamente se incluye un diagrama general de las conexiones de CPU, ROM y Memory Hierarchy. Ahora, se muestra el mismo diagrama pero expandido de forma que se pueda ver más transparentemente (bloque parcialmente blanco):
+
+![img:GENERAL_DIAG_EXP](gen_diag_exp.png)
+
+Hay varios aspectos a explicar pues tanto la caché L1 como L2 (los principales enfoques de este proyecto) requirieron varias decisiones de diseño, las cuáles se explicaran a continuación en sus respectivas secciones
 
 ---
 
