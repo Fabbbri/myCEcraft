@@ -1,0 +1,24 @@
+digraph "Reordenamiento.reorder" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_analizar_sensor" [label="B_label_analizar_sensor\lanalizar_sensor:\li = 0\ltotal = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt0 = i < 7\lifFalse t0 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lt1 = datos[i]\lt2 = i * 100\llectura = t1\llog = t2\lt6 = lectura > 50\lifFalse t6 goto L_else_2\l"];
+  "B_fallthrough_3" [label="B_fallthrough_3\lt3 = lectura * 2\lpromedio = t3\lt4 = promedio + 10\lajuste = t4\lt5 = ajuste * 3\lresultado = t5\lt7 = total + resultado\ltotal = t7\lgoto L_end_if_3\l"];
+  "B_label_L_else_2" [label="B_label_L_else_2\lL_else_2:\l"];
+  "B_label_L_end_if_3" [label="B_label_L_end_if_3\lL_end_if_3:\lt8 = i + 1\li = t8\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\lreturn total\l"];
+  "B_label_main" [label="B_label_main\lmain:\ldatos = [10, 20, 30, 40, 50, 60, 70]\lt9 = call analizar_sensor(datos)\lreturn t9\l"];
+
+  "B_label_analizar_sensor" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_else_2" [label="false", color="#B22222"];
+  "B_fallthrough_2" -> "B_fallthrough_3" [label="true", color="#2E8B57"];
+  "B_fallthrough_3" -> "B_label_L_end_if_3" [label="jump", color="#4169E1"];
+  "B_label_L_else_2" -> "B_label_L_end_if_3" [label="fallthrough", color="#555555"];
+  "B_label_L_end_if_3" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+}

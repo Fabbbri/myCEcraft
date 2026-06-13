@@ -1,0 +1,24 @@
+digraph "LoopUnrolling.unroll" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_procesar_bloques" [label="B_label_procesar_bloques\lprocesar_bloques:\ltotal = 0\lb = 0\l"];
+  "B_label_L_for_start_0" [label="B_label_L_for_start_0\lL_for_start_0:\lt0 = b < 4\lifFalse t0 goto L_for_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\li = 0\l"];
+  "B_label_L_for_start_2" [label="B_label_L_for_start_2\lL_for_start_2:\lt10 = i < 8\lifFalse t10 goto L_for_end_3\l"];
+  "B_fallthrough_4" [label="B_fallthrough_4\lt11 = b * 8\lt12 = t11 + i\lt13 = bloques[t12]\lt14 = t13 * 2\lt15 = total + t14\ltotal = t15\lt16 = t11 + (i + 1)\lt17 = bloques[t16]\lt18 = t17 * 2\lt19 = total + t18\ltotal = t19\lt20 = t11 + (i + 2)\lt21 = bloques[t20]\lt22 = t21 * 2\lt23 = total + t22\ltotal = t23\lt24 = t11 + (i + 3)\lt25 = bloques[t24]\lt26 = t25 * 2\lt27 = total + t26\ltotal = t27\lt28 = i + 4\li = t28\lgoto L_for_start_2\l"];
+  "B_label_L_for_end_3" [label="B_label_L_for_end_3\lL_for_end_3:\lt8 = b + 1\lb = t8\lgoto L_for_start_0\l"];
+  "B_label_L_for_end_1" [label="B_label_L_for_end_1\lL_for_end_1:\lreturn total\l"];
+  "B_label_main" [label="B_label_main\lmain:\ldatos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]\lt9 = call procesar_bloques(datos)\lreturn t9\l"];
+
+  "B_label_procesar_bloques" -> "B_label_L_for_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_0" -> "B_label_L_for_end_1" [label="false", color="#B22222"];
+  "B_label_L_for_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_for_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_2" -> "B_label_L_for_end_3" [label="false", color="#B22222"];
+  "B_label_L_for_start_2" -> "B_fallthrough_4" [label="true", color="#2E8B57"];
+  "B_fallthrough_4" -> "B_label_L_for_start_2" [label="jump", color="#4169E1"];
+  "B_label_L_for_end_3" -> "B_label_L_for_start_0" [label="jump", color="#4169E1"];
+}

@@ -69,6 +69,7 @@ logic [4:0]  instrDWB_fb;
 // Hazard Unit Salidas
 logic stallIF;
 logic stallD, flushD, flushE;
+logic stallE, stallM, stallW; // unused in top_old (no cache stalls)
 
 logic [4:0] rs1DEX, rs2DEX;// intermedio
 
@@ -472,22 +473,26 @@ writeback WriteBack(
 hazard_unit HazardUnit(
     .rs1DE(rs1DE),
     .rs1EX(rs1EX),
-    .rs2DE(rs2DE), 
+    .rs2DE(rs2DE),
     .rs2EX(rs2EX),
     .rdEX(rdEX),
-    .rdMEM(rdMEM), 
+    .rdMEM(rdMEM),
     .rdWB(rdWB),
-    .result_src_0(result_src_0), 
-    .pc_src_exOUT(pc_srcEX), 
-    .we_reg_mem(we_reg_mem), 
+    .result_src_0(result_src_0),
+    .pc_src_exOUT(pc_srcEX),
+    .we_reg_mem(we_reg_mem),
     .we_reg_wb(we_reg_wb),
+    .stall_mem(1'b0),
 
-    .forwardA(forwardA), 
+    .forwardA(forwardA),
     .forwardB(forwardB),
     .stallIF(stallIF),
     .stallD(stallD),
     .flushD(flushD),
-    .flushE(flushE)
+    .flushE(flushE),
+    .stallE(stallE),
+    .stallM(stallM),
+    .stallW(stallW)
 );
 
 endmodule

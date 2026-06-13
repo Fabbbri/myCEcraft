@@ -1,0 +1,12 @@
+digraph "09_dce_resultado_llamada_muerto" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_entry" [label="B_entry\lcontador = 0\l"];
+  "B_label_registrar" [label="B_label_registrar\lregistrar:\lt0 = contador + valor\lcontador = t0\lt1 = valor * 2\lreturn t1\l"];
+  "B_label_main" [label="B_label_main\lmain:\lt2 = 7 * 9\llocal_muerto = t2\lt3 = call registrar(6)\lretorno_muerto = t3\lt4 = local_muerto + retorno_muerto\llocal_muerto = t4\lreturn contador\l"];
+
+  "B_entry" -> "B_label_registrar" [label="fallthrough", color="#555555"];
+}

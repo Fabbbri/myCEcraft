@@ -1,0 +1,9 @@
+digraph "06_rename_waw_war_mixto" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\la = 4\lb = 3\lt0 = a + b\lprevio = t0\lt1 = b + 5\la = t1\lt2 = b * 2\lt3 = a + t2\lmedio = t3\lt4 = a + 1\lb = t4\lt5 = b + 2\lfinal = t5\lt6 = previo + medio\lt7 = t6 + final\lreturn t7\l"];
+
+}

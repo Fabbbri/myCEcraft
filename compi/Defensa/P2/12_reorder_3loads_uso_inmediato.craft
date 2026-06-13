@@ -1,0 +1,31 @@
+@EnterCraftWorld
+
+// Tres loads globales con trabajo independiente intercalado entre cada load y su uso.
+// Misma estructura que el programa de 2 loads pero con un tercer load adicional.
+// Sin reorder: lw a -> stalls -> a+1; lw b -> stalls -> b+1; lw c -> stalls -> c+1
+// Con reorder: lw a -> w1 -> a+1; lw b -> w2 -> b+1; lw c -> w3 -> c+1
+// w1, w2, w3 son constantes que el scheduler mueve para cubrir la latencia del lw.
+// Resultado: a=4, parta=5, w1=5, b=8, partb=9, w2=9, c=12, partc=13
+//   total = parta + partb + partc = 5+9+13 = 27 = 0x1B.
+
+da:int = 4;
+db:int = 8;
+dc:int = 12;
+
+craft:int main() {
+    a:int = da;
+    parta:int = a + 1;
+
+    w1:int = 2 + 3;
+
+    b:int = db;
+    partb:int = b + 1;
+
+    w2:int = 4 + 5;
+
+    c:int = dc;
+    partc:int = c + 1;
+
+    total:int = parta + partb + partc;
+    return total;
+}

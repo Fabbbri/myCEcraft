@@ -1,0 +1,73 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_2_ir_cmp_true          pc=0x00B4
+.L_ir_3_ir_cmp_end           pc=0x00B8
+.L_ir_4_ir_cmp_true          pc=0x00D8
+.L_ir_5_ir_cmp_end           pc=0x00DC
+L_else_4                     pc=0x0100
+L_end_if_5                   pc=0x0100
+L_else_2                     pc=0x010C
+L_end_if_3                   pc=0x0120
+.L_ir_1_main_end             pc=0x0120
+combinar                     pc=0x012C
+.L_ir_7_ir_cmp_true          pc=0x0168
+.L_ir_8_ir_cmp_end           pc=0x016C
+L_else_0                     pc=0x0190
+L_end_if_1                   pc=0x0190
+.L_ir_6_combinar_end         pc=0x01A4
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name      kind      type  decl                                    seg   addr    off  size  res
+  --------  --------  ----  --------------------------------------  ----  ------  ---  ----  ---
+  combinar  FUNCTION  int   12_reorder_nested_funciones.craft:4:1   TEXT  0x012C  -    0     yes
+  main      FUNCTION  int   12_reorder_nested_funciones.craft:15:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION combinar (stack_size=16)
+    symbols:
+    name         kind       type  decl                                    seg    addr             off  size  res
+    -----------  ---------  ----  --------------------------------------  -----  ---------------  ---  ----  ---
+    a            PARAMETER  int   12_reorder_nested_funciones.craft:4:20  STACK  runtime(x17-4)   -4   4     yes
+    b            PARAMETER  int   12_reorder_nested_funciones.craft:4:27  STACK  runtime(x17-8)   -8   4     yes
+    parcial      VARIABLE   int   12_reorder_nested_funciones.craft:5:5   STACK  runtime(x17-12)  -12  4     yes
+    extra        VARIABLE   int   12_reorder_nested_funciones.craft:6:5   STACK  runtime(x17-16)  -16  4     yes
+    .L0_if_else  LABEL      None  12_reorder_nested_funciones.craft:8:5   TEXT   -                -    0     no 
+    .L1_if_end   LABEL      None  12_reorder_nested_funciones.craft:8:5   TEXT   -                -    0     no 
+
+    [scope 2] CONDITIONAL 'if'
+      symbols: (none)
+
+  [scope 3] FUNCTION main (stack_size=24)
+    symbols:
+    name           kind      type           decl                                    seg    addr             off  size  res
+    -------------  --------  -------------  --------------------------------------  -----  ---------------  ---  ----  ---
+    datos          VARIABLE  chest[int, 2]  12_reorder_nested_funciones.craft:16:5  STACK  runtime(x17-8)   -8   8     yes
+    x              VARIABLE  int            12_reorder_nested_funciones.craft:17:5  STACK  runtime(x17-12)  -12  4     yes
+    y              VARIABLE  int            12_reorder_nested_funciones.craft:18:5  STACK  runtime(x17-16)  -16  4     yes
+    independiente  VARIABLE  int            12_reorder_nested_funciones.craft:19:5  STACK  runtime(x17-20)  -20  4     yes
+    valor          VARIABLE  int            12_reorder_nested_funciones.craft:20:5  STACK  runtime(x17-24)  -24  4     yes
+    .L2_if_else    LABEL     None           12_reorder_nested_funciones.craft:22:5  TEXT   -                -    0     no 
+    .L3_if_end     LABEL     None           12_reorder_nested_funciones.craft:22:5  TEXT   -                -    0     no 
+
+    [scope 4] CONDITIONAL 'if'
+      symbols:
+      name         kind   type  decl                                    seg   addr  off  size  res
+      -----------  -----  ----  --------------------------------------  ----  ----  ---  ----  ---
+      .L4_if_else  LABEL  None  12_reorder_nested_funciones.craft:23:9  TEXT  -     -    0     no 
+      .L5_if_end   LABEL  None  12_reorder_nested_funciones.craft:23:9  TEXT  -     -    0     no 
+
+      [scope 5] CONDITIONAL 'if'
+        symbols: (none)
+
+    [scope 6] CONDITIONAL 'else'
+      symbols: (none)

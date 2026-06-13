@@ -1,0 +1,63 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_2_ir_cmp_true          pc=0x00BC
+.L_ir_3_ir_cmp_end           pc=0x00C0
+L_else_2                     pc=0x00E8
+L_end_if_3                   pc=0x00FC
+.L_ir_1_main_end             pc=0x00FC
+ajustar                      pc=0x0108
+.L_ir_5_ir_cmp_true          pc=0x012C
+.L_ir_6_ir_cmp_end           pc=0x0130
+L_else_0                     pc=0x0150
+L_end_if_1                   pc=0x0164
+.L_ir_4_ajustar_end          pc=0x0164
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name     kind      type  decl                              seg   addr    off  size  res
+  -------  --------  ----  --------------------------------  ----  ------  ---  ----  ---
+  ajustar  FUNCTION  int   10_reorder_if_funcion.craft:4:1   TEXT  0x0108  -    0     yes
+  main     FUNCTION  int   10_reorder_if_funcion.craft:13:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION ajustar (stack_size=4)
+    symbols:
+    name         kind       type  decl                              seg    addr            off  size  res
+    -----------  ---------  ----  --------------------------------  -----  --------------  ---  ----  ---
+    valor        PARAMETER  int   10_reorder_if_funcion.craft:4:19  STACK  runtime(x17-4)  -4   4     yes
+    .L0_if_else  LABEL      None  10_reorder_if_funcion.craft:5:5   TEXT   -               -    0     no 
+    .L1_if_end   LABEL      None  10_reorder_if_funcion.craft:5:5   TEXT   -               -    0     no 
+
+    [scope 2] CONDITIONAL 'if'
+      symbols: (none)
+
+    [scope 3] CONDITIONAL 'else'
+      symbols: (none)
+
+  [scope 4] FUNCTION main (stack_size=28)
+    symbols:
+    name           kind      type           decl                              seg    addr             off  size  res
+    -------------  --------  -------------  --------------------------------  -----  ---------------  ---  ----  ---
+    datos          VARIABLE  chest[int, 2]  10_reorder_if_funcion.craft:14:5  STACK  runtime(x17-8)   -8   8     yes
+    a              VARIABLE  int            10_reorder_if_funcion.craft:15:5  STACK  runtime(x17-12)  -12  4     yes
+    b              VARIABLE  int            10_reorder_if_funcion.craft:16:5  STACK  runtime(x17-16)  -16  4     yes
+    independiente  VARIABLE  int            10_reorder_if_funcion.craft:17:5  STACK  runtime(x17-20)  -20  4     yes
+    combinado      VARIABLE  int            10_reorder_if_funcion.craft:18:5  STACK  runtime(x17-24)  -24  4     yes
+    resultado      VARIABLE  int            10_reorder_if_funcion.craft:19:5  STACK  runtime(x17-28)  -28  4     yes
+    .L2_if_else    LABEL     None           10_reorder_if_funcion.craft:21:5  TEXT   -                -    0     no 
+    .L3_if_end     LABEL     None           10_reorder_if_funcion.craft:21:5  TEXT   -                -    0     no 
+
+    [scope 5] CONDITIONAL 'if'
+      symbols: (none)
+
+    [scope 6] CONDITIONAL 'else'
+      symbols: (none)

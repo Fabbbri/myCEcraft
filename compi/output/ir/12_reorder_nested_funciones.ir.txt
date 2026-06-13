@@ -1,0 +1,67 @@
+  da = 4
+  db = 8
+  dc = 12
+main:
+  a = da
+  t0 = a + 1
+  parta = t0
+  t1 = 2 + 3
+  w1 = t1
+  t2 = 4 + 5
+  w2 = t2
+  b = db
+  t3 = b + 1
+  partb = t3
+  t4 = w1 + w2
+  w3 = t4
+  c = dc
+  t5 = c + 1
+  partc = t5
+  t6 = w1 + w2
+  w4 = t6
+  t7 = w3 + w4
+  w5 = t7
+  t8 = w5 + w1
+  w6 = t8
+  t9 = parta + partb
+  t10 = t9 + partc
+  t11 = t10 + w6
+  total = t11
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_main
+    da = 4
+    db = 8
+    dc = 12
+
+[B_label_main]
+    main:
+    a = da
+    t0 = a + 1
+    parta = t0
+    t1 = 2 + 3
+    w1 = t1
+    t2 = 4 + 5
+    w2 = t2
+    b = db
+    t3 = b + 1
+    partb = t3
+    t4 = w1 + w2
+    w3 = t4
+    c = dc
+    t5 = c + 1
+    partc = t5
+    t6 = w1 + w2
+    w4 = t6
+    t7 = w3 + w4
+    w5 = t7
+    t8 = w5 + w1
+    w6 = t8
+    t9 = parta + partb
+    t10 = t9 + partc
+    t11 = t10 + w6
+    total = t11
+    return total

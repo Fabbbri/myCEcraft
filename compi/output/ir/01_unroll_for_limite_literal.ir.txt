@@ -1,0 +1,49 @@
+main:
+  suma_a = 0
+  suma_b = 0
+  i = 0
+L_for_start_0:
+  t0 = i < 8
+  ifFalse t0 goto L_for_end_1
+  t1 = suma_a + i
+  suma_a = t1
+  t2 = suma_b + i
+  t3 = t2 + 1
+  suma_b = t3
+  t4 = i + 2
+  i = t4
+  goto L_for_start_0
+L_for_end_1:
+  t5 = suma_a + suma_b
+  return t5
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+    main:
+    suma_a = 0
+    suma_b = 0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t0 = i < 8
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    t1 = suma_a + i
+    suma_a = t1
+    t2 = suma_b + i
+    t3 = t2 + 1
+    suma_b = t3
+    t4 = i + 2
+    i = t4
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    t5 = suma_a + suma_b
+    return t5

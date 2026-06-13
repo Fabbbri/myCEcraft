@@ -1,0 +1,35 @@
+  estado = 0
+marcar:
+  t0 = estado + valor
+  estado = t0
+  return estado
+main:
+  base = 4
+  t1 = base * 99
+  muerto_antes = t1
+  t2 = call marcar(5)
+  t3 = muerto_antes + 123
+  muerto_despues = t3
+  return estado
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_marcar
+    estado = 0
+
+[B_label_marcar]
+    marcar:
+    t0 = estado + valor
+    estado = t0
+    return estado
+
+[B_label_main]
+    main:
+    base = 4
+    t1 = base * 99
+    muerto_antes = t1
+    t2 = call marcar(5)
+    t3 = muerto_antes + 123
+    muerto_despues = t3
+    return estado

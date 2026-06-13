@@ -1,0 +1,11 @@
+digraph "10_reorder_1load_uso_inmediato" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_entry" [label="B_entry\lbase = 9\l"];
+  "B_label_main" [label="B_label_main\lmain:\la = base\lt0 = a + 1\lpart = t0\lt1 = 5 + 6\lw1 = t1\lt2 = 7 + 8\lw2 = t2\lt3 = w1 + w2\lw3 = t3\lt4 = part + w3\ltotal = t4\lreturn total\l"];
+
+  "B_entry" -> "B_label_main" [label="fallthrough", color="#555555"];
+}

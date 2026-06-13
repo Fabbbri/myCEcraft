@@ -1,0 +1,30 @@
+digraph "pruebaEliminacionCodigo" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\lA = [1, 2, 3, 4]\lB = [5, 6, 7, 8]\lC = [0, 0, 0, 0]\ltotal_operaciones = 0\lsuma = 0\ltemporal_externo = 0\lbasura1 = 0\lbasura2 = 0\lbasura3 = 0\li = 0\l"];
+  "B_label_L_for_start_0" [label="B_label_L_for_start_0\lL_for_start_0:\lt0 = i < 2\lifFalse t0 goto L_for_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lt1 = i * 100\ltemporal_externo = t1\lj = 0\l"];
+  "B_label_L_for_start_2" [label="B_label_L_for_start_2\lL_for_start_2:\lt2 = j < 2\lifFalse t2 goto L_for_end_3\l"];
+  "B_fallthrough_4" [label="B_fallthrough_4\lt3 = i + j\lbasura1 = t3\lsuma = 0\lk = 0\l"];
+  "B_label_L_for_start_4" [label="B_label_L_for_start_4\lL_for_start_4:\lt4 = k < 2\lifFalse t4 goto L_for_end_5\l"];
+  "B_fallthrough_6" [label="B_fallthrough_6\lt5 = k * 50\lbasura2 = t5\lt6 = i * 2\lt7 = t6 + k\lt8 = A[t7]\lt9 = k * 2\lt10 = t9 + j\lt11 = B[t10]\lt12 = t8 * t11\lt13 = suma + t12\lsuma = t13\lt14 = total_operaciones + 1\ltotal_operaciones = t14\lt15 = k + 1\lk = t15\lgoto L_for_start_4\l"];
+  "B_label_L_for_end_5" [label="B_label_L_for_end_5\lL_for_end_5:\lt16 = i * 2\lt17 = t16 + j\lC[t17] = suma\lt18 = suma * 999\lbasura3 = t18\lt19 = j + 1\lj = t19\lgoto L_for_start_2\l"];
+  "B_label_L_for_end_3" [label="B_label_L_for_end_3\lL_for_end_3:\lt20 = i + 1\li = t20\lgoto L_for_start_0\l"];
+  "B_label_L_for_end_1" [label="B_label_L_for_end_1\lL_for_end_1:\lestadistica = total_operaciones\lt21 = estadistica * 2\ldesperdicio = t21\lt22 = C[0]\lt23 = C[1]\lt24 = t22 + t23\lt25 = C[2]\lt26 = t24 + t25\lt27 = C[3]\lt28 = t26 + t27\lreturn t28\l"];
+
+  "B_label_main" -> "B_label_L_for_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_0" -> "B_label_L_for_end_1" [label="false", color="#B22222"];
+  "B_label_L_for_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_for_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_2" -> "B_label_L_for_end_3" [label="false", color="#B22222"];
+  "B_label_L_for_start_2" -> "B_fallthrough_4" [label="true", color="#2E8B57"];
+  "B_fallthrough_4" -> "B_label_L_for_start_4" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_4" -> "B_label_L_for_end_5" [label="false", color="#B22222"];
+  "B_label_L_for_start_4" -> "B_fallthrough_6" [label="true", color="#2E8B57"];
+  "B_fallthrough_6" -> "B_label_L_for_start_4" [label="jump", color="#4169E1"];
+  "B_label_L_for_end_5" -> "B_label_L_for_start_2" [label="jump", color="#4169E1"];
+  "B_label_L_for_end_3" -> "B_label_L_for_start_0" [label="jump", color="#4169E1"];
+}

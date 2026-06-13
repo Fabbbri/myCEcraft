@@ -13,9 +13,10 @@ QMainWindow {
 }
 
 #TopBar {
-    background: #2D2D2D;
-    border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    background: #252526;
+    border: none;
+    border-bottom: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #BrandMark {
@@ -23,10 +24,10 @@ QMainWindow {
     max-width: 34px;
     min-height: 34px;
     max-height: 34px;
-    background: #F3F3F3;
-    border: 1px solid #4A4A4A;
+    background: transparent;
+    border: none;
     border-radius: 8px;
-    color: #1E1E1E;
+    color: #FFFFFF;
     font-size: 12px;
     font-weight: 800;
 }
@@ -35,21 +36,6 @@ QMainWindow {
     color: #F3F3F3;
     font-size: 13px;
     font-weight: 700;
-}
-
-#AppSubtitle {
-    color: #858585;
-    font-size: 10px;
-}
-
-#ProjectBadge {
-    background: #252526;
-    color: #CCCCCC;
-    border: 1px solid #3C3C3C;
-    border-radius: 6px;
-    padding: 5px 10px;
-    font-size: 11px;
-    font-weight: 600;
 }
 
 #TopIconButton {
@@ -102,6 +88,54 @@ QMainWindow {
     border-color: #5A5A5A;
 }
 
+#PrimaryButton:pressed {
+    background: #2A2D30;
+    border-color: #3C3C3C;
+}
+
+#PrimaryButton:disabled {
+    background: #2A2D30;
+    border-color: #3C3C3C;
+    color: #6B6B6B;
+}
+
+#TopControlLabel {
+    color: #AFAFAF;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#TopNumberInput {
+    min-width: 54px;
+    background: #252526;
+    color: #CCCCCC;
+    border: 1px solid #3C3C3C;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+#TopNumberInput:hover,
+#TopNumberInput:focus {
+    border-color: #5A5A5A;
+}
+
+QMenu {
+    background: #252526;
+    border: 1px solid #4A4A4A;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 7px 22px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background: #3A3D41;
+    color: #FFFFFF;
+}
+
 #RunButton {
     background: #16825D;
     color: #FFFFFF;
@@ -111,6 +145,17 @@ QMainWindow {
 #RunButton:hover {
     background: #1A9A6E;
     border-color: #25B985;
+}
+
+#RunButton:pressed {
+    background: #0F6347;
+    border-color: #16825D;
+}
+
+#RunButton:disabled {
+    background: #1E3D30;
+    border-color: #2A4A38;
+    color: #558064;
 }
 
 QSplitter::handle {
@@ -131,8 +176,9 @@ QSplitter::handle:hover {
 
 #Sidebar {
     background: #252526;
-    border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    border: none;
+    border-right: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #SectionTitle {
@@ -234,33 +280,34 @@ QSplitter::handle:hover {
 
 QTabWidget::pane {
     border: 1px solid #3C3C3C;
-    border-radius: 8px;
+    border-radius: 0;
     background: #1E1E1E;
     top: -1px;
 }
 
 QTabBar::tab {
     background: #2D2D2D;
-    color: #969696;
+    color: #858585;
     padding: 8px 8px 8px 14px;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    border: 1px solid #3C3C3C;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border: 1px solid transparent;
     border-bottom: none;
-    margin-right: 3px;
+    margin-right: 2px;
     font-size: 12px;
 }
 
 QTabBar::tab:hover {
     background: #37373D;
     color: #CCCCCC;
+    border-color: #3C3C3C;
 }
 
 QTabBar::tab:selected {
     background: #1E1E1E;
     color: #FFFFFF;
     border: 1px solid #3C3C3C;
-    border-bottom: none;
+    border-bottom: 1px solid #1E1E1E;
 }
 
 #TabCloseContainer {
@@ -303,8 +350,161 @@ QTabBar::tab:selected {
     font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
 }
 
-#OutputPanel {
+#LL1TableView {
     background: #1E1E1E;
+}
+
+#LL1Title {
+    color: #FFFFFF;
+    font-size: 21px;
+    font-weight: 750;
+}
+
+#LL1Description {
+    color: #AFAFAF;
+    font-size: 12px;
+    padding-bottom: 2px;
+}
+
+#LL1Guide {
+    background: #252526;
+    color: #CCCCCC;
+    border-left: 3px solid #007FD4;
+    border-radius: 4px;
+    padding: 9px 12px;
+    font-size: 11px;
+}
+
+#LL1Stat {
+    background: #252526;
+    color: #DCDCAA;
+    border: 1px solid #3C3C3C;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+#LL1SearchLabel {
+    color: #CCCCCC;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#LL1SearchInput {
+    background: #252526;
+    color: #FFFFFF;
+    border: 1px solid #3C3C3C;
+    border-radius: 6px;
+    padding: 7px 10px;
+    selection-background-color: #264F78;
+    font-size: 12px;
+}
+
+#LL1SearchInput:focus {
+    border-color: #007FD4;
+}
+
+#LL1VisibleCount,
+#LL1Legend {
+    color: #858585;
+    font-size: 11px;
+}
+
+#LL1SelectedEntry {
+    background: #252526;
+    color: #DCDCAA;
+    border: 1px solid #3C3C3C;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+    font-size: 11px;
+}
+
+#LL1ParseTable {
+    background: #1E1E1E;
+    alternate-background-color: #202020;
+    color: #D4D4D4;
+    border: 1px solid #3C3C3C;
+    border-radius: 7px;
+    gridline-color: #343434;
+    outline: none;
+    selection-background-color: #264F78;
+    selection-color: #FFFFFF;
+    font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+    font-size: 10px;
+}
+
+#LL1ParseTable::item {
+    padding: 6px 9px;
+}
+
+#LL1ParseTable::item:selected {
+    background: #264F78;
+    color: #FFFFFF;
+}
+
+#LL1ParseTable QHeaderView::section {
+    background: #2D2D2D;
+    color: #FFFFFF;
+    border-right: 1px solid #3C3C3C;
+    border-bottom: 1px solid #4A4A4A;
+    padding: 8px 10px;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+#LL1ParseTable QTableCornerButton::section {
+    background: #2D2D2D;
+    border: none;
+    border-right: 1px solid #3C3C3C;
+    border-bottom: 1px solid #4A4A4A;
+}
+
+#LL1ParseTable QScrollBar:vertical {
+    background: #1E1E1E;
+    width: 10px;
+    margin: 2px;
+}
+
+#LL1ParseTable QScrollBar:horizontal {
+    background: #1E1E1E;
+    height: 10px;
+    margin: 2px;
+}
+
+#LL1ParseTable QScrollBar::handle:vertical,
+#LL1ParseTable QScrollBar::handle:horizontal {
+    background: #424242;
+    border-radius: 4px;
+    min-height: 32px;
+    min-width: 32px;
+}
+
+#LL1ParseTable QScrollBar::handle:vertical:hover,
+#LL1ParseTable QScrollBar::handle:horizontal:hover {
+    background: #5A5A5A;
+}
+
+#LL1ParseTable QScrollBar::add-line,
+#LL1ParseTable QScrollBar::sub-line,
+#LL1ParseTable QScrollBar::add-page,
+#LL1ParseTable QScrollBar::sub-page {
+    background: transparent;
+    border: none;
+    width: 0;
+    height: 0;
+}
+
+#OutputTabs QTabWidget::pane {
+    background: #1C1C1C;
+    border: 1px solid #3C3C3C;
+}
+
+#OutputPanel {
+    background: #1C1C1C;
     color: #CCCCCC;
     border: none;
     padding: 13px 14px;
@@ -424,8 +624,9 @@ QTabBar::tab:selected {
 
 #StatusBar {
     background: #252526;
-    border: 1px solid #3C3C3C;
-    border-radius: 7px;
+    border: none;
+    border-top: 1px solid #3C3C3C;
+    border-radius: 0;
 }
 
 #StatusItem,
@@ -440,5 +641,64 @@ QTabBar::tab:selected {
 #StatusItemPrimary {
     color: #FFFFFF;
     font-weight: 750;
+}
+
+Minimap {
+    background: #1A1A1A;
+    border-left: 1px solid #2A2A2A;
+}
+
+#CFGOverlay {
+    background: rgba(30, 30, 30, 220);
+    border: 1px solid #3C3C3C;
+    border-radius: 8px;
+}
+
+#CFGListHeader {
+    background: transparent;
+    color: #888888;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 10px 4px 10px;
+    border-bottom: 1px solid #3C3C3C;
+    border-radius: 0px;
+}
+
+#CFGList {
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: #CCCCCC;
+}
+
+#CFGList::item {
+    padding: 5px 10px;
+    border-bottom: 1px solid #2A2A2A;
+}
+
+#CFGList::item:hover {
+    background: rgba(255, 255, 255, 15);
+}
+
+#CFGList::item:selected {
+    background: #37373F;
+    color: #FFFFFF;
+}
+
+#CFGFitButton {
+    background: transparent;
+    border: none;
+    border-top: 1px solid #3C3C3C;
+    border-radius: 0px;
+    padding: 6px 10px;
+    color: #888888;
+    font-size: 11px;
+    text-align: left;
+}
+
+#CFGFitButton:hover {
+    color: #CCCCCC;
+    background: rgba(255, 255, 255, 10);
 }
 """

@@ -46,6 +46,18 @@ module tb_topG;
     `define RAM   dut.Memory.NormalRam.mem
 
     // ==========================================
+    // Alias de registros arquitectonicos para GTKWave.
+    // Icarus no siempre vuelca los elementos de un arreglo (`REGS[N]`) al VCD;
+    // estos wire continuos los exponen con nombre legible bajo el scope tb_topG.
+    // ==========================================
+
+    wire [31:0] reg_ra = `REGS[1];   // x1  (return address)
+    wire [31:0] reg_sp = `REGS[2];   // x2  (stack pointer)
+    wire [31:0] reg_s0 = `REGS[8];   // x8  (saved / frame pointer)
+    wire [31:0] reg_a0 = `REGS[10];  // x10 (arg / retorno 0)
+    wire [31:0] reg_a1 = `REGS[11];  // x11 (arg / retorno 1, validacion benchmark)
+
+    // ==========================================
     // Contadores
     // ==========================================
 
@@ -84,6 +96,7 @@ module tb_topG;
     longint l1_reads,   l1_writes;
     longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
     longint l2_acc,     l2_hits,    l2_miss;
+    longint l2_reads,   l2_writes;   // accesos a L2 por tipo (read=load miss, write=store drenado)
     longint mem_acc,    mem_bursts;
     longint stall_mem_cycles;   // ciclos con pipeline congelado por memoria
     longint ctrl_stalls;        // ciclos de fetch perdidos por branch tomado
@@ -113,7 +126,7 @@ module tb_topG;
                     // L2 read: cada load miss de L1 baja a L2; en este ciclo
                     // alu_result es la direccion del load y hit_l2 el veredicto
                     if (!dut.Memory.hit_l1) begin
-                        l2_acc++;
+                        l2_acc++;  l2_reads++;
                         if (dut.Memory.hit_l2) begin
                             l2_hits++;
                         end else begin
@@ -126,7 +139,7 @@ module tb_topG;
 
             // L2 writes: un WB_COMMIT (1 ciclo) por store drenado
             if (dut.Memory.L2Con.wb_state == 2'b10) begin
-                l2_acc++;
+                l2_acc++;  l2_writes++;
                 if (dut.Memory.hit_l2_wb) l2_hits++; else l2_miss++;
                 mem_acc++;       // write-through: todo store drenado va a RAM
             end
@@ -385,13 +398,14 @@ module tb_topG;
                  mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
 
         // linea parseable para scripts/benchmarks.py
-        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d",
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d|l2_reads=%0d|l2_writes=%0d",
                  test_name, cycle_count, instr_count, cpi,
                  stall_mem_cycles, ctrl_stalls,
                  l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
                  l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
                  l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
-                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts,
+                 l2_reads, l2_writes);
     endtask
 
     task automatic run_test(
@@ -412,6 +426,7 @@ module tb_topG;
         l1_reads = 0; l1_writes = 0;
         l1_rd_hits = 0; l1_rd_miss = 0; l1_wr_hits = 0; l1_wr_miss = 0;
         l2_acc = 0; l2_hits = 0; l2_miss = 0;
+        l2_reads = 0; l2_writes = 0;
         mem_acc = 0; mem_bursts = 0;
         stall_mem_cycles = 0; ctrl_stalls = 0; mem_xfer_cycles = 0;
 
@@ -462,8 +477,11 @@ module tb_topG;
         $display("         CRAFT21 ARCHITECTURE TESTBENCH");
         $display("============================================================");
 
-        $dumpfile("sim/waves/tb_topG.vcd");
-        $dumpvars(0, tb_topG);
+        // onda bajo demanda: solo con +VCD (la suite de benchmarks corre sin onda)
+        if ($test$plusargs("VCD")) begin
+            $dumpfile("sim/waves/tb_topG.vcd");
+            $dumpvars(0, tb_topG);
+        end
 
         csv_fd = $fopen("outputs/reports/results.csv", "w");
 

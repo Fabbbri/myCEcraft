@@ -1,0 +1,9 @@
+digraph "04_rename_waw_secuencial" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\la = 1\lt0 = a + 10\lprimero = t0\la = 2\lt1 = a + 20\lsegundo = t1\la = 3\lt2 = a + 30\ltercero = t2\lt3 = primero + segundo\lt4 = t3 + tercero\lreturn t4\l"];
+
+}

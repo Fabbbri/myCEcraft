@@ -1,0 +1,22 @@
+main:
+  dato = 7
+  t0 = dato * 3
+  viejo = t0
+  dato = 2
+  t1 = dato * 5
+  nuevo = t1
+  t2 = viejo + nuevo
+  return t2
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+    main:
+    dato = 7
+    t0 = dato * 3
+    viejo = t0
+    dato = 2
+    t1 = dato * 5
+    nuevo = t1
+    t2 = viejo + nuevo
+    return t2

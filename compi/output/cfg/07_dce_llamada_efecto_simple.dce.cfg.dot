@@ -1,0 +1,12 @@
+digraph "07_dce_llamada_efecto_simple.dce" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_entry" [label="B_entry\lestado = 0\l"];
+  "B_label_marcar" [label="B_label_marcar\lmarcar:\lt0 = estado + valor\lestado = t0\lreturn estado\l"];
+  "B_label_main" [label="B_label_main\lmain:\lt2 = call marcar(5)\lreturn estado\l"];
+
+  "B_entry" -> "B_label_marcar" [label="fallthrough", color="#555555"];
+}

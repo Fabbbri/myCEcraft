@@ -1,0 +1,25 @@
+digraph "10_reorder_if_funcion" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_ajustar" [label="B_label_ajustar\lajustar:\lt0 = valor > 10\lifFalse t0 goto L_else_0\l"];
+  "B_fallthrough_1" [label="B_fallthrough_1\lt1 = valor - 3\lreturn t1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lgoto L_end_if_1\l"];
+  "B_label_L_else_0" [label="B_label_L_else_0\lL_else_0:\lt2 = valor + 3\lreturn t2\l"];
+  "B_label_L_end_if_1" [label="B_label_L_end_if_1\lL_end_if_1:\l"];
+  "B_label_main" [label="B_label_main\lmain:\ldatos = [4, 9]\lt3 = datos[0]\la = t3\lb = 6\lt4 = 7 * 2\lindependiente = t4\lt5 = a + b\lcombinado = t5\lt6 = call ajustar(combinado)\lresultado = t6\lt7 = resultado > 10\lifFalse t7 goto L_else_2\l"];
+  "B_fallthrough_6" [label="B_fallthrough_6\lt8 = resultado + independiente\lreturn t8\l"];
+  "B_fallthrough_7" [label="B_fallthrough_7\lgoto L_end_if_3\l"];
+  "B_label_L_else_2" [label="B_label_L_else_2\lL_else_2:\lt9 = independiente - resultado\lreturn t9\l"];
+  "B_label_L_end_if_3" [label="B_label_L_end_if_3\lL_end_if_3:\l"];
+
+  "B_label_ajustar" -> "B_label_L_else_0" [label="false", color="#B22222"];
+  "B_label_ajustar" -> "B_fallthrough_1" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_end_if_1" [label="jump", color="#4169E1"];
+  "B_label_L_end_if_1" -> "B_label_main" [label="fallthrough", color="#555555"];
+  "B_label_main" -> "B_label_L_else_2" [label="false", color="#B22222"];
+  "B_label_main" -> "B_fallthrough_6" [label="true", color="#2E8B57"];
+  "B_fallthrough_7" -> "B_label_L_end_if_3" [label="jump", color="#4169E1"];
+}

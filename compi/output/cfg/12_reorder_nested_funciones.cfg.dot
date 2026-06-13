@@ -1,0 +1,33 @@
+digraph "12_reorder_nested_funciones" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_combinar" [label="B_label_combinar\lcombinar:\lt0 = a * 2\lparcial = t0\lt1 = b + 3\lextra = t1\lt2 = a == b\lifFalse t2 goto L_else_0\l"];
+  "B_fallthrough_1" [label="B_fallthrough_1\lt3 = parcial + extra\lreturn t3\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lgoto L_end_if_1\l"];
+  "B_label_L_else_0" [label="B_label_L_else_0\lL_else_0:\l"];
+  "B_label_L_end_if_1" [label="B_label_L_end_if_1\lL_end_if_1:\lt4 = parcial - extra\lreturn t4\l"];
+  "B_label_main" [label="B_label_main\lmain:\ldatos = [5, 12]\lt5 = datos[0]\lx = t5\ly = 5\lt6 = 9 + 4\lindependiente = t6\lt7 = call combinar(x, y)\lvalor = t7\lt8 = valor > independiente\lifFalse t8 goto L_else_2\l"];
+  "B_fallthrough_6" [label="B_fallthrough_6\lt9 = x < 10\lifFalse t9 goto L_else_4\l"];
+  "B_fallthrough_7" [label="B_fallthrough_7\lt10 = valor + independiente\lreturn t10\l"];
+  "B_fallthrough_8" [label="B_fallthrough_8\lgoto L_end_if_5\l"];
+  "B_label_L_else_4" [label="B_label_L_else_4\lL_else_4:\l"];
+  "B_label_L_end_if_5" [label="B_label_L_end_if_5\lL_end_if_5:\lreturn valor\l"];
+  "B_fallthrough_11" [label="B_fallthrough_11\lgoto L_end_if_3\l"];
+  "B_label_L_else_2" [label="B_label_L_else_2\lL_else_2:\lt11 = independiente - valor\lreturn t11\l"];
+  "B_label_L_end_if_3" [label="B_label_L_end_if_3\lL_end_if_3:\l"];
+
+  "B_label_combinar" -> "B_label_L_else_0" [label="false", color="#B22222"];
+  "B_label_combinar" -> "B_fallthrough_1" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_end_if_1" [label="jump", color="#4169E1"];
+  "B_label_L_else_0" -> "B_label_L_end_if_1" [label="fallthrough", color="#555555"];
+  "B_label_main" -> "B_label_L_else_2" [label="false", color="#B22222"];
+  "B_label_main" -> "B_fallthrough_6" [label="true", color="#2E8B57"];
+  "B_fallthrough_6" -> "B_label_L_else_4" [label="false", color="#B22222"];
+  "B_fallthrough_6" -> "B_fallthrough_7" [label="true", color="#2E8B57"];
+  "B_fallthrough_8" -> "B_label_L_end_if_5" [label="jump", color="#4169E1"];
+  "B_label_L_else_4" -> "B_label_L_end_if_5" [label="fallthrough", color="#555555"];
+  "B_fallthrough_11" -> "B_label_L_end_if_3" [label="jump", color="#4169E1"];
+}

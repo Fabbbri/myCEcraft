@@ -14,6 +14,8 @@ module tb_general_dump;
     string loader_hex;
     string out_prefix;
     int max_cycles;
+    longint metric_cycles;
+    longint metric_instructions;
 
     logic [7:0] loader_mem [0:RAM_DEPTH-1];
 
@@ -26,8 +28,10 @@ module tb_general_dump;
     `define VREGS dut.Decode.RegVBank.regs
     `define PC    dut.Issue.addr_aux
     `define ROM   dut.Issue.ROM.memory
-    `define NRAM  dut.mem.VaultRam.mem
-    `define DRAM  dut.mem.NormalRam.mem
+    `define NRAM  dut.Memory.VaultRam.mem
+    `define DRAM  dut.Memory.NormalRam.mem
+
+    localparam logic [31:0] NOP = 32'h00580000;
 
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
@@ -75,10 +79,20 @@ module tb_general_dump;
         timed_out = 0;
         cycles = 0;
         next_progress = 1000000;
+        metric_cycles = 0;
+        metric_instructions = 0;
 
         forever begin
-            repeat (1000) @(posedge clk);
-            cycles += 1000;
+            @(posedge clk);
+            cycles++;
+            metric_cycles++;
+
+            if (dut.instrDE !== NOP &&
+                dut.instrDE !== 32'hxxxxxxxx &&
+                !dut.flushE &&
+                !dut.stallE) begin
+                metric_instructions++;
+            end
 
             if (cycles >= next_progress) begin
                 $display("[INFO]  Ejecutando... ciclo=%0d/%0d PC=%h",
@@ -89,7 +103,6 @@ module tb_general_dump;
             if (dut.Issue.pc_en === 1'b0) begin
                 $display("[INFO]  FREEZE detectado en PC=%h (ciclo aprox %0d)",
                          `PC, cycles);
-                repeat (5) @(posedge clk);
                 return;
             end
 
@@ -100,6 +113,76 @@ module tb_general_dump;
                 return;
             end
         end
+    endtask
+
+    task automatic print_performance_metrics();
+        real cpi;
+
+        cpi = (metric_instructions != 0)
+            ? (1.0 * metric_cycles) / metric_instructions
+            : 0.0;
+
+        $display("\n  --- Metricas de rendimiento ---");
+        $display("  Ciclos : %0d", metric_cycles);
+        $display("  Instr  : %0d", metric_instructions);
+        $display("  CPI    : %.6f", cpi);
+        $display("  --------------------------------");
+        $display("[METRICS] cycles=%0d|instr=%0d|cpi=%.6f",
+                 metric_cycles, metric_instructions, cpi);
+    endtask
+
+    function automatic bit memory_hierarchy_idle();
+        memory_hierarchy_idle =
+            (dut.stall_mem === 1'b0) &&
+            (dut.Memory.L2Con.rq_empty === 1'b1) &&
+            (dut.Memory.L2Con.wb_empty === 1'b1) &&
+            (dut.Memory.L2Con.load_state == 2'b00) &&
+            (dut.Memory.L2Con.wb_state == 2'b00) &&
+            (dut.Memory.MemCtrl.rq_empty === 1'b1) &&
+            (dut.Memory.MemCtrl.wb_empty === 1'b1) &&
+            (dut.Memory.MemCtrl.wbd_busy === 1'b0) &&
+            (dut.Memory.burst_active === 1'b0) &&
+            (dut.Memory.ram_we === 1'b0);
+    endfunction
+
+    task automatic wait_for_memory_drain(output bit timed_out);
+        int cycles;
+        int quiet_cycles;
+
+        cycles = 0;
+        quiet_cycles = 0;
+        timed_out = 0;
+
+        // FREEZE detiene fetch, pero stores anteriores pueden seguir en los
+        // buffers write-through de L2 y del controlador de memoria.
+        while (quiet_cycles < 8) begin
+            @(posedge clk);
+            cycles++;
+
+            if (memory_hierarchy_idle())
+                quiet_cycles++;
+            else
+                quiet_cycles = 0;
+
+            if (cycles >= max_cycles) begin
+                $display("[ERROR] Timeout drenando la jerarquia de memoria");
+                $display("        L2 rq_empty=%b wb_empty=%b load_state=%0d wb_state=%0d",
+                         dut.Memory.L2Con.rq_empty,
+                         dut.Memory.L2Con.wb_empty,
+                         dut.Memory.L2Con.load_state,
+                         dut.Memory.L2Con.wb_state);
+                $display("        MC rq_empty=%b wb_empty=%b wbd_busy=%b burst=%b ram_we=%b",
+                         dut.Memory.MemCtrl.rq_empty,
+                         dut.Memory.MemCtrl.wb_empty,
+                         dut.Memory.MemCtrl.wbd_busy,
+                         dut.Memory.burst_active,
+                         dut.Memory.ram_we);
+                timed_out = 1;
+                return;
+            end
+        end
+
+        $display("[INFO]  Jerarquia de memoria drenada (%0d ciclos)", cycles);
     endtask
 
     task automatic load_raw_hex();
@@ -245,6 +328,7 @@ module tb_general_dump;
     initial begin
         bit timed_out;
         bit load_failed;
+        bit drain_timed_out;
 
         rom_hex = "programs/program.hex";
         data_hex = "programs/data.hex";
@@ -285,13 +369,21 @@ module tb_general_dump;
             @(negedge clk);
             dut.Decode.SM.sm = 1'b0;
             wait_for_finish(timed_out);
+            if (!timed_out)
+                wait_for_memory_drain(drain_timed_out);
+            else
+                drain_timed_out = 0;
         end else begin
             timed_out = 0;
+            drain_timed_out = 0;
         end
 
-        if (timed_out) begin
+        if (timed_out || drain_timed_out) begin
             $display("[ERROR] Test abortado por timeout");
         end
+
+        if (!load_failed)
+            print_performance_metrics();
 
         dump_nonzero_regs();
         dump_outputs();

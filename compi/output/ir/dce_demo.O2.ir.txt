@@ -10,7 +10,7 @@ main:
 === Control Flow Graph & Basic Blocks ===
 
 [B_label_main]
-  main:
+    main:
     x = 1
     y = 2
     t0 = x + y

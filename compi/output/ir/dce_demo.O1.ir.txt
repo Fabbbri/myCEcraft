@@ -1,0 +1,28 @@
+main:
+  x = 1
+  y = 2
+  t0__x3 = x + y
+  z = t0__x3
+  t1__x4 = z * 3
+  muerto = t1__x4
+  t2__x5 = z + 4
+  vivo = t2__x5
+  t3__x6 = vivo + 99
+  muerto = t3__x6
+  return vivo
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+    main:
+    x = 1
+    y = 2
+    t0__x3 = x + y
+    z = t0__x3
+    t1__x4 = z * 3
+    muerto = t1__x4
+    t2__x5 = z + 4
+    vivo = t2__x5
+    t3__x6 = vivo + 99
+    muerto = t3__x6
+    return vivo
