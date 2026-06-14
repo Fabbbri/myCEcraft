@@ -302,7 +302,15 @@ class IRInstructionReorderer:
 
         previous_index = scheduled_indexes[-1]
         previous = segment[previous_index]
-        if not (is_memory_read(previous) or self._is_global_load(previous)):
+        # Solo se rellena el slot tras un GLOBAL load. Esos cargan de memoria
+        # global (alta latencia: fallo de cache ~20 ciclos) y esconder esa
+        # espera con trabajo independiente compensa de sobra aunque cueste un
+        # spill. En cambio un load local (p.ej. arr[i] en el stack, acceso
+        # cache-friendly ~1 ciclo) no vale el riesgo: reordenar para taparlo
+        # alarga rangos de vida y el backend mete un spill (store+load) en el
+        # bucle, que cuesta MAS que el stall que se evita -> regresion. Por eso
+        # los loads locales se dejan en su orden original (return sorted).
+        if not self._is_global_load(previous):
             return ordered_ready[0]
 
         load_defs = instr_defs[previous_index]

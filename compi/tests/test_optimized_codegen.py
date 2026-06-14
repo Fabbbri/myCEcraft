@@ -21,6 +21,7 @@ from Optimizations import AUTO_UNROLL_FACTOR, optimize_ir
 from parser import Parser
 from registers import GENERAL_REGISTERS, VAULT_REGISTERS
 from semantic import SemanticAnalyzer
+from symbol_table import SymbolKind
 
 
 class OptimizedCodegenTests(unittest.TestCase):
@@ -37,12 +38,20 @@ class OptimizedCodegenTests(unittest.TestCase):
         program = Parser(tokens, filename="<test>").parse()
         symbols = SemanticAnalyzer(filename="<test>").analyze(program)
         instructions = IRGenerator().generate(program)
+        # Igual que main.py: el reorderer necesita los nombres globales para
+        # distinguir loads de memoria global (alta latencia) de los locales.
+        global_names = {
+            name
+            for name, sym in symbols.global_scope.symbols.items()
+            if sym.kind == SymbolKind.VARIABLE
+        }
         instructions, _ = optimize_ir(
             instructions,
             unroll_factor=unroll_factor,
             rename_static_registers=rename_static_registers,
             eliminate_dead_code=dce,
             reorder_instructions=reorder,
+            global_names=global_names,
         )
         assembly = IRAssemblyGenerator(symbols).generate(instructions)
         resolved = LabelResolver().resolve(assembly)
@@ -145,11 +154,13 @@ craft:int main() {
         self.assertLessEqual(used_registers, valid_registers)
 
     def test_instruction_reordering_changes_assembly_and_binary(self) -> None:
+        # Load desde memoria GLOBAL (alta latencia): el scheduler mueve el
+        # trabajo independiente entre el load y su uso para tapar la espera.
         source = """
 @EnterCraftWorld
+base:int = 5;
 craft:int main() {
-    values:chest[int, 1] = [5];
-    loaded:int = values[0];
+    loaded:int = base;
     dependent:int = loaded + 1;
     independent:int = 7 + 8;
     return dependent + independent;
@@ -164,6 +175,27 @@ craft:int main() {
 
         self.assertNotEqual(normal_assembly, reordered_assembly)
         self.assertNotEqual(normal_binary, reordered_binary)
+
+    def test_reordering_leaves_local_loads_untouched(self) -> None:
+        # Un load LOCAL (chest en el stack, cache-friendly ~1 ciclo) no se
+        # reordena: taparlo no compensa el spill que el backend meteria al
+        # alargar el rango de vida del trabajo movido. Debe quedar igual que
+        # sin reorder (evita la regresion de O2/O3 en bucles con arr[i]).
+        source = """
+@EnterCraftWorld
+craft:int main() {
+    values:chest[int, 1] = [5];
+    loaded:int = values[0];
+    dependent:int = loaded + 1;
+    independent:int = 7 + 8;
+    return dependent + independent;
+}
+"""
+
+        normal_assembly, _ = self._compile_optimized(source)
+        reordered_assembly, _ = self._compile_optimized(source, reorder=True)
+
+        self.assertEqual(normal_assembly, reordered_assembly)
 
     def test_static_register_renaming_hints_temporaries_without_versioning_variables(
         self,

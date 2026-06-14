@@ -71,20 +71,18 @@ L_while_start_2:
     add x7, x7, x9                                      ; pc=0x00C0
     lw x8, 0(x7)                                        ; pc=0x00C4
     sw x8, -1048(x17) ; t3                              ; pc=0x00C8
-    addi x5, x0, 1                                      ; pc=0x00CC
-    add x10, x3, x5                                     ; pc=0x00D0
-    sw x10, -1052(x17) ; t5                             ; pc=0x00D4
-    lw x6, -1048(x17) ; t3                              ; pc=0x00D8
-    add x9, x4, x6                                      ; pc=0x00DC
-    add x4, x9, x0 ; promote suma                       ; pc=0x00E0
-    lw x7, -1052(x17) ; t5                              ; pc=0x00E4
-    add x3, x7, x0 ; promote i                          ; pc=0x00E8
-    jal x0, L_while_start_2                             ; pc=0x00EC
+    lw x5, -1048(x17) ; t3                              ; pc=0x00CC
+    add x10, x4, x5                                     ; pc=0x00D0
+    add x4, x10, x0 ; promote suma                      ; pc=0x00D4
+    addi x6, x0, 1                                      ; pc=0x00D8
+    add x9, x3, x6                                      ; pc=0x00DC
+    add x3, x9, x0 ; promote i                          ; pc=0x00E0
+    jal x0, L_while_start_2                             ; pc=0x00E4
 L_while_end_3:
-    add x11, x4, x0                                     ; pc=0x00F0
-    jal x0, .L_ir_1_main_end                            ; pc=0x00F4
+    add x11, x4, x0                                     ; pc=0x00E8
+    jal x0, .L_ir_1_main_end                            ; pc=0x00EC
 .L_ir_1_main_end:
     ; epilogue
-    lw x17, 4(x2)                                       ; pc=0x00F8
-    addi x2, x2, 1064                                   ; pc=0x00FC
-    freeze                                              ; pc=0x0100
+    lw x17, 4(x2)                                       ; pc=0x00F0
+    addi x2, x2, 1064                                   ; pc=0x00F4
+    freeze                                              ; pc=0x00F8

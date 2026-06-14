@@ -21,11 +21,11 @@ Legend:
 
   [scope 1] FUNCTION main (stack_size=24)
     symbols:
-    name   kind      type  decl                                       seg    addr             off  size  res
-    -----  --------  ----  -----------------------------------------  -----  ---------------  ---  ----  ---
-    a      VARIABLE  int   10_reorder_1load_uso_inmediato.craft:12:5  STACK  runtime(x17-4)   -4   4     yes
-    part   VARIABLE  int   10_reorder_1load_uso_inmediato.craft:13:5  STACK  runtime(x17-8)   -8   4     yes
-    w1     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:15:5  STACK  runtime(x17-12)  -12  4     yes
-    w2     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:16:5  STACK  runtime(x17-16)  -16  4     yes
-    w3     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:17:5  STACK  runtime(x17-20)  -20  4     yes
-    total  VARIABLE  int   10_reorder_1load_uso_inmediato.craft:19:5  STACK  runtime(x17-24)  -24  4     yes
+    name   kind      type  decl                                       seg    addr    off  size  res
+    -----  --------  ----  -----------------------------------------  -----  ------  ---  ----  ---
+    a      VARIABLE  int   10_reorder_1load_uso_inmediato.craft:12:5  STACK  0x7FEC  -4   4     yes
+    part   VARIABLE  int   10_reorder_1load_uso_inmediato.craft:13:5  STACK  0x7FE8  -8   4     yes
+    w1     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:15:5  STACK  0x7FE4  -12  4     yes
+    w2     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:16:5  STACK  0x7FE0  -16  4     yes
+    w3     VARIABLE  int   10_reorder_1load_uso_inmediato.craft:17:5  STACK  0x7FDC  -20  4     yes
+    total  VARIABLE  int   10_reorder_1load_uso_inmediato.craft:19:5  STACK  0x7FD8  -24  4     yes

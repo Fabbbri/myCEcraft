@@ -85,7 +85,6 @@ COMPI_OUT = ARQUI.parent / "compi" / "output" / "bin_output"
 # asi sigue valido aunque se recompile y cambie el layout. x11 es el mismo en
 # O0 y O1 (la optimizacion preserva el resultado): sirve de oraculo.
 BENCHMARKS = [
-    {"name": "while loop x<5", "rom": "program.hex", "x11": None,    "max": 20000},
     {"name": "bench_seq",    "src": "bench_seq",    "x11": "7F80",  "max": 300000, "opts": ["O0", "O1", "O2", "O3"]},
     {"name": "bench_stride", "src": "bench_stride", "x11": "F80",   "max": 300000, "opts": ["O0", "O1", "O2", "O3"]},
     {"name": "bench_random", "src": "bench_random", "x11": "1C110", "max": 600000, "opts": ["O0", "O1", "O2", "O3"]},
@@ -1312,6 +1311,11 @@ def p2_section(p2_results):
                 f"{_nc_cell(c_nc)}"
                 f"<td>{_num(r0.get('Ciclos'))}</td>"
                 f"{_p2_delta(r0.get('Ciclos'), ropt.get('Ciclos'))}"
+                # instrucciones ejecutadas (retiradas por el pipeline): sin cache | O0 | opt
+                # [SIMULADOR] != instrucciones del compilador (estaticas en el .hex)
+                f"{_nc_cell(nc.get('Instr'))}"
+                f"<td>{_num(r0.get('Instr'))}</td>"
+                f"{_p2_delta(r0.get('Instr'), ropt.get('Instr'))}"
                 # instrucciones del compilador = Code_Size_Bytes/4  [COMPILADOR]
                 f"<td>{_num(_instr_from_hex(r0))}</td>"
                 f"{_p2_delta(_instr_from_hex(r0), _instr_from_hex(ropt))}"
@@ -1341,7 +1345,7 @@ def p2_section(p2_results):
 
         # fila resumen del grupo
         n = len(entries)
-        TOTAL_COLS = 22  # nombre+x11+speedup + (sin+O0+opt)*2 + instr*2 + cod*2 + stmem*2 + stctrl*2 + ms*2 + 4 transf
+        TOTAL_COLS = 26  # nombre+x11+speedup + (sin+O0+opt)*3 [ciclos,instr-ejec,IPC] + instr*2 + cod*2 + stmem*2 + stctrl*2 + ms*2 + 4 transf
         if speedups:
             avg_sp = sum(speedups) / len(speedups)
             ok_count = len(speedups)
@@ -1373,6 +1377,7 @@ def p2_section(p2_results):
    <th rowspan="2">x11</th>
    <th rowspan="2">Speedup</th>
    <th colspan="3" class="p2hgroup">Ciclos <span style="font-weight:400;font-size:0.85em">(simulador)</span></th>
+   <th colspan="3" class="p2hgroup">Instr. ejecutadas <span style="font-weight:400;font-size:0.85em">(simulador)</span></th>
    <th colspan="2" class="p2hgroup">Instrucciones <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B) <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="3" class="p2hgroup">IPC</th>
@@ -1382,6 +1387,7 @@ def p2_section(p2_results):
    <th colspan="4" class="p2hgroup" style="background:#1A1427;color:#BC8CFF">Transformaciones aplicadas (opt)</th>
   </tr>
   <tr>
+   <th class="p2nc">sin$</th><th>O0</th><th>opt</th>
    <th class="p2nc">sin$</th><th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
@@ -1405,6 +1411,9 @@ def p2_section(p2_results):
  &gt;5%, gris si es marginal, rojo si regresiona.
  Los deltas entre par&eacute;ntesis en <em>Ciclos</em> e <em>Instr</em> indican la diferencia
  absoluta respecto a O0 (negativo = menos = mejor).
+ <b>Instr. ejecutadas (simulador)</b> = instrucciones realmente retiradas por el pipeline
+ en la corrida (sin cach&eacute; / O0 / opt); no confundir con <b>Instrucciones (compilador)</b>,
+ que es el conteo est&aacute;tico de instrucciones del binario antes y despu&eacute;s de optimizar.
  <span class="p2badge p2fail" style="font-size:0.8em">&#10007; FAIL</span>
  = el resultado en x11 no coincide con el esperado (bug en el compilador).</p>
 {sections_html}

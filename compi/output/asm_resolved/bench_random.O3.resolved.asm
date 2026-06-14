@@ -13,12 +13,12 @@
 ;   L_while_start_2 = 0x0198
 ;   .L_ir_4_ir_cmp_true = 0x01A8
 ;   .L_ir_5_ir_cmp_end = 0x01AC
-;   .L_ir_6_ir_cmp_true = 0x0204
-;   .L_ir_7_ir_cmp_end = 0x0208
-;   L_else_4 = 0x0224
-;   L_end_if_5 = 0x0224
-;   L_while_end_3 = 0x0234
-;   .L_ir_1_main_end = 0x0240
+;   .L_ir_6_ir_cmp_true = 0x01FC
+;   .L_ir_7_ir_cmp_end = 0x0200
+;   L_else_4 = 0x021C
+;   L_end_if_5 = 0x021C
+;   L_while_end_3 = 0x022C
+;   .L_ir_1_main_end = 0x0238
 
 ; Referencias resueltas
 ;   pc=0x0000 portalv -> .L_ir_0_enderExit (addr=0x0018, offset=24)
@@ -28,13 +28,13 @@
 ;   pc=0x0184 jal -> L_while_start_0 (addr=0x0048, offset=-316)
 ;   pc=0x01A0 blt -> .L_ir_4_ir_cmp_true (addr=0x01A8, offset=8)
 ;   pc=0x01A4 jal -> .L_ir_5_ir_cmp_end (addr=0x01AC, offset=8)
-;   pc=0x01B4 beq -> L_while_end_3 (addr=0x0234, offset=128)
-;   pc=0x01FC bge -> .L_ir_6_ir_cmp_true (addr=0x0204, offset=8)
-;   pc=0x0200 jal -> .L_ir_7_ir_cmp_end (addr=0x0208, offset=8)
-;   pc=0x0210 beq -> L_else_4 (addr=0x0224, offset=20)
-;   pc=0x0220 jal -> L_end_if_5 (addr=0x0224, offset=4)
-;   pc=0x0230 jal -> L_while_start_2 (addr=0x0198, offset=-152)
-;   pc=0x023C jal -> .L_ir_1_main_end (addr=0x0240, offset=4)
+;   pc=0x01B4 beq -> L_while_end_3 (addr=0x022C, offset=120)
+;   pc=0x01F4 bge -> .L_ir_6_ir_cmp_true (addr=0x01FC, offset=8)
+;   pc=0x01F8 jal -> .L_ir_7_ir_cmp_end (addr=0x0200, offset=8)
+;   pc=0x0208 beq -> L_else_4 (addr=0x021C, offset=20)
+;   pc=0x0218 jal -> L_end_if_5 (addr=0x021C, offset=4)
+;   pc=0x0228 jal -> L_while_start_2 (addr=0x0198, offset=-144)
+;   pc=0x0234 jal -> .L_ir_1_main_end (addr=0x0238, offset=4)
 
 ; ==================================================
 ; Ensamblador generado directamente desde IR
@@ -167,48 +167,46 @@ L_while_start_2:
 .L_ir_5_ir_cmp_end:
     sw x5, -1944(x17) ; t2__x5                          ; pc=0x01AC
     lw x5, -1944(x17) ; t2__x5                          ; pc=0x01B0
-    beq x5, x0, 128                                     ; pc=0x01B4 ; target=L_while_end_3 ; addr=0x0234
+    beq x5, x0, 120                                     ; pc=0x01B4 ; target=L_while_end_3 ; addr=0x022C
     add x6, x4, x4                                      ; pc=0x01B8
     add x6, x6, x6                                      ; pc=0x01BC
     addiSigned x7, x17, -1920                           ; pc=0x01C0
     add x7, x7, x6                                      ; pc=0x01C4
     lw x9, 0(x7)                                        ; pc=0x01C8
     sw x9, -1948(x17) ; t3__x6                          ; pc=0x01CC
-    addi x10, x0, 341                                   ; pc=0x01D0
-    add x8, x4, x10                                     ; pc=0x01D4
-    sw x8, -1952(x17) ; t5__x8                          ; pc=0x01D8
-    lw x5, -1932(x17) ; suma                            ; pc=0x01DC
-    lw x6, -1948(x17) ; t3__x6                          ; pc=0x01E0
-    add x7, x5, x6                                      ; pc=0x01E4
-    sw x7, -1932(x17) ; suma                            ; pc=0x01E8
-    lw x8, -1952(x17) ; t5__x8                          ; pc=0x01EC
-    add x4, x8, x0 ; promote idx                        ; pc=0x01F0
-    addi x9, x0, 480                                    ; pc=0x01F4
-    addi x10, x0, 0                                     ; pc=0x01F8
-    bge x4, x9, 8                                       ; pc=0x01FC ; target=.L_ir_6_ir_cmp_true ; addr=0x0204
-    jal x0, 8                                           ; pc=0x0200 ; target=.L_ir_7_ir_cmp_end ; addr=0x0208
+    lw x10, -1932(x17) ; suma                           ; pc=0x01D0
+    lw x6, -1948(x17) ; t3__x6                          ; pc=0x01D4
+    add x8, x10, x6                                     ; pc=0x01D8
+    sw x8, -1932(x17) ; suma                            ; pc=0x01DC
+    addi x5, x0, 341                                    ; pc=0x01E0
+    add x7, x4, x5                                      ; pc=0x01E4
+    add x4, x7, x0 ; promote idx                        ; pc=0x01E8
+    addi x9, x0, 480                                    ; pc=0x01EC
+    addi x8, x0, 0                                      ; pc=0x01F0
+    bge x4, x9, 8                                       ; pc=0x01F4 ; target=.L_ir_6_ir_cmp_true ; addr=0x01FC
+    jal x0, 8                                           ; pc=0x01F8 ; target=.L_ir_7_ir_cmp_end ; addr=0x0200
 .L_ir_6_ir_cmp_true:
-    addi x10, x0, 1                                     ; pc=0x0204
+    addi x8, x0, 1                                      ; pc=0x01FC
 .L_ir_7_ir_cmp_end:
-    sw x10, -1960(x17) ; t6__x9                         ; pc=0x0208
-    lw x9, -1960(x17) ; t6__x9                          ; pc=0x020C
-    beq x9, x0, 20                                      ; pc=0x0210 ; target=L_else_4 ; addr=0x0224
-    addi x7, x0, 480                                    ; pc=0x0214
-    sub x6, x4, x7                                      ; pc=0x0218
-    add x4, x6, x0 ; promote idx                        ; pc=0x021C
-    jal x0, 4                                           ; pc=0x0220 ; target=L_end_if_5 ; addr=0x0224
+    sw x8, -1960(x17) ; t6__x9                          ; pc=0x0200
+    lw x9, -1960(x17) ; t6__x9                          ; pc=0x0204
+    beq x9, x0, 20                                      ; pc=0x0208 ; target=L_else_4 ; addr=0x021C
+    addi x6, x0, 480                                    ; pc=0x020C
+    sub x10, x4, x6                                     ; pc=0x0210
+    add x4, x10, x0 ; promote idx                       ; pc=0x0214
+    jal x0, 4                                           ; pc=0x0218 ; target=L_end_if_5 ; addr=0x021C
 L_else_4:
 L_end_if_5:
-    addi x5, x0, 1                                      ; pc=0x0224
-    add x8, x3, x5                                      ; pc=0x0228
-    add x3, x8, x0 ; promote i                          ; pc=0x022C
-    jal x0, -152                                        ; pc=0x0230 ; target=L_while_start_2 ; addr=0x0198
+    addi x7, x0, 1                                      ; pc=0x021C
+    add x5, x3, x7                                      ; pc=0x0220
+    add x3, x5, x0 ; promote i                          ; pc=0x0224
+    jal x0, -144                                        ; pc=0x0228 ; target=L_while_start_2 ; addr=0x0198
 L_while_end_3:
-    lw x10, -1932(x17) ; suma                           ; pc=0x0234
-    add x11, x10, x0                                    ; pc=0x0238
-    jal x0, 4                                           ; pc=0x023C ; target=.L_ir_1_main_end ; addr=0x0240
+    lw x8, -1932(x17) ; suma                            ; pc=0x022C
+    add x11, x8, x0                                     ; pc=0x0230
+    jal x0, 4                                           ; pc=0x0234 ; target=.L_ir_1_main_end ; addr=0x0238
 .L_ir_1_main_end:
     ; epilogue
-    lw x17, 4(x2)                                       ; pc=0x0240
-    addi x2, x2, 1976                                   ; pc=0x0244
-    freeze                                              ; pc=0x0248
+    lw x17, 4(x2)                                       ; pc=0x0238
+    addi x2, x2, 1976                                   ; pc=0x023C
+    freeze                                              ; pc=0x0240

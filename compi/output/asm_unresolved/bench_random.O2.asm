@@ -73,41 +73,39 @@ L_while_start_2:
     add x8, x8, x7                                      ; pc=0x00C8
     lw x10, 0(x8)                                       ; pc=0x00CC
     sw x10, -1948(x17) ; t3                             ; pc=0x00D0
-    addi x6, x0, 341                                    ; pc=0x00D4
-    add x5, x4, x6                                      ; pc=0x00D8
-    sw x5, -1952(x17) ; t5                              ; pc=0x00DC
-    lw x9, -1932(x17) ; suma                            ; pc=0x00E0
-    lw x7, -1948(x17) ; t3                              ; pc=0x00E4
-    add x8, x9, x7                                      ; pc=0x00E8
-    sw x8, -1932(x17) ; suma                            ; pc=0x00EC
-    lw x10, -1952(x17) ; t5                             ; pc=0x00F0
-    add x4, x10, x0 ; promote idx                       ; pc=0x00F4
-    addi x5, x0, 480                                    ; pc=0x00F8
-    addi x6, x0, 0                                      ; pc=0x00FC
-    bge x4, x5, .L_ir_6_ir_cmp_true                     ; pc=0x0100
-    jal x0, .L_ir_7_ir_cmp_end                          ; pc=0x0104
+    lw x6, -1932(x17) ; suma                            ; pc=0x00D4
+    lw x5, -1948(x17) ; t3                              ; pc=0x00D8
+    add x9, x6, x5                                      ; pc=0x00DC
+    sw x9, -1932(x17) ; suma                            ; pc=0x00E0
+    addi x7, x0, 341                                    ; pc=0x00E4
+    add x8, x4, x7                                      ; pc=0x00E8
+    add x4, x8, x0 ; promote idx                        ; pc=0x00EC
+    addi x10, x0, 480                                   ; pc=0x00F0
+    addi x9, x0, 0                                      ; pc=0x00F4
+    bge x4, x10, .L_ir_6_ir_cmp_true                    ; pc=0x00F8
+    jal x0, .L_ir_7_ir_cmp_end                          ; pc=0x00FC
 .L_ir_6_ir_cmp_true:
-    addi x6, x0, 1                                      ; pc=0x0108
+    addi x9, x0, 1                                      ; pc=0x0100
 .L_ir_7_ir_cmp_end:
-    sw x6, -1960(x17) ; t6                              ; pc=0x010C
-    lw x8, -1960(x17) ; t6                              ; pc=0x0110
-    beq x8, x0, L_else_4                                ; pc=0x0114
-    addi x7, x0, 480                                    ; pc=0x0118
-    sub x9, x4, x7                                      ; pc=0x011C
-    add x4, x9, x0 ; promote idx                        ; pc=0x0120
-    jal x0, L_end_if_5                                  ; pc=0x0124
+    sw x9, -1960(x17) ; t6                              ; pc=0x0104
+    lw x5, -1960(x17) ; t6                              ; pc=0x0108
+    beq x5, x0, L_else_4                                ; pc=0x010C
+    addi x6, x0, 480                                    ; pc=0x0110
+    sub x8, x4, x6                                      ; pc=0x0114
+    add x4, x8, x0 ; promote idx                        ; pc=0x0118
+    jal x0, L_end_if_5                                  ; pc=0x011C
 L_else_4:
 L_end_if_5:
-    addi x10, x0, 1                                     ; pc=0x0128
-    add x6, x3, x10                                     ; pc=0x012C
-    add x3, x6, x0 ; promote i                          ; pc=0x0130
-    jal x0, L_while_start_2                             ; pc=0x0134
+    addi x7, x0, 1                                      ; pc=0x0120
+    add x9, x3, x7                                      ; pc=0x0124
+    add x3, x9, x0 ; promote i                          ; pc=0x0128
+    jal x0, L_while_start_2                             ; pc=0x012C
 L_while_end_3:
-    lw x5, -1932(x17) ; suma                            ; pc=0x0138
-    add x11, x5, x0                                     ; pc=0x013C
-    jal x0, .L_ir_1_main_end                            ; pc=0x0140
+    lw x10, -1932(x17) ; suma                           ; pc=0x0130
+    add x11, x10, x0                                    ; pc=0x0134
+    jal x0, .L_ir_1_main_end                            ; pc=0x0138
 .L_ir_1_main_end:
     ; epilogue
-    lw x17, 4(x2)                                       ; pc=0x0144
-    addi x2, x2, 1976                                   ; pc=0x0148
-    freeze                                              ; pc=0x014C
+    lw x17, 4(x2)                                       ; pc=0x013C
+    addi x2, x2, 1976                                   ; pc=0x0140
+    freeze                                              ; pc=0x0144

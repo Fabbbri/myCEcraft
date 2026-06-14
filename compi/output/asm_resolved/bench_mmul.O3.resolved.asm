@@ -19,14 +19,14 @@
 ;   L_while_start_6 = 0x02FC
 ;   .L_ir_8_ir_cmp_true = 0x0310
 ;   .L_ir_9_ir_cmp_end = 0x0314
-;   L_while_end_7 = 0x03C4
-;   L_while_end_5 = 0x0404
-;   L_while_end_3 = 0x0424
-;   L_while_start_8 = 0x0434
-;   .L_ir_10_ir_cmp_true = 0x0444
-;   .L_ir_11_ir_cmp_end = 0x0448
-;   L_while_end_9 = 0x050C
-;   .L_ir_1_main_end = 0x0514
+;   L_while_end_7 = 0x03BC
+;   L_while_end_5 = 0x03FC
+;   L_while_end_3 = 0x041C
+;   L_while_start_8 = 0x042C
+;   .L_ir_10_ir_cmp_true = 0x043C
+;   .L_ir_11_ir_cmp_end = 0x0440
+;   L_while_end_9 = 0x0504
+;   .L_ir_1_main_end = 0x050C
 
 ; Referencias resueltas
 ;   pc=0x0000 portalv -> .L_ir_0_enderExit (addr=0x0018, offset=24)
@@ -36,21 +36,21 @@
 ;   pc=0x0284 jal -> L_while_start_0 (addr=0x0050, offset=-564)
 ;   pc=0x02A0 blt -> .L_ir_4_ir_cmp_true (addr=0x02A8, offset=8)
 ;   pc=0x02A4 jal -> .L_ir_5_ir_cmp_end (addr=0x02AC, offset=8)
-;   pc=0x02B4 beq -> L_while_end_3 (addr=0x0424, offset=368)
+;   pc=0x02B4 beq -> L_while_end_3 (addr=0x041C, offset=360)
 ;   pc=0x02CC blt -> .L_ir_6_ir_cmp_true (addr=0x02D4, offset=8)
 ;   pc=0x02D0 jal -> .L_ir_7_ir_cmp_end (addr=0x02D8, offset=8)
-;   pc=0x02E0 beq -> L_while_end_5 (addr=0x0404, offset=292)
+;   pc=0x02E0 beq -> L_while_end_5 (addr=0x03FC, offset=284)
 ;   pc=0x0308 blt -> .L_ir_8_ir_cmp_true (addr=0x0310, offset=8)
 ;   pc=0x030C jal -> .L_ir_9_ir_cmp_end (addr=0x0314, offset=8)
-;   pc=0x031C beq -> L_while_end_7 (addr=0x03C4, offset=168)
-;   pc=0x03C0 jal -> L_while_start_6 (addr=0x02FC, offset=-196)
-;   pc=0x0400 jal -> L_while_start_4 (addr=0x02C0, offset=-320)
-;   pc=0x0420 jal -> L_while_start_2 (addr=0x0298, offset=-392)
-;   pc=0x043C blt -> .L_ir_10_ir_cmp_true (addr=0x0444, offset=8)
-;   pc=0x0440 jal -> .L_ir_11_ir_cmp_end (addr=0x0448, offset=8)
-;   pc=0x0450 beq -> L_while_end_9 (addr=0x050C, offset=188)
-;   pc=0x0508 jal -> L_while_start_8 (addr=0x0434, offset=-212)
-;   pc=0x0510 jal -> .L_ir_1_main_end (addr=0x0514, offset=4)
+;   pc=0x031C beq -> L_while_end_7 (addr=0x03BC, offset=160)
+;   pc=0x03B8 jal -> L_while_start_6 (addr=0x02FC, offset=-188)
+;   pc=0x03F8 jal -> L_while_start_4 (addr=0x02C0, offset=-312)
+;   pc=0x0418 jal -> L_while_start_2 (addr=0x0298, offset=-384)
+;   pc=0x0434 blt -> .L_ir_10_ir_cmp_true (addr=0x043C, offset=8)
+;   pc=0x0438 jal -> .L_ir_11_ir_cmp_end (addr=0x0440, offset=8)
+;   pc=0x0448 beq -> L_while_end_9 (addr=0x0504, offset=188)
+;   pc=0x0500 jal -> L_while_start_8 (addr=0x042C, offset=-212)
+;   pc=0x0508 jal -> .L_ir_1_main_end (addr=0x050C, offset=4)
 
 ; ==================================================
 ; Ensamblador generado directamente desde IR
@@ -247,7 +247,7 @@ L_while_start_2:
 .L_ir_5_ir_cmp_end:
     sw x5, -808(x17) ; t2__x5                           ; pc=0x02AC
     lw x5, -808(x17) ; t2__x5                           ; pc=0x02B0
-    beq x5, x0, 368                                     ; pc=0x02B4 ; target=L_while_end_3 ; addr=0x0424
+    beq x5, x0, 360                                     ; pc=0x02B4 ; target=L_while_end_3 ; addr=0x041C
     addi x7, x0, 0                                      ; pc=0x02B8
     sw x7, -776(x17) ; j                                ; pc=0x02BC
 L_while_start_4:
@@ -261,7 +261,7 @@ L_while_start_4:
 .L_ir_7_ir_cmp_end:
     sw x9, -812(x17) ; t3__x6                           ; pc=0x02D8
     lw x6, -812(x17) ; t3__x6                           ; pc=0x02DC
-    beq x6, x0, 292                                     ; pc=0x02E0 ; target=L_while_end_5 ; addr=0x0404
+    beq x6, x0, 284                                     ; pc=0x02E0 ; target=L_while_end_5 ; addr=0x03FC
     addi x8, x0, 0                                      ; pc=0x02E4
     sw x8, -792(x17) ; acc                              ; pc=0x02E8
     addi x5, x0, 0                                      ; pc=0x02EC
@@ -279,7 +279,7 @@ L_while_start_6:
 .L_ir_9_ir_cmp_end:
     sw x7, -816(x17) ; t4__x7                           ; pc=0x0314
     lw x7, -816(x17) ; t4__x7                           ; pc=0x0318
-    beq x7, x0, 168                                     ; pc=0x031C ; target=L_while_end_7 ; addr=0x03C4
+    beq x7, x0, 160                                     ; pc=0x031C ; target=L_while_end_7 ; addr=0x03BC
     lw x6, -784(x17) ; ia                               ; pc=0x0320
     lw x8, -780(x17) ; k                                ; pc=0x0324
     add x5, x6, x8                                      ; pc=0x0328
@@ -302,118 +302,116 @@ L_while_start_6:
     add x9, x9, x8                                      ; pc=0x036C
     lw x7, 0(x9)                                        ; pc=0x0370
     sw x7, -832(x17) ; t8__x3                           ; pc=0x0374
-    lw x6, -780(x17) ; k                                ; pc=0x0378
-    addi x5, x0, 1                                      ; pc=0x037C
-    add x8, x6, x5                                      ; pc=0x0380
-    sw x8, -836(x17) ; t11__x6                          ; pc=0x0384
-    lw x9, -824(x17) ; t6__x9                           ; pc=0x0388
-    lw x10, -832(x17) ; t8__x3                          ; pc=0x038C
-    mul x7, x9, x10                                     ; pc=0x0390
-    sw x7, -840(x17) ; t9__x4                           ; pc=0x0394
-    lw x8, -792(x17) ; acc                              ; pc=0x0398
-    lw x5, -840(x17) ; t9__x4                           ; pc=0x039C
-    add x6, x8, x5                                      ; pc=0x03A0
-    sw x6, -792(x17) ; acc                              ; pc=0x03A4
-    lw x6, -836(x17) ; t11__x6                          ; pc=0x03A8
-    sw x6, -780(x17) ; k                                ; pc=0x03AC
-    lw x7, -788(x17) ; kb                               ; pc=0x03B0
-    addi x10, x0, 8                                     ; pc=0x03B4
-    add x9, x7, x10                                     ; pc=0x03B8
-    sw x9, -788(x17) ; kb                               ; pc=0x03BC
-    jal x0, -196                                        ; pc=0x03C0 ; target=L_while_start_6 ; addr=0x02FC
+    lw x9, -824(x17) ; t6__x9                           ; pc=0x0378
+    lw x6, -832(x17) ; t8__x3                           ; pc=0x037C
+    mul x5, x9, x6                                      ; pc=0x0380
+    sw x5, -836(x17) ; t9__x4                           ; pc=0x0384
+    lw x8, -792(x17) ; acc                              ; pc=0x0388
+    lw x10, -836(x17) ; t9__x4                          ; pc=0x038C
+    add x7, x8, x10                                     ; pc=0x0390
+    sw x7, -792(x17) ; acc                              ; pc=0x0394
+    lw x5, -780(x17) ; k                                ; pc=0x0398
+    addi x6, x0, 1                                      ; pc=0x039C
+    add x9, x5, x6                                      ; pc=0x03A0
+    sw x9, -780(x17) ; k                                ; pc=0x03A4
+    lw x7, -788(x17) ; kb                               ; pc=0x03A8
+    addi x10, x0, 8                                     ; pc=0x03AC
+    add x8, x7, x10                                     ; pc=0x03B0
+    sw x8, -788(x17) ; kb                               ; pc=0x03B4
+    jal x0, -188                                        ; pc=0x03B8 ; target=L_while_start_6 ; addr=0x02FC
 L_while_end_7:
-    lw x5, -784(x17) ; ia                               ; pc=0x03C4
-    lw x8, -776(x17) ; j                                ; pc=0x03C8
-    add x6, x5, x8                                      ; pc=0x03CC
-    sw x6, -852(x17) ; t13__x8                          ; pc=0x03D0
-    lw x9, -792(x17) ; acc                              ; pc=0x03D4
-    lw x8, -852(x17) ; t13__x8                          ; pc=0x03D8
-    add x10, x8, x8                                     ; pc=0x03DC
-    add x10, x10, x10                                   ; pc=0x03E0
-    addiSigned x7, x17, -768                            ; pc=0x03E4
-    add x7, x7, x10                                     ; pc=0x03E8
-    sw x9, 0(x7)                                        ; pc=0x03EC
-    lw x6, -776(x17) ; j                                ; pc=0x03F0
-    addi x5, x0, 1                                      ; pc=0x03F4
-    add x10, x6, x5                                     ; pc=0x03F8
-    sw x10, -776(x17) ; j                               ; pc=0x03FC
-    jal x0, -320                                        ; pc=0x0400 ; target=L_while_start_4 ; addr=0x02C0
+    lw x9, -784(x17) ; ia                               ; pc=0x03BC
+    lw x6, -776(x17) ; j                                ; pc=0x03C0
+    add x8, x9, x6                                      ; pc=0x03C4
+    sw x8, -852(x17) ; t13__x8                          ; pc=0x03C8
+    lw x5, -792(x17) ; acc                              ; pc=0x03CC
+    lw x8, -852(x17) ; t13__x8                          ; pc=0x03D0
+    add x10, x8, x8                                     ; pc=0x03D4
+    add x10, x10, x10                                   ; pc=0x03D8
+    addiSigned x7, x17, -768                            ; pc=0x03DC
+    add x7, x7, x10                                     ; pc=0x03E0
+    sw x5, 0(x7)                                        ; pc=0x03E4
+    lw x6, -776(x17) ; j                                ; pc=0x03E8
+    addi x9, x0, 1                                      ; pc=0x03EC
+    add x10, x6, x9                                     ; pc=0x03F0
+    sw x10, -776(x17) ; j                               ; pc=0x03F4
+    jal x0, -312                                        ; pc=0x03F8 ; target=L_while_start_4 ; addr=0x02C0
 L_while_end_5:
-    addi x8, x0, 1                                      ; pc=0x0404
-    add x7, x3, x8                                      ; pc=0x0408
-    add x3, x7, x0 ; promote i                          ; pc=0x040C
-    lw x9, -784(x17) ; ia                               ; pc=0x0410
-    addi x10, x0, 8                                     ; pc=0x0414
-    add x5, x9, x10                                     ; pc=0x0418
-    sw x5, -784(x17) ; ia                               ; pc=0x041C
-    jal x0, -392                                        ; pc=0x0420 ; target=L_while_start_2 ; addr=0x0298
+    addi x8, x0, 1                                      ; pc=0x03FC
+    add x7, x3, x8                                      ; pc=0x0400
+    add x3, x7, x0 ; promote i                          ; pc=0x0404
+    lw x5, -784(x17) ; ia                               ; pc=0x0408
+    addi x10, x0, 8                                     ; pc=0x040C
+    add x9, x5, x10                                     ; pc=0x0410
+    sw x9, -784(x17) ; ia                               ; pc=0x0414
+    jal x0, -384                                        ; pc=0x0418 ; target=L_while_start_2 ; addr=0x0298
 L_while_end_3:
-    addi x6, x0, 0                                      ; pc=0x0424
-    add x4, x6, x0 ; promote suma                       ; pc=0x0428
-    addi x7, x0, 0                                      ; pc=0x042C
-    add x3, x7, x0 ; promote i                          ; pc=0x0430
+    addi x6, x0, 0                                      ; pc=0x041C
+    add x4, x6, x0 ; promote suma                       ; pc=0x0420
+    addi x7, x0, 0                                      ; pc=0x0424
+    add x3, x7, x0 ; promote i                          ; pc=0x0428
 L_while_start_8:
-    addi x8, x0, 64                                     ; pc=0x0434
-    addi x5, x0, 0                                      ; pc=0x0438
-    blt x3, x8, 8                                       ; pc=0x043C ; target=.L_ir_10_ir_cmp_true ; addr=0x0444
-    jal x0, 8                                           ; pc=0x0440 ; target=.L_ir_11_ir_cmp_end ; addr=0x0448
+    addi x8, x0, 64                                     ; pc=0x042C
+    addi x9, x0, 0                                      ; pc=0x0430
+    blt x3, x8, 8                                       ; pc=0x0434 ; target=.L_ir_10_ir_cmp_true ; addr=0x043C
+    jal x0, 8                                           ; pc=0x0438 ; target=.L_ir_11_ir_cmp_end ; addr=0x0440
 .L_ir_10_ir_cmp_true:
-    addi x5, x0, 1                                      ; pc=0x0444
+    addi x9, x0, 1                                      ; pc=0x043C
 .L_ir_11_ir_cmp_end:
-    sw x5, -868(x17) ; t23__x4                          ; pc=0x0448
-    lw x10, -868(x17) ; t23__x4                         ; pc=0x044C
-    beq x10, x0, 188                                    ; pc=0x0450 ; target=L_while_end_9 ; addr=0x050C
-    add x9, x3, x3                                      ; pc=0x0454
-    add x9, x9, x9                                      ; pc=0x0458
-    addiSigned x6, x17, -768                            ; pc=0x045C
-    add x6, x6, x9                                      ; pc=0x0460
-    lw x7, 0(x6)                                        ; pc=0x0464
-    sw x7, -872(x17) ; t24__x5                          ; pc=0x0468
-    addi x5, x0, 1                                      ; pc=0x046C
-    add x8, x3, x5                                      ; pc=0x0470
-    add x10, x8, x8                                     ; pc=0x0474
-    add x10, x10, x10                                   ; pc=0x0478
-    addiSigned x9, x17, -768                            ; pc=0x047C
-    add x9, x9, x10                                     ; pc=0x0480
-    lw x6, 0(x9)                                        ; pc=0x0484
-    sw x6, -876(x17) ; t26__x7                          ; pc=0x0488
-    lw x5, -872(x17) ; t24__x5                          ; pc=0x048C
-    add x7, x4, x5                                      ; pc=0x0490
-    add x4, x7, x0 ; promote suma                       ; pc=0x0494
-    lw x7, -876(x17) ; t26__x7                          ; pc=0x0498
-    add x10, x4, x7                                     ; pc=0x049C
-    add x4, x10, x0 ; promote suma                      ; pc=0x04A0
-    addi x8, x0, 2                                      ; pc=0x04A4
-    add x9, x3, x8                                      ; pc=0x04A8
-    add x6, x9, x9                                      ; pc=0x04AC
-    add x6, x6, x6                                      ; pc=0x04B0
-    addiSigned x5, x17, -768                            ; pc=0x04B4
-    add x5, x5, x6                                      ; pc=0x04B8
-    lw x10, 0(x5)                                       ; pc=0x04BC
-    sw x10, -888(x17) ; t28__x9                         ; pc=0x04C0
-    addi x7, x0, 3                                      ; pc=0x04C4
-    add x8, x3, x7                                      ; pc=0x04C8
-    add x6, x8, x8                                      ; pc=0x04CC
-    add x6, x6, x6                                      ; pc=0x04D0
-    addiSigned x9, x17, -768                            ; pc=0x04D4
-    add x9, x9, x6                                      ; pc=0x04D8
-    lw x5, 0(x9)                                        ; pc=0x04DC
-    sw x5, -892(x17) ; t30__x3                          ; pc=0x04E0
-    lw x9, -888(x17) ; t28__x9                          ; pc=0x04E4
-    add x10, x4, x9                                     ; pc=0x04E8
-    add x4, x10, x0 ; promote suma                      ; pc=0x04EC
-    lw x7, -892(x17) ; t30__x3                          ; pc=0x04F0
-    add x6, x4, x7                                      ; pc=0x04F4
-    add x4, x6, x0 ; promote suma                       ; pc=0x04F8
-    addi x8, x0, 4                                      ; pc=0x04FC
-    add x5, x3, x8                                      ; pc=0x0500
-    add x3, x5, x0 ; promote i                          ; pc=0x0504
-    jal x0, -212                                        ; pc=0x0508 ; target=L_while_start_8 ; addr=0x0434
+    sw x9, -868(x17) ; t23__x4                          ; pc=0x0440
+    lw x10, -868(x17) ; t23__x4                         ; pc=0x0444
+    beq x10, x0, 188                                    ; pc=0x0448 ; target=L_while_end_9 ; addr=0x0504
+    add x5, x3, x3                                      ; pc=0x044C
+    add x5, x5, x5                                      ; pc=0x0450
+    addiSigned x6, x17, -768                            ; pc=0x0454
+    add x6, x6, x5                                      ; pc=0x0458
+    lw x7, 0(x6)                                        ; pc=0x045C
+    sw x7, -872(x17) ; t24__x5                          ; pc=0x0460
+    lw x5, -872(x17) ; t24__x5                          ; pc=0x0464
+    add x9, x4, x5                                      ; pc=0x0468
+    add x4, x9, x0 ; promote suma                       ; pc=0x046C
+    addi x8, x0, 1                                      ; pc=0x0470
+    add x10, x3, x8                                     ; pc=0x0474
+    add x6, x10, x10                                    ; pc=0x0478
+    add x6, x6, x6                                      ; pc=0x047C
+    addiSigned x7, x17, -768                            ; pc=0x0480
+    add x7, x7, x6                                      ; pc=0x0484
+    lw x9, 0(x7)                                        ; pc=0x0488
+    sw x9, -880(x17) ; t26__x7                          ; pc=0x048C
+    lw x7, -880(x17) ; t26__x7                          ; pc=0x0490
+    add x5, x4, x7                                      ; pc=0x0494
+    add x4, x5, x0 ; promote suma                       ; pc=0x0498
+    addi x8, x0, 2                                      ; pc=0x049C
+    add x6, x3, x8                                      ; pc=0x04A0
+    add x10, x6, x6                                     ; pc=0x04A4
+    add x10, x10, x10                                   ; pc=0x04A8
+    addiSigned x9, x17, -768                            ; pc=0x04AC
+    add x9, x9, x10                                     ; pc=0x04B0
+    lw x5, 0(x9)                                        ; pc=0x04B4
+    sw x5, -888(x17) ; t28__x9                          ; pc=0x04B8
+    lw x9, -888(x17) ; t28__x9                          ; pc=0x04BC
+    add x7, x4, x9                                      ; pc=0x04C0
+    add x4, x7, x0 ; promote suma                       ; pc=0x04C4
+    addi x8, x0, 3                                      ; pc=0x04C8
+    add x10, x3, x8                                     ; pc=0x04CC
+    add x6, x10, x10                                    ; pc=0x04D0
+    add x6, x6, x6                                      ; pc=0x04D4
+    addiSigned x5, x17, -768                            ; pc=0x04D8
+    add x5, x5, x6                                      ; pc=0x04DC
+    lw x7, 0(x5)                                        ; pc=0x04E0
+    sw x7, -896(x17) ; t30__x3                          ; pc=0x04E4
+    lw x9, -896(x17) ; t30__x3                          ; pc=0x04E8
+    add x8, x4, x9                                      ; pc=0x04EC
+    add x4, x8, x0 ; promote suma                       ; pc=0x04F0
+    addi x6, x0, 4                                      ; pc=0x04F4
+    add x10, x3, x6                                     ; pc=0x04F8
+    add x3, x10, x0 ; promote i                         ; pc=0x04FC
+    jal x0, -212                                        ; pc=0x0500 ; target=L_while_start_8 ; addr=0x042C
 L_while_end_9:
-    add x11, x4, x0                                     ; pc=0x050C
-    jal x0, 4                                           ; pc=0x0510 ; target=.L_ir_1_main_end ; addr=0x0514
+    add x11, x4, x0                                     ; pc=0x0504
+    jal x0, 4                                           ; pc=0x0508 ; target=.L_ir_1_main_end ; addr=0x050C
 .L_ir_1_main_end:
     ; epilogue
-    lw x17, 4(x2)                                       ; pc=0x0514
-    addi x2, x2, 912                                    ; pc=0x0518
-    freeze                                              ; pc=0x051C
+    lw x17, 4(x2)                                       ; pc=0x050C
+    addi x2, x2, 912                                    ; pc=0x0510
+    freeze                                              ; pc=0x0514
