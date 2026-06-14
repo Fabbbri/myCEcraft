@@ -94,11 +94,13 @@ compile: dirs
 run: compile
 	$(VVP) $(OUT) $(VVP_FLAGS) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
-# correr la suite de benchmarks (compila el sim por dentro y genera CSV + HTML)
-# ej: make benchmarks            -> usa los .hex versionados + sidecar
-#     make benchmarks BENCH_ARGS=--compile   -> recompila O0/O1 y captura metricas del compilador
-benchmarks:
-	-$(PYTHON) scripts/benchmarks.py $(BENCH_ARGS)
+# correr la suite de benchmarks (compila el sim por dentro y genera CSV + HTML).
+# Recompila los ROM principales (O0..O3) y los 12 programas de Defensa/P2 desde
+# su fuente .craft antes de medir.
+# ej: make bench
+#     make bench BENCH_ARGS=--no-open   -> no abrir el HTML al terminar
+bench:
+	-$(PYTHON) scripts/benchmarks.py --compile --compile-p2 $(BENCH_ARGS)
 
 # correr el tb SIN cache (top_no_cash + memoria realista) en un programa.
 # El tb vive en tb/old/, por eso tiene target propio (no usa run TOP=...).
@@ -183,4 +185,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run benchmarks run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
+.PHONY: all dirs compile run bench run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
