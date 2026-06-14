@@ -917,9 +917,12 @@ def compiler_section(rows):
         f'{_opt_badge(o)} <span class="clvldesc">{_OPT_LEVEL_META.get(o,{}).get("desc","")}</span>'
         for o in all_opts)
 
+    # resultado esperado (oraculo x11) por programa; igual en todos los niveles
+    x11_by_name = {b["name"]: b.get("x11") for b in BENCHMARKS}
+
     # ── TABLA A: Rendimiento ──────────────────────────────────────────────────
     # cabecera fila 1: grupos por nivel
-    hdr1_a = f'<th rowspan="2" class="cname">Benchmark</th>'
+    hdr1_a = f'<th rowspan="2" class="cname">Benchmark</th><th rowspan="2">x11</th>'
     for o in all_opts:
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         span = 3  # Ciclos + IPC + CPI
@@ -976,7 +979,9 @@ def compiler_section(rows):
             sp = (c0 / cx) if (c0 and cx and not broke) else None
             speed_cells += f"<td class='p2speedcell'>{_speed_badge_opt(sp, broke, o)}</td>"
 
-        perf += (f"<tr><td class='cname'>{name_cell}</td>"
+        x11v = x11_by_name.get(base)
+        x11_cell = (f"<td class='p2x11'>0x{x11v}</td>" if x11v else "<td>&mdash;</td>")
+        perf += (f"<tr><td class='cname'>{name_cell}</td>{x11_cell}"
                  f"{cells_by_level}{speed_cells}</tr>\n")
 
     # ── TABLA B: Transformaciones ─────────────────────────────────────────────
