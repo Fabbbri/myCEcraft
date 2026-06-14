@@ -61,7 +61,7 @@ L_while_start_0:
 .L_ir_2_ir_cmp_true:
     addi x7, x0, 1                                      ; pc=0x0058
 .L_ir_3_ir_cmp_end:
-    add x6, x7, x0 ; promote t3__x3                     ; pc=0x005C
+    add x6, x7, x0 ; promote t3                         ; pc=0x005C
     beq x6, x0, 44                                      ; pc=0x0060 ; target=L_while_end_1 ; addr=0x008C
     add x8, x3, x4                                      ; pc=0x0064
     add x3, x8, x0 ; promote suma                       ; pc=0x0068

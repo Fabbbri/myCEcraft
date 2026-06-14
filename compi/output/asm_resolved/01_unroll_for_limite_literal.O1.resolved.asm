@@ -61,13 +61,13 @@ L_for_start_0:
 .L_ir_2_ir_cmp_true:
     addi x7, x0, 1                                      ; pc=0x0058
 .L_ir_3_ir_cmp_end:
-    add x6, x7, x0 ; promote t6__x3                     ; pc=0x005C
+    add x6, x7, x0 ; promote t6                         ; pc=0x005C
     beq x6, x0, 100                                     ; pc=0x0060 ; target=L_for_end_1 ; addr=0x00C4
     add x8, x4, x3                                      ; pc=0x0064
     add x4, x8, x0 ; promote suma_a                     ; pc=0x0068
     add x9, x5, x3                                      ; pc=0x006C
-    sw x9, -24(x17) ; t8__x5                            ; pc=0x0070
-    lw x7, -24(x17) ; t8__x5                            ; pc=0x0074
+    sw x9, -24(x17) ; t8                                ; pc=0x0070
+    lw x7, -24(x17) ; t8                                ; pc=0x0074
     addi x10, x0, 1                                     ; pc=0x0078
     add x8, x7, x10                                     ; pc=0x007C
     add x5, x8, x0 ; promote suma_b                     ; pc=0x0080
@@ -77,20 +77,20 @@ L_for_start_0:
     add x4, x10, x0 ; promote suma_a                    ; pc=0x0090
     addi x7, x0, 2                                      ; pc=0x0094
     add x9, x3, x7                                      ; pc=0x0098
-    add x8, x5, x9                                      ; pc=0x009C
-    sw x8, -36(x17) ; t11__x8                           ; pc=0x00A0
-    lw x8, -36(x17) ; t11__x8                           ; pc=0x00A4
-    addi x10, x0, 1                                     ; pc=0x00A8
-    add x7, x8, x10                                     ; pc=0x00AC
-    add x5, x7, x0 ; promote suma_b                     ; pc=0x00B0
+    add x10, x5, x9                                     ; pc=0x009C
+    sw x10, -36(x17) ; t11                              ; pc=0x00A0
+    lw x8, -36(x17) ; t11                               ; pc=0x00A4
+    addi x7, x0, 1                                      ; pc=0x00A8
+    add x10, x8, x7                                     ; pc=0x00AC
+    add x5, x10, x0 ; promote suma_b                    ; pc=0x00B0
     addi x9, x0, 4                                      ; pc=0x00B4
-    add x7, x3, x9                                      ; pc=0x00B8
-    add x3, x7, x0 ; promote i                          ; pc=0x00BC
+    add x10, x3, x9                                     ; pc=0x00B8
+    add x3, x10, x0 ; promote i                         ; pc=0x00BC
     jal x0, -120                                        ; pc=0x00C0 ; target=L_for_start_0 ; addr=0x0048
 L_for_end_1:
-    add x10, x4, x5                                     ; pc=0x00C4
-    sw x10, -48(x17) ; t5__x3                           ; pc=0x00C8
-    lw x8, -48(x17) ; t5__x3                            ; pc=0x00CC
+    add x7, x4, x5                                      ; pc=0x00C4
+    sw x7, -48(x17) ; t5                                ; pc=0x00C8
+    lw x8, -48(x17) ; t5                                ; pc=0x00CC
     add x11, x8, x0                                     ; pc=0x00D0
     jal x0, 4                                           ; pc=0x00D4 ; target=.L_ir_1_main_end ; addr=0x00D8
 .L_ir_1_main_end:

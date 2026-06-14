@@ -2,27 +2,32 @@
 
 Metodologia de medicion, benchmarks y analisis de resultados de la jerarquia
 de cache de datos (Proyecto Grupal II). Las metricas y su organizacion siguen
-la Seccion 5 del enunciado (Cuadros 1/2/3).
+la Seccion 5 del enunciado (Cuadros 1/2/3). Todos los numeros provienen de
+`scripts/benchmarks.py` (`outputs/reports/results.csv`).
 
 ## Metodologia de medicion
 
-Las metricas se capturan en `tb/tb_topG.sv` muestreando señales del DUT cada
-ciclo (medicion no invasiva, no altera el RTL):
+Las metricas se capturan en los testbenches (`tb/tb_topG.sv`,
+`tb/tb_general_dump.sv`) muestreando señales del DUT cada ciclo (medicion no
+invasiva, no altera el RTL):
 
-- **Procesador (5.1)**: ciclos hasta el `freeze`, instrucciones completadas
-  (no-NOP, sin flush ni stall), IPC = instr/ciclos y CPI = 1/IPC; stalls de
-  memoria (`stall_mem`) y de control (`flushD`).
+- **Procesador (5.1)**: ciclos desde la salida de reset hasta el `freeze`,
+  instrucciones completadas (no-NOP, sin flush ni stall), IPC = instr/ciclos y
+  CPI = 1/IPC; ciclos de stall de memoria (`stall_mem`) y de control (`flushD`).
 - **Cache (5.2)**: accesos a L1 clasificados por read/write y hit/miss en el
-  primer ciclo de cada operacion real en MEM; L2 por load miss y por store
-  drenado. El AMAT se deriva de los miss rates.
-- **Memoria principal (5.3)**: accesos (misses de lectura de L2 + stores
+  primer ciclo de cada operacion real en MEM; L2 por load miss de L1 y por
+  store drenado. El AMAT se deriva de los miss rates.
+- **Memoria principal (5.3)**: accesos (miss de lectura de L2 + stores
   drenados, por write-through), ciclos de transferencia y utilizacion del bus.
 
-La automatizacion esta en `scripts/benchmarks.py`: corre la suite, valida el
-resultado de cada programa contra su valor esperado en x11 (oraculo),
-consolida `outputs/reports/results.csv` (30 columnas) y genera la vista
-`results.html`, organizada en los tres bloques del spec mas la comparacion
-del compilador.
+Ciclos e instrucciones se cuentan sobre **la misma ventana** (reset -> `freeze`):
+el conteo se congela en la instruccion de halt, de modo que el CPI es
+internamente consistente. Como validacion cruzada, `tb_topG` y
+`tb_general_dump` reportan metricas identicas sobre el mismo binario.
+
+La automatizacion esta en `scripts/benchmarks.py`: compila la suite, corre cada
+programa, valida su resultado en x11 contra el valor esperado (oraculo),
+consolida `outputs/reports/results.csv` (32 columnas) y genera `results.html`.
 
 ## Benchmarks utilizados
 
@@ -32,72 +37,96 @@ del compilador.
 | `bench_seq` | recorrido secuencial de 256 palabras | localidad espacial (1 miss por linea de 8 palabras) |
 | `bench_stride` | salto de 32 B (una palabra por linea) | peor caso espacial: cada acceso toca linea nueva |
 | `bench_random` | permutacion pseudoaleatoria sobre 480 palabras (paso 341, coprimo) | sin localidad espacial, working set ~2 KB |
-| `bench_mmul` | multiplicacion de matrices 8x8 | kernel real con alta localidad (working set 768 B cabe en L1) |
+| `bench_mmul` | multiplicacion de matrices 8x8 | kernel con alta localidad (working set 768 B cabe en L1) y muchas escrituras |
 
-Cada programa termina con su resultado (checksum) en x11, verificado contra el
-valor calculado a mano. Fuentes en `programs/src/*.craft`, compiladas con el
-compilador propio (`python compi/main.py -r -b`) en O0 y O1.
+Cada programa termina con su checksum en x11, verificado contra el valor
+calculado a mano. Fuentes en `programs/src/*.craft`, compiladas con el
+compilador propio (`python compi/main.py -r -b`) en O0/O1/O2/O3.
 
-## Resultados (configuracion base, sin optimizar)
+## Resultados (configuracion base, O0)
 
-| Benchmark | IPC | CPI | L1 Hit | L2 Hit | AMAT | Stalls mem | BW |
-|---|---|---|---|---|---|---|---|
-| while x<5 | 0.40 | 2.52 | 80.0% | 55.6% | 4.82 | 54% | 58% |
-| bench_seq | 0.37 | 2.67 | 90.6% | 72.7% | 2.39 | 53% | 86% |
-| bench_stride | 0.26 | 3.84 | 82.7% | 59.0% | 4.16 | 68% | 71% |
-| bench_random | 0.36 | 2.81 | 93.1% | 80.7% | 1.88 | 56% | 87% |
-| bench_mmul | **0.46** | **2.19** | **97.3%** | **90.0%** | **1.28** | 46% | 88% |
+| Benchmark | Ciclos | Instr | CPI | IPC | L1 Hit | L2 Hit | AMAT | Stall mem | BW |
+|---|---|---|---|---|---|---|---|---|---|
+| while x<5 | 178 | 59 | 3.02 | 0.33 | 80.0% | 55.6% | 4.82 | 54% | 58% |
+| bench_seq | 21 982 | 9 251 | 2.38 | 0.42 | 85.8% | 72.6% | 3.10 | 44% | 86% |
+| bench_stride | 4 059 | 1 187 | 3.42 | 0.29 | 73.8% | 58.4% | 5.83 | 61% | 71% |
+| bench_random | 60 212 | 23 964 | 2.51 | 0.40 | 90.6% | 81.6% | 2.19 | 47% | 88% |
+| bench_mmul | 110 628 | 28 799 | **3.84** | 0.26 | **98.4%** | **95.9%** | **1.15** | **66%** | **89%** |
 
-AMAT global (miss rates promediados: L1 11.3%, L2 28.4%) ≈ **2.70 ciclos**.
-Tabla completa (30 columnas, O0 y O1) en `outputs/reports/results.csv`.
+mmul tiene el **mejor** hit rate y AMAT pero el **peor** CPI: la calidad de la
+cache y el rendimiento real divergen (ver Interpretacion). Tabla completa
+(O0-O3) en `outputs/reports/results.csv`.
 
-## Comparacion entre configuraciones (compilador O0 vs O1)
+## Comparacion entre configuraciones (O0 / O1 / O2 / O3)
 
-Mismo hardware, el compilador propio en dos niveles de optimizacion:
+Mismo hardware, el compilador propio en cuatro niveles. O1 = unroll + rename;
+O2 = DCE + reorder; O3 = todas. Aceleracion = ciclos_O0 / ciclos_Ox (>1 mas
+rapido, <1 mas lento).
 
-| Benchmark | Ciclos O0 → O1 | Acelera | CPI O0 → O1 | L1 Hit O0 → O1 |
+| Benchmark | Ciclos O0 | O1 | O2 | O3 |
 |---|---|---|---|---|
-| bench_seq | 21 992 → 13 681 | 1.61x | 2.67 → 2.29 | 90.6% → 76.2% |
-| bench_stride | 4 085 → 3 020 | 1.35x | 3.84 → 3.84 | 82.7% → 56.6% |
-| bench_random | 57 509 → 51 813 | 1.11x | 2.81 → 2.46 | 93.1% → 89.0% |
-| bench_mmul | (O1 incorrecto) | — | — | — |
+| bench_seq | 21 982 | **13 680** (1.61x) | 27 034 (0.81x) | 13 680 (1.61x) |
+| bench_stride | 4 059 | **3 019** (1.34x) | 4 682 (0.87x) | 3 037 (1.34x) |
+| bench_random | 60 212 | **51 812** (1.16x) | 69 802 (0.86x) | 61 402 (0.98x) |
+| bench_mmul | 110 628 | **108 786** (1.02x) | 121 972 (0.91x) | 118 934 (0.93x) |
 
-O1 aplica loop unrolling y renombrado de registros: baja los ciclos, pero
-suele **bajar el hit rate** porque elimina los aciertos baratos del control del
-bucle y deja los misses obligatorios como mayor fraccion (el AMAT sube en
-consecuencia). Es la interaccion compilador-cache que el proyecto busca medir.
+- **O1 (unroll + rename) acelera** en los cuatro, de 1.02x (mmul) a 1.61x
+  (seq). El unroll elimina saltos de control del bucle; el rename quita spills.
+  El costo es codigo: en seq el binario crece de 252 a 636 B (2.5x) por un
+  1.61x de velocidad.
+- **O2 (DCE + reorder) regresa** en los cuatro (0.81-0.91x, mas lento que O0).
+  El reorder inserta spill/reload de temporales que suben los ciclos sin cerrar
+  el stall que pretende ocultar.
+- **O3 ~ O1** donde el unroll manda (seq, stride); en random/mmul el componente
+  de reorder lo arrastra hasta empatar o quedar bajo O0.
+
+Interaccion compilador-cache (O0 -> O1):
+
+| Benchmark | L1 Hit | AMAT |
+|---|---|---|
+| bench_seq | 85.8% -> 76.2% | 3.10 -> 5.58 |
+| bench_stride | 73.8% -> 56.6% | 5.83 -> 11.04 |
+| bench_random | 90.6% -> 89.0% | 2.19 -> 2.48 |
+| bench_mmul | 98.4% -> 98.4% | 1.15 -> 1.14 |
+
+O1 baja los ciclos pero **baja el hit rate**: elimina los aciertos baratos del
+control del bucle, dejando los misses obligatorios como mayor fraccion (el AMAT
+sube en consecuencia). mmul, ya saturado, no se mueve.
 
 ## Interpretacion
 
-1. **La jerarquia se paga.** Contra el modelo sin cache de la iteracion 2
-   (CPI 8.19 en el while), el mismo programa corre a CPI 2.52: ~3.2x.
-2. **La localidad determina el rendimiento.** Mismo hardware: mmul (working set
-   en L1) logra CPI 2.19; stride (sin localidad) 3.84, ~75% mas lento.
-3. **La medicion reproduce la teoria.** Para bench_seq se predicen 32 misses
-   obligatorios (256/8); se midieron 33. El AMAT ordena los benchmarks igual
-   que el CPI medido.
-4. **La pared de memoria es real.** Aun con 90%+ de hit rate, el pipeline pasa
-   46-68% de los ciclos congelado: el miss penalty (8 + 25 ciclos) domina.
-5. **El costo del write-through es medible.** En mmul, 2216 de 2242 accesos a
-   RAM (98.8%) son stores; el bus queda 88% ocupado. Mejora futura identificada:
-   write-back reduciria ese trafico en cargas con escrituras repetidas.
+1. **El AMAT no predice el CPI.** mmul tiene el mejor AMAT (1.15) y el peor CPI
+   (3.84): el cuello no esta en la frecuencia de misses sino en el ancho de
+   banda de memoria.
+2. **El cuello de botella es el write-through.** En mmul, 5 479 de 5 507 accesos
+   a RAM (99.5%) son stores drenados; el bus queda 89% ocupado y el pipeline
+   pasa 66% de los ciclos congelado, **pese a 98.4% de hit en L1**. Mejora
+   identificada: write-back recortaria ese trafico en kernels con escrituras
+   repetidas.
+3. **La localidad espacial ordena los hits.** stride (una palabra por linea, sin
+   reuso) tiene el peor L1 hit (73.8%) y AMAT (5.83); mmul y random (working set
+   residente) los mejores.
+4. **La medicion reproduce la teoria.** bench_seq predice 256/8 = 32 misses
+   obligatorios; se midieron 34 (L1 read misses), el resto de los accesos caen
+   dentro de la linea ya traida.
+5. **La pared de memoria es real.** Aun con 85-98% de hit rate, el pipeline pasa
+   44-66% de los ciclos congelado por memoria: la penalidad del burst domina
+   sobre la frecuencia de misses.
 
 ## Validacion experimental
 
-- Suite: **8/9 corridas PASS** (resultado en x11 verificado por programa). Las
-  5 corridas base (O0 + while) pasan; de las 4 variantes O1, 3 pasan y
-  **mmul O1 falla** — el oraculo detecta que la optimizacion rompe el resultado
-  (regresion del compilador, no del cache). Esto valida que las pruebas no solo
-  miden, tambien atrapan errores.
-- TEA + boveda (`tb_tea_loader`): 19/20 PASS; cifrado/descifrado y roundtrip
-  correctos. El unico fallo (limpieza de la password de bootstrap en NRAM[0])
-  es del camino de la boveda, independiente de la jerarquia de cache.
+- **Oraculo x11**: cada corrida valida su checksum contra el valor calculado a
+  mano. Suite de cache: **17/17 PASS** (while + 4 benchmarks x O0/O1/O2/O3).
+  Verificado: bench_seq = 0x7F80, bench_stride = 0xF80, bench_random = 0x1C110,
+  bench_mmul = 0x3F00, identico en los cuatro niveles -> las optimizaciones
+  preservan el resultado.
+- **Consistencia de instrumentacion**: `tb_topG` y `tb_general_dump` reportan
+  metricas identicas sobre el mismo binario (mismas ventanas de conteo), lo que
+  descarta sesgo del testbench.
 
 ## Como reproducir
 
 ```bash
 cd arqui
-python scripts/benchmarks.py            # corre la suite, genera results.csv + results.html
-python scripts/benchmarks.py --compile  # ademas recompila O0/O1 y captura metricas del compilador
-python scripts/benchmarks.py --list     # lista los benchmarks
+make bench
 ```

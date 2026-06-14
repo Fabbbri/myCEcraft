@@ -110,6 +110,18 @@ run-no-cache: dirs
 	$(VVP) $(BUILD_DIR)/tb_top_no_cash.vvp +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
 # =========================
+# Pipeline TEA imagen end-to-end
+# =========================
+# 1) prepara el .txt como imagen embebida (genera programs/teaimg_input.hex)
+# 2) corre el tb sin cache que cifra+descifra en DRAM y vuelca teaimg_salida.hex
+# 3) extrae los 1024 bytes descifrados (DRAM[0x8810]) a un .txt legible
+# ej: make tea
+tea:
+	$(PYTHON) scripts/prepare_teaimg.py --input arqui/scripts/examples/epic_1k.txt
+	$(MAKE) run TOP=tb_teaimg_loader
+	$(PYTHON) scripts/extract_data.py --memory outputs/teaimg_salida.hex --address 0x8810 --size 1024 --output outputs/teaimg_recuperada.txt
+
+# =========================
 # Demo de visualizacion (GTKWave)
 # =========================
 # Genera UNA sola vez el VCD con bench_stride y luego cada vista lo reabre con
@@ -185,4 +197,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run bench run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
+.PHONY: all dirs compile run bench run-no-cache tea wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
