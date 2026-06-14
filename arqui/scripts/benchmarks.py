@@ -109,42 +109,42 @@ P2_OPT_FLAG = {
 
 P2_BENCHMARKS = [
     # ── grupo unroll ──────────────────────────────────────────────────────────
-    {"group": "unroll",  "file": "01_unroll_for_limite_literal",     "x11": "1C",  "max": 100000,
+    {"group": "unroll",  "file": "01_unroll_for_limite_literal",                   "max": 100000,
      "label": "unroll_for_cte",      "desc": "FOR N=8 literal, 2 acumuladores; factor de unroll: 8 (8 iter -> 1 bloque, saltos /8) (suma=28)"},
-    {"group": "unroll",  "file": "02_unroll_while_limite_variable",  "x11": "F",   "max": 100000,
+    {"group": "unroll",  "file": "02_unroll_while_limite_variable",               "max": 100000,
      "label": "unroll_while_varN",   "desc": "WHILE limite en variable N=6; factor de unroll: 2 (6 iter -> 3 bloques, saltos /2) (suma=15)"},
-    {"group": "unroll",  "file": "03_unroll_for_factor_grande",      "x11": "1F0", "max": 200000,
+    {"group": "unroll",  "file": "03_unroll_for_factor_grande",                   "max": 200000,
      "label": "unroll_for_grande",   "desc": "FOR N=32 literal, 2 acumuladores; factor de unroll: 8 (32 iter -> 4 bloques, saltos /8) (suma=496)"},
     # ── grupo rename ──────────────────────────────────────────────────────────
-    {"group": "rename",  "file": "04_rename_waw_secuencial",         "x11": "42",  "max": 100000,
+    {"group": "rename",  "file": "04_rename_waw_secuencial",                      "max": 100000,
      "label": "rename_for_WAW",      "desc": "WAW: 'a' reescrita 3 veces; rename asigna registros fisicos distintos a t0,t1,t2 (suma=66)"},
-    {"group": "rename",  "file": "05_rename_war_if_else",            "x11": "36",  "max": 100000,
+    {"group": "rename",  "file": "05_rename_war_if_else",                         "max": 100000,
      "label": "rename_if_WAR",       "desc": "WAR: 'lim' leida en condicion y sobreescrita en else; rename crea versiones SSA (total=54)"},
-    {"group": "rename",  "file": "06_rename_waw_war_funcion",        "x11": "42",  "max": 100000,
+    {"group": "rename",  "file": "06_rename_waw_war_funcion",                     "max": 100000,
      "label": "rename_func_mixto",   "desc": "WAW+WAR en funcion con if/else; rename crea versiones independientes por rama (total=66)"},
     # ── grupo dce ────────────────────────────────────────────────────────────
-    {"group": "dce",     "file": "07_dce_ramas_muertas_if",          "x11": "5",   "max": 50000,
+    {"group": "dce",     "file": "07_dce_ramas_muertas_if",                       "max": 50000,
      "label": "dce_if_muerto",       "desc": "IF/ELSE con ambas ramas calculando valores muertos; DCE elimina todo excepto el summon (estado=5)"},
-    {"group": "dce",     "file": "08_dce_muerto_en_funcion_y_main",  "x11": "7",   "max": 50000,
+    {"group": "dce",     "file": "08_dce_muerto_en_funcion_y_main",               "max": 50000,
      "label": "dce_func_y_main",     "desc": "Cadena muerta dentro de funcion + cadena muerta en main entre dos summons (acum=7)"},
-    {"group": "dce",     "file": "09_dce_cadenas_pre_post_llamada",  "x11": "6",   "max": 50000,
+    {"group": "dce",     "file": "09_dce_cadenas_pre_post_llamada",               "max": 50000,
      "label": "dce_cadenas_post",    "desc": "Cadenas muertas antes y despues de summon; retorno de llamada alimenta cadena muerta (ctr=6)"},
     # ── grupo reorder ────────────────────────────────────────────────────────
-    {"group": "reorder", "file": "10_reorder_1load_uso_inmediato",   "x11": "24",  "max": 100000,
+    {"group": "reorder", "file": "10_reorder_1load_uso_inmediato",                "max": 100000,
      "label": "reorder_1load_if",    "desc": "1 load global con uso inmediato; scheduler mueve w1,w2,w3 entre lw y uso (total=36)"},
-    {"group": "reorder", "file": "11_reorder_2loads_uso_inmediato",  "x11": "41",  "max": 100000,
+    {"group": "reorder", "file": "11_reorder_2loads_uso_inmediato",               "max": 100000,
      "label": "reorder_2loads",      "desc": "2 loads globales con uso inmediato; scheduler llena stall de cada lw con trabajo independiente (total=65)"},
-    {"group": "reorder", "file": "12_reorder_3loads_uso_inmediato",  "x11": "1B",  "max": 100000,
+    {"group": "reorder", "file": "12_reorder_3loads_uso_inmediato",               "max": 100000,
      "label": "reorder_3loads_if",   "desc": "3 loads globales con uso inmediato; scheduler intercala trabajo independiente entre cada lw y su uso (total=27)"},
     # ── prueba de integracion rename ─────────────────────────────────────────
-    {"group": "rename",  "file": "rename",                            "x11": "DB",  "max": 100000,
+    {"group": "rename",  "file": "rename",                                          "max": 100000,
      "label": "rename_presion_regs",  "desc": "4 vars vivas simultaneas (p,q,r,s) con WAW+WAR encadenados; sin rename el asignador hace spill al stack (sw/lw extra); con rename crea versiones SSA y elimina los spills (resultado=219)"},
     # ── pruebas de integracion ────────────────────────────────────────────────
-    {"group": "unroll",  "file": "LoopUnrolling",                    "max": 500000,
+    {"group": "unroll",  "file": "LoopUnrolling",                                  "max": 500000,
      "label": "LoopUnrolling",       "desc": "2 FOR anidados (8 bloques x 8 elems, 64 datos); factor de unroll: 8 (for interno N=8, 8 iter -> 1 bloque, saltos /8); acumula bloque[i]*2 (suma=9392)"},
-    {"group": "dce",     "file": "pruebaEliminacionCodigo",          "max": 200000,
+    {"group": "dce",     "file": "pruebaEliminacionCodigo",                        "max": 200000,
      "label": "pruebaEliminacionCodigo", "desc": "Matriz 2x2 aplanada con 6 variables muertas (temporal_externo, basura1-3, estadistica, desperdicio); DCE elimina todas las cadenas que no alcanzan el return (suma C=134)"},
-    {"group": "reorder", "file": "Reordenamiento",                   "max": 200000,
+    {"group": "reorder", "file": "Reordenamiento",                                 "max": 200000,
      "label": "Reordenamiento",      "desc": "WHILE sobre 7 lecturas de sensor; log=i*100 es reordenable (independiente del load datos[i]); lecturas>50: {60,70} -> total=840"},
 ]
 
@@ -632,7 +632,10 @@ def run_p2_benchmarks(p2_stats):
     """Corre los 15 benchmarks de Defensa/P2 (O0 + variante opt) y devuelve
     una lista de dicts con los resultados, listos para pasar a p2_section.
     El x11 esperado se descubre automaticamente de la corrida O0 si no esta
-    hardcodeado en P2_BENCHMARKS."""
+    hardcodeado en P2_BENCHMARKS.
+    Si el sim sin cache esta disponible, tambien corre la ROM O0 en nocache
+    y guarda el resultado en entry["variants"]["nocache"]."""
+    nocache_available = SIM_VVP_NOCACHE.exists()
     results = []
     for b in P2_BENCHMARKS:
         entry = {"label": b["label"], "group": b["group"],
@@ -702,6 +705,42 @@ def run_p2_benchmarks(p2_stats):
                 if st:
                     row.update(st)
             entry["variants"][variant] = row
+
+        # corrida sin cache: usa la misma ROM O0 con el mismo limite de 2M ciclos
+        # que usa el testbench. Si el programa no termina en ese limite, la variante
+        # guarda {"_timeout": True} para que la celda muestre "+2M".
+        if nocache_available:
+            rom_nc = p2_rom_name(b["label"], "O0")
+            rom_nc_path = PROG / rom_nc
+            halt_nc = freeze_halt(rom_nc_path) if rom_nc_path.exists() else None
+            if halt_nc:
+                data_rom = rom_nc.replace(".hex", ".data.hex")
+                data_rom_path = PROG / data_rom
+                ram_arg = f"programs/{data_rom}" if data_rom_path.exists() else "programs/data.hex"
+                safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", f"p2_{b['label']}_nocache")
+                cmd_nc = [
+                    "vvp", str(SIM_VVP_NOCACHE),
+                    f"+TEST_NAME={safe_name}",
+                    f"+HALT_PC={halt_nc}",
+                    f"+MAX_CYCLES={NO_CACHE_MAX_FLOOR}",
+                    f"+FILE_ROM=programs/{rom_nc}",
+                    f"+FILE_RAM={ram_arg}",
+                ]
+                print(f"[P2] {b['label']} (nocache)")
+                proc_nc = subprocess.run(cmd_nc, cwd=ARQUI, capture_output=True, text=True)
+                row_nc = parse_metrics(proc_nc.stdout + proc_nc.stderr)
+                if row_nc is not None:
+                    ipc_nc = _ipc(row_nc)
+                    if ipc_nc is not None:
+                        row_nc["IPC"] = f"{ipc_nc:.4f}"
+                    entry["variants"]["nocache"] = row_nc
+                else:
+                    entry["variants"]["nocache"] = {"_timeout": True}
+            else:
+                entry["variants"]["nocache"] = None
+        else:
+            entry["variants"]["nocache"] = None
+
         results.append(entry)
     return results
 
@@ -1239,13 +1278,17 @@ def p2_section(p2_results):
 
             badge = _p2_speedup_badge(sp, broke)
 
-            # columnas de transformaciones del compilador (solo opt)
-            opt_transf = (
-                f"<td>{_num(ropt.get('Opt_Unrolled'))}</td>"
-                f"<td>{_num(ropt.get('Opt_DCE_Removed'))}</td>"
-                f"<td>{_num(ropt.get('Opt_Reordered'))}</td>"
-                f"<td>{_num(ropt.get('Opt_Renamed'))}</td>"
-            )
+            # datos sin cache: vienen de la variante "nocache" del entry
+            nc = e["variants"].get("nocache") or {}
+            nc_timeout = nc.get("_timeout", False)
+            c_nc   = nc.get("Ciclos")
+            ipc_nc = nc.get("IPC")
+
+            def _nc_cell(v):
+                if nc_timeout and v is None:
+                    return "<td class='p2nc p2ncskip' title='supera 2M ciclos sin cache'>+2M</td>"
+                f = _fnum(v)
+                return f"<td class='p2nc'>{f'{f:,.0f}' if (f is not None and f >= 10) else (f'{f:.3f}' if f is not None else '&mdash;')}</td>"
 
             # transformaciones con resaltado si el valor es > 0
             def _transf_cell(val_str, key, ropt=ropt):
@@ -1265,7 +1308,8 @@ def p2_section(p2_results):
                 f"<td class='p2x11'>0x{e['x11']}</td>"
                 # speedup badge
                 f"<td class='p2speedcell'>{badge}</td>"
-                # ciclos simulador: O0 y opt con delta  [ARQUITECTURA]
+                # ciclos: sin cache | O0 | opt
+                f"{_nc_cell(c_nc)}"
                 f"<td>{_num(r0.get('Ciclos'))}</td>"
                 f"{_p2_delta(r0.get('Ciclos'), ropt.get('Ciclos'))}"
                 # instrucciones del compilador = Code_Size_Bytes/4  [COMPILADOR]
@@ -1274,9 +1318,16 @@ def p2_section(p2_results):
                 # tamaño de codigo en bytes  [COMPILADOR]
                 f"<td>{_num(r0.get('Code_Size_Bytes'))}</td>"
                 f"{_p2_delta(r0.get('Code_Size_Bytes'), ropt.get('Code_Size_Bytes'))}"
-                # IPC: O0 y opt
+                # IPC: sin cache | O0 | opt
+                f"{_nc_cell(ipc_nc)}"
                 f"<td>{_num(r0.get('IPC'), 3)}</td>"
                 f"<td>{_num(ropt.get('IPC'), 3)}</td>"
+                # stalls memoria: O0 | opt
+                f"<td>{_num(r0.get('Stalls_Mem'))}</td>"
+                f"{_p2_delta(r0.get('Stalls_Mem'), ropt.get('Stalls_Mem'))}"
+                # stalls control: O0 | opt
+                f"<td>{_num(r0.get('Stalls_Control'))}</td>"
+                f"{_p2_delta(r0.get('Stalls_Control'), ropt.get('Stalls_Control'))}"
                 # tiempo de compilacion: O0 y opt
                 f"<td class='p2ms'>{_num(r0.get('Compile_ms'))} ms</td>"
                 f"<td class='p2ms'>{_num(ropt.get('Compile_ms'))} ms</td>"
@@ -1290,7 +1341,7 @@ def p2_section(p2_results):
 
         # fila resumen del grupo
         n = len(entries)
-        TOTAL_COLS = 16  # nombre+x11+speedup + 2*3 pares + IPC*2 + ms*2 + 4 transf
+        TOTAL_COLS = 22  # nombre+x11+speedup + (sin+O0+opt)*2 + instr*2 + cod*2 + stmem*2 + stctrl*2 + ms*2 + 4 transf
         if speedups:
             avg_sp = sum(speedups) / len(speedups)
             ok_count = len(speedups)
@@ -1321,16 +1372,20 @@ def p2_section(p2_results):
    <th rowspan="2" class="p2hname">Programa / Descripci&oacute;n</th>
    <th rowspan="2">x11</th>
    <th rowspan="2">Speedup</th>
-   <th colspan="2" class="p2hgroup">Ciclos <span style="font-weight:400;font-size:0.85em">(simulador)</span></th>
+   <th colspan="3" class="p2hgroup">Ciclos <span style="font-weight:400;font-size:0.85em">(simulador)</span></th>
    <th colspan="2" class="p2hgroup">Instrucciones <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
    <th colspan="2" class="p2hgroup">Tama&ntilde;o c&oacute;digo (B) <span style="font-weight:400;font-size:0.85em">(compilador)</span></th>
-   <th colspan="2" class="p2hgroup">IPC</th>
+   <th colspan="3" class="p2hgroup">IPC</th>
+   <th colspan="2" class="p2hgroup">Stalls MEM</th>
+   <th colspan="2" class="p2hgroup">Stalls Control</th>
    <th colspan="2" class="p2hgroup" style="background:#1C1A12;color:#E3B341">Compile (ms)</th>
    <th colspan="4" class="p2hgroup" style="background:#1A1427;color:#BC8CFF">Transformaciones aplicadas (opt)</th>
   </tr>
   <tr>
+   <th class="p2nc">sin$</th><th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
+   <th class="p2nc">sin$</th><th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th>O0</th><th>opt</th>
    <th style="background:#1C1A12;color:#E3B341">O0</th><th style="background:#1C1A12;color:#E3B341">opt</th>
@@ -1550,6 +1605,9 @@ def render_html(rows, path, no_cache, p2_results=None):
  .p2tactive {{ font-weight:700; background:#1A1F2E !important; color:var(--purple); }}
  .p2ms     {{ font-size:0.82em; color:var(--muted); text-align:right;
               white-space:nowrap; }}
+ .p2nc     {{ background:#0D1B2A !important; color:#58A6FF; font-size:0.82em; }}
+ th.p2nc   {{ background:#0D1B2A !important; color:#58A6FF; }}
+ .p2ncskip {{ color:#444D56 !important; font-style:italic; }}
  /* ── Compile-time header rows inside P2 table ── */
  th[style*="fff8e6"] {{ background:#1C1A12 !important; color:var(--warn) !important; }}
  th[style*="f5edff"] {{ background:#1A1427 !important; color:var(--purple) !important; }}
