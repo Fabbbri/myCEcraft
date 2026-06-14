@@ -5,9 +5,10 @@
 # make run TOP=tb_alu
 # make run TOP=tb_topG ROM=factorial.hex RAM=ram_hex.hex
 
-TOP ?= tb_topG 
+TOP ?= tb_topG
 ROM ?= program.hex
-RAM ?= data.hex 
+RAM ?= data.hex
+MAX_CYCLES ?= 20000
 
 SRC_DIR = rtl
 TB_DIR = tb
@@ -137,6 +138,28 @@ wave-mem: wave-vcd
 # demo lista para defensa: alias historico -> abre la vista de pipeline.
 wave-demo: wave-pipeline
 
+# =========================
+# Simular un programa y abrir la onda en Surfer
+# =========================
+# Surfer se lanza con entorno limpio (env -i) para evitar el choque de libs del
+# snap de VSCode (libpthread de /snap/core20). Requiere surfer en ~/.local/bin.
+SURFER = env -i HOME="$(HOME)" DISPLAY="$(DISPLAY)" XAUTHORITY="$(XAUTHORITY)" \
+	WAYLAND_DISPLAY="$(WAYLAND_DISPLAY)" XDG_RUNTIME_DIR="$(XDG_RUNTIME_DIR)" \
+	PATH="$(HOME)/.local/bin:/usr/bin:/bin" surfer
+
+# Compila tb_topG, corre un programa con +VCD y abre la onda en Surfer.
+# HALT_PC se calcula solo: indice de la instruccion freeze (00600000) x4 (hex).
+# ej: make surf                    -> corre programs/program.hex
+#     make surf ROM=factorial.hex MAX_CYCLES=300000
+surf: dirs
+	$(IVERILOG) $(IVERILOG_FLAGS) -o $(BUILD_DIR)/tb_topG.vvp $(SRC) $(TB_DIR)/tb_topG.sv
+	@halt=$$(awk '{gsub(/[ \t\r]/,"")} $$0=="00600000"{printf "%X",(NR-1)*4; exit}' programs/$(ROM)); \
+	if [ -z "$$halt" ]; then echo "⚠️  sin freeze (00600000) en programs/$(ROM); HALT_PC=0"; halt=0; fi; \
+	echo "▶️  $(ROM)  HALT_PC=$$halt  MAX_CYCLES=$(MAX_CYCLES)"; \
+	$(VVP) $(BUILD_DIR)/tb_topG.vvp +VCD +HALT_PC=$$halt +MAX_CYCLES=$(MAX_CYCLES) \
+		+TEST_NAME=$(ROM) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
+	$(SURFER) -c sim/surfer/topG_overview.surf $(WAVE_DIR)/tb_topG.vcd
+
 # iniciar simulacion con waves
 wave:
 	@if [ ! -f $(VCD) ]; then \
@@ -160,4 +183,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run benchmarks run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo run-all clean print
+.PHONY: all dirs compile run benchmarks run-no-cache wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
