@@ -33,6 +33,93 @@ module tb_general_dump;
 
     localparam logic [31:0] NOP = 32'h00580000;
 
+    // ==========================================================
+    //  Contadores de metricas (replica de tb_topG)
+    //  pc_en==0 = instruccion FREEZE (halt); equivale al halt_pc
+    //  de tb_topG. Los stalls usan stallIF, no pc_en, asi que el
+    //  gating !halt_detected solo se apaga al terminar el programa.
+    // ==========================================================
+    integer csv_fd;
+    logic   halt_detected = 0;
+
+    always @(posedge clk) begin
+        if (dut.Issue.pc_en === 1'b0) halt_detected <= 1;
+    end
+
+    // op de memoria real en MEM: load = result_src==01, store = we_mem
+    wire mem_rd_op = (dut.Memory.result_src == 2'b01);
+    wire mem_wr_op = (dut.Memory.we_mem === 1'b1);
+    wire mem_op    = mem_rd_op | mem_wr_op;
+
+    longint l1_reads,   l1_writes;
+    longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
+    longint l2_acc,     l2_hits,    l2_miss;
+    longint l2_reads,   l2_writes;
+    longint mem_acc,    mem_bursts;
+    longint stall_mem_cycles;   // ciclos con pipeline congelado por memoria
+    longint ctrl_stalls;        // ciclos de fetch perdidos por branch tomado
+    longint mem_xfer_cycles;    // ciclos con el bus de RAM ocupado
+
+    // acceso nuevo = cambia direccion o tipo respecto al ciclo anterior
+    // (durante stall el pipeline retiene la misma op en MEM: no recontar)
+    logic        prev_mem_op = 0;
+    logic        prev_wr     = 0;
+    logic [31:0] prev_addr   = '0;
+    logic        prev_burst  = 0;
+
+    wire new_access = mem_op && !(prev_mem_op &&
+                                  prev_addr == dut.Memory.alu_result &&
+                                  prev_wr   == mem_wr_op);
+
+    always @(posedge clk) begin
+        if (!reset && !halt_detected) begin
+            // L1: clasificar en el primer ciclo de cada acceso
+            if (new_access) begin
+                if (mem_wr_op) begin
+                    l1_writes++;
+                    if (dut.Memory.hit_l1) l1_wr_hits++; else l1_wr_miss++;
+                end else begin
+                    l1_reads++;
+                    if (dut.Memory.hit_l1) l1_rd_hits++; else l1_rd_miss++;
+                    // L2 read: cada load miss de L1 baja a L2
+                    if (!dut.Memory.hit_l1) begin
+                        l2_acc++;  l2_reads++;
+                        if (dut.Memory.hit_l2) begin
+                            l2_hits++;
+                        end else begin
+                            l2_miss++;
+                            mem_acc++;   // load miss en L2 -> burst a RAM
+                        end
+                    end
+                end
+            end
+
+            // L2 writes: un WB_COMMIT (1 ciclo) por store drenado
+            if (dut.Memory.L2Con.wb_state == 2'b10) begin
+                l2_acc++;  l2_writes++;
+                if (dut.Memory.hit_l2_wb) l2_hits++; else l2_miss++;
+                mem_acc++;       // write-through: todo store drenado va a RAM
+            end
+
+            // diagnostico: bursts reales en el bus
+            if (dut.Memory.burst_active && !prev_burst)
+                mem_bursts++;
+
+            // metricas de procesador / memoria
+            if (dut.stall_mem)
+                stall_mem_cycles++;
+            if (dut.flushD)
+                ctrl_stalls++;
+            if (dut.Memory.burst_active || dut.Memory.ram_we)
+                mem_xfer_cycles++;
+        end
+
+        prev_mem_op  <= mem_op && !reset;
+        prev_wr      <= mem_wr_op;
+        prev_addr    <= dut.Memory.alu_result;
+        prev_burst   <= dut.Memory.burst_active;
+    end
+
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
     endfunction
@@ -116,19 +203,58 @@ module tb_general_dump;
     endtask
 
     task automatic print_performance_metrics();
-        real cpi;
+        real cpi, l1_hr, l1_mr, l2_hr, l2_mr, bw_util;
+        longint l1_total;
+        string  test_name;
+
+        test_name = out_prefix;
 
         cpi = (metric_instructions != 0)
             ? (1.0 * metric_cycles) / metric_instructions
             : 0.0;
 
+        l1_total = l1_reads + l1_writes;
+        l1_hr = (l1_total != 0) ? 100.0 * (l1_rd_hits + l1_wr_hits) / l1_total : 0.0;
+        l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
+        l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
+        l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
+        bw_util = (metric_cycles != 0) ? 100.0 * mem_xfer_cycles / metric_cycles : 0.0;
+
+        if (csv_fd != 0) begin
+            $fwrite(csv_fd,
+                    "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%.2f\n",
+                    test_name, metric_cycles, metric_instructions, cpi,
+                    stall_mem_cycles, ctrl_stalls,
+                    l1_reads, l1_writes,
+                    l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
+                    l1_hr, l1_mr,
+                    l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                    mem_acc, mem_xfer_cycles, bw_util);
+        end
+
         $display("\n  --- Metricas de rendimiento ---");
-        $display("  Ciclos : %0d", metric_cycles);
-        $display("  Instr  : %0d", metric_instructions);
-        $display("  CPI    : %.6f", cpi);
+        $display("  Ciclos        : %0d", metric_cycles);
+        $display("  Instrucciones : %0d", metric_instructions);
+        $display("  CPI           : %f", cpi);
+        $display("  Stalls mem    : %0d ciclos | flush control: %0d", stall_mem_cycles, ctrl_stalls);
+        $display("  L1: reads=%0d writes=%0d | rd h/m=%0d/%0d wr h/m=%0d/%0d | hit=%.2f%%",
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr);
+        $display("  L2: acc=%0d hits=%0d miss=%0d | hit=%.2f%%",
+                 l2_acc, l2_hits, l2_miss, l2_hr);
+        $display("  Mem: accesos=%0d xfer=%0d ciclos bw=%.2f%% (bursts=%0d)",
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
         $display("  --------------------------------");
-        $display("[METRICS] cycles=%0d|instr=%0d|cpi=%.6f",
-                 metric_cycles, metric_instructions, cpi);
+
+        // linea parseable para scripts/benchmarks.py
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d|l2_reads=%0d|l2_writes=%0d",
+                 test_name, metric_cycles, metric_instructions, cpi,
+                 stall_mem_cycles, ctrl_stalls,
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
+                 l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts,
+                 l2_reads, l2_writes);
     endtask
 
     function automatic bit memory_hierarchy_idle();
@@ -355,6 +481,12 @@ module tb_general_dump;
         $display("          CRAFT21 GENERAL MEMORY DUMP TESTBENCH");
         $display("============================================================");
 
+        csv_fd = $fopen($sformatf("outputs/%0s_metrics.csv", out_prefix), "w");
+        if (csv_fd == 0)
+            $display("[WARN]  No se pudo abrir el CSV de metricas");
+        else
+            $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util\n");
+
         clear_machine();
 
         load_failed = 0;
@@ -391,6 +523,8 @@ module tb_general_dump;
         $display("============================================================");
         $display("  FIN TB GENERAL");
         $display("============================================================\n");
+
+        if (csv_fd != 0) $fclose(csv_fd);
         $finish;
     end
 

@@ -70,8 +70,15 @@ module tb_topG;
             cycle_count++;
     end
 
+    // halt intrinseco = instruccion FREEZE (pc_en==0). Se usa para cortar el
+    // conteo de instrucciones en el mismo evento que tb_general_dump, de modo
+    // que no se cuente el drenado del pipeline posterior al halt (si se usara
+    // !reset a secas, el quiet-loop + repeat(4) de run_test sumaria de mas).
+    logic instr_halt = 0;
+
     always @(posedge clk) begin
-        if (!reset) begin
+        if (dut.Issue.pc_en === 1'b0) instr_halt <= 1;
+        if (!reset && !instr_halt) begin
             if (dut.instrDE !== NOP &&
                 dut.instrDE !== 32'hxxxxxxxx &&
                 !dut.flushE &&
@@ -362,9 +369,16 @@ module tb_topG;
     task automatic report_metrics(input string test_name);
         real cpi, l1_hr, l1_mr, l2_hr, l2_mr, bw_util;
         longint l1_total;
+        longint eff_cycles;
+
+        // cycle_count se cuenta en un always libre que arranca al soltar reset;
+        // apply_reset consume un posedge extra (los $display de DEBUG/PIPE)
+        // antes de la corrida real, asi que cycle_count queda inflado en 1.
+        // eff_cycles es el conteo real ejecutado (lo que ve wait_for_finish).
+        eff_cycles = (cycle_count > 0) ? cycle_count - 1 : 0;
 
         cpi = (instr_count != 0)
-            ? (1.0 * cycle_count) / instr_count
+            ? (1.0 * eff_cycles) / instr_count
             : 0.0;
 
         l1_total = l1_reads + l1_writes;
@@ -372,11 +386,11 @@ module tb_topG;
         l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
         l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
         l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
-        bw_util = (cycle_count != 0) ? 100.0 * mem_xfer_cycles / cycle_count : 0.0;
+        bw_util = (eff_cycles != 0) ? 100.0 * mem_xfer_cycles / eff_cycles : 0.0;
 
         $fwrite(csv_fd,
                 "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%.2f\n",
-                test_name, cycle_count, instr_count, cpi,
+                test_name, eff_cycles, instr_count, cpi,
                 stall_mem_cycles, ctrl_stalls,
                 l1_reads, l1_writes,
                 l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
@@ -385,7 +399,7 @@ module tb_topG;
                 mem_acc, mem_xfer_cycles, bw_util);
 
         $display("\n  --- Performance ---");
-        $display("  Ciclos        : %0d", cycle_count-1);
+        $display("  Ciclos        : %0d", eff_cycles);
         $display("  Instrucciones : %0d", instr_count);
         $display("  CPI           : %f", cpi);
         $display("  Stalls mem    : %0d ciclos | flush control: %0d", stall_mem_cycles, ctrl_stalls);
@@ -399,7 +413,7 @@ module tb_topG;
 
         // linea parseable para scripts/benchmarks.py
         $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d|l2_reads=%0d|l2_writes=%0d",
-                 test_name, cycle_count, instr_count, cpi,
+                 test_name, eff_cycles, instr_count, cpi,
                  stall_mem_cycles, ctrl_stalls,
                  l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
                  l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
@@ -422,6 +436,7 @@ module tb_topG;
         cycle_count = 0;
         instr_count = 0;
         halt_detected = 0;
+        instr_halt = 0;
 
         l1_reads = 0; l1_writes = 0;
         l1_rd_hits = 0; l1_rd_miss = 0; l1_wr_hits = 0; l1_wr_miss = 0;

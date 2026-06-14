@@ -1,0 +1,23 @@
+digraph "bench_stride.O1" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\larr = 0\li = 0\lsuma = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt6__x3 = i < 256\lifFalse t6__x3 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\larr[i] = i\larr[(i + 8)] = (i + 8)\larr[(i + 16)] = (i + 16)\larr[(i + 24)] = (i + 24)\larr[(i + 32)] = (i + 32)\larr[(i + 40)] = (i + 40)\larr[(i + 48)] = (i + 48)\larr[(i + 56)] = (i + 56)\lt7__x4 = i + 64\li = t7__x4\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\li = 0\l"];
+  "B_label_L_while_start_2" [label="B_label_L_while_start_2\lL_while_start_2:\lt8__x5 = i < 256\lifFalse t8__x5 goto L_while_end_3\l"];
+  "B_fallthrough_5" [label="B_fallthrough_5\lt9__x6 = arr[i]\lt10__x7 = suma + t9__x6\lsuma = t10__x7\lt11__x8 = arr[(i + 8)]\lt12__x9 = suma + t11__x8\lsuma = t12__x9\lt13__x10 = arr[(i + 16)]\lt14__x3 = suma + t13__x10\lsuma = t14__x3\lt15__x4 = arr[(i + 24)]\lt16__x5 = suma + t15__x4\lsuma = t16__x5\lt17__x6 = i + 32\li = t17__x6\lgoto L_while_start_2\l"];
+  "B_label_L_while_end_3" [label="B_label_L_while_end_3\lL_while_end_3:\lreturn suma\l"];
+
+  "B_label_main" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_1" -> "B_label_L_while_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_2" -> "B_label_L_while_end_3" [label="false", color="#B22222"];
+  "B_label_L_while_start_2" -> "B_fallthrough_5" [label="true", color="#2E8B57"];
+  "B_fallthrough_5" -> "B_label_L_while_start_2" [label="jump", color="#4169E1"];
+}

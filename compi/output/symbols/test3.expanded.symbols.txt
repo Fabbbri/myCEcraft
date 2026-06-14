@@ -1,31 +1,33 @@
 === Labels resueltas (.text) ===
-.L_codegen_0_enderExit       pc=0x0018
+.L_ir_0_enderExit            pc=0x0018
 main                         pc=0x0018
-.L_codegen_1_main_end        pc=0x007C
-maximo_lista                 pc=0x0088
-.L0_for_start                pc=0x00DC
-.L_codegen_3_cmp_true        pc=0x0120
-.L_codegen_4_cmp_end         pc=0x0124
-.L2_if_else                  pc=0x0144
-.L3_if_end                   pc=0x0144
-.L1_for_end                  pc=0x0158
-.L_codegen_2_maximo_lista_end pc=0x0164
-sumeMayores                  pc=0x0174
-.L_codegen_6_cmp_true        pc=0x01C8
-.L_codegen_7_cmp_end         pc=0x01CC
-.L4_while_start              pc=0x01D0
-.L_codegen_8_cmp_true        pc=0x0218
-.L_codegen_9_cmp_end         pc=0x021C
-.L6_if_else                  pc=0x0244
-.L7_if_end                   pc=0x0244
-.L_codegen_10_cmp_true       pc=0x02A0
-.L_codegen_11_cmp_end        pc=0x02A4
-.L8_if_else                  pc=0x02CC
-.L9_if_end                   pc=0x02EC
-.L_codegen_12_cmp_true       pc=0x0308
-.L_codegen_13_cmp_end        pc=0x030C
-.L5_while_end                pc=0x0314
-.L_codegen_5_sumeMayores_end pc=0x037C
+.L_ir_1_main_end             pc=0x0080
+maximo_lista                 pc=0x008C
+L_for_start_0                pc=0x00E8
+.L_ir_3_ir_cmp_true          pc=0x0108
+.L_ir_4_ir_cmp_end           pc=0x010C
+.L_ir_5_ir_cmp_true          pc=0x0148
+.L_ir_6_ir_cmp_end           pc=0x014C
+L_else_2                     pc=0x0174
+L_end_if_3                   pc=0x0174
+L_for_end_1                  pc=0x0184
+.L_ir_2_maximo_lista_end     pc=0x01CC
+sumeMayores                  pc=0x01DC
+.L_ir_8_ir_cmp_true          pc=0x0230
+.L_ir_9_ir_cmp_end           pc=0x0234
+L_while_start_4              pc=0x0238
+.L_ir_10_ir_cmp_true         pc=0x0298
+.L_ir_11_ir_cmp_end          pc=0x029C
+L_else_6                     pc=0x02C8
+L_end_if_7                   pc=0x02C8
+.L_ir_12_ir_cmp_true         pc=0x031C
+.L_ir_13_ir_cmp_end          pc=0x0320
+L_else_8                     pc=0x0350
+L_end_if_9                   pc=0x0370
+.L_ir_14_ir_cmp_true         pc=0x038C
+.L_ir_15_ir_cmp_end          pc=0x0390
+L_while_end_5                pc=0x0398
+.L_ir_7_sumeMayores_end      pc=0x0408
 
 SYMBOL TABLE
 ============
@@ -40,8 +42,8 @@ Legend:
   symbols:
   name            kind      type           decl                       seg   addr    off  size  res
   --------------  --------  -------------  -------------------------  ----  ------  ---  ----  ---
-  maximo_lista    FUNCTION  int            test3.expanded.craft:4:1   TEXT  0x0088  -    0     yes
-  sumeMayores     FUNCTION  int            test3.expanded.craft:28:1  TEXT  0x0174  -    0     yes
+  maximo_lista    FUNCTION  int            test3.expanded.craft:4:1   TEXT  0x008C  -    0     yes
+  sumeMayores     FUNCTION  int            test3.expanded.craft:28:1  TEXT  0x01DC  -    0     yes
   main            FUNCTION  int            test3.expanded.craft:65:1  TEXT  0x0018  -    0     yes
   suma            VARIABLE  int            test3.expanded.craft:24:1  DATA  0x8000  -    4     yes
   multiplicacion  VARIABLE  int            test3.expanded.craft:25:1  DATA  0x8004  -    4     yes
@@ -51,22 +53,22 @@ Legend:
     symbols:
     name     kind       type           decl                       seg    addr    off  size  res
     -------  ---------  -------------  -------------------------  -----  ------  ---  ----  ---
-    lista    PARAMETER  chest[int, 7]  test3.expanded.craft:4:24  STACK  0x7F98  -4   4     yes
-    largo    PARAMETER  int            test3.expanded.craft:4:45  STACK  0x7F94  -8   4     yes
-    maximo   VARIABLE   int            test3.expanded.craft:5:5   STACK  0x7F90  -12  4     yes
-    num      VARIABLE   int            test3.expanded.craft:6:5   STACK  0x7F8C  -16  4     yes
-    esMayor  VARIABLE   int            test3.expanded.craft:7:5   STACK  0x7F88  -20  4     yes
-    limite   VARIABLE   int            test3.expanded.craft:8:5   STACK  0x7F84  -24  4     yes
+    lista    PARAMETER  chest[int, 7]  test3.expanded.craft:4:24  STACK  0x7F74  -4   4     yes
+    largo    PARAMETER  int            test3.expanded.craft:4:45  STACK  0x7F70  -8   4     yes
+    maximo   VARIABLE   int            test3.expanded.craft:5:5   STACK  0x7F6C  -12  4     yes
+    num      VARIABLE   int            test3.expanded.craft:6:5   STACK  0x7F68  -16  4     yes
+    esMayor  VARIABLE   int            test3.expanded.craft:7:5   STACK  0x7F64  -20  4     yes
+    limite   VARIABLE   int            test3.expanded.craft:8:5   STACK  0x7F60  -24  4     yes
 
     [scope 2] LOOP 'for'
       symbols:
       name           kind      type  decl                        seg    addr    off  size  res
       -------------  --------  ----  --------------------------  -----  ------  ---  ----  ---
-      .L0_for_start  LABEL     None  test3.expanded.craft:10:5   TEXT   0x00DC  -    0     yes
-      .L1_for_end    LABEL     None  test3.expanded.craft:10:5   TEXT   0x0158  -    0     yes
-      i              VARIABLE  int   test3.expanded.craft:10:10  STACK  0x7F80  -28  4     yes
-      .L2_if_else    LABEL     None  test3.expanded.craft:15:9   TEXT   0x0144  -    0     yes
-      .L3_if_end     LABEL     None  test3.expanded.craft:15:9   TEXT   0x0144  -    0     yes
+      .L0_for_start  LABEL     None  test3.expanded.craft:10:5   TEXT   -       -    0     no 
+      .L1_for_end    LABEL     None  test3.expanded.craft:10:5   TEXT   -       -    0     no 
+      i              VARIABLE  int   test3.expanded.craft:10:10  STACK  0x7F5C  -28  4     yes
+      .L2_if_else    LABEL     None  test3.expanded.craft:15:9   TEXT   -       -    0     no 
+      .L3_if_end     LABEL     None  test3.expanded.craft:15:9   TEXT   -       -    0     no 
 
       [scope 3] CONDITIONAL 'if'
         symbols: (none)
@@ -75,23 +77,23 @@ Legend:
     symbols:
     name             kind       type           decl                        seg    addr    off  size  res
     ---------------  ---------  -------------  --------------------------  -----  ------  ---  ----  ---
-    lista            PARAMETER  chest[int, 5]  test3.expanded.craft:28:23  STACK  0x7FBC  -4   4     yes
-    salida           PARAMETER  chest[int, 2]  test3.expanded.craft:28:44  STACK  0x7FB8  -8   4     yes
-    valorMaximo      VARIABLE   int            test3.expanded.craft:29:5   STACK  0x7FB4  -12  4     yes
-    seguir           VARIABLE   int            test3.expanded.craft:30:5   STACK  0x7FB0  -16  4     yes
-    esDiez           VARIABLE   int            test3.expanded.craft:31:5   STACK  0x7FAC  -20  4     yes
-    esGrande         VARIABLE   int            test3.expanded.craft:32:5   STACK  0x7FA8  -24  4     yes
-    .L4_while_start  LABEL      None           test3.expanded.craft:36:5   TEXT   0x01D0  -    0     yes
-    .L5_while_end    LABEL      None           test3.expanded.craft:36:5   TEXT   0x0314  -    0     yes
+    lista            PARAMETER  chest[int, 5]  test3.expanded.craft:28:23  STACK  0x7FCC  -4   4     yes
+    salida           PARAMETER  chest[int, 2]  test3.expanded.craft:28:44  STACK  0x7FC8  -8   4     yes
+    valorMaximo      VARIABLE   int            test3.expanded.craft:29:5   STACK  0x7FC4  -12  4     yes
+    seguir           VARIABLE   int            test3.expanded.craft:30:5   STACK  0x7FC0  -16  4     yes
+    esDiez           VARIABLE   int            test3.expanded.craft:31:5   STACK  0x7FBC  -20  4     yes
+    esGrande         VARIABLE   int            test3.expanded.craft:32:5   STACK  0x7FB8  -24  4     yes
+    .L4_while_start  LABEL      None           test3.expanded.craft:36:5   TEXT   -       -    0     no 
+    .L5_while_end    LABEL      None           test3.expanded.craft:36:5   TEXT   -       -    0     no 
 
     [scope 5] LOOP 'while'
       symbols:
-      name         kind   type  decl                       seg   addr    off  size  res
-      -----------  -----  ----  -------------------------  ----  ------  ---  ----  ---
-      .L6_if_else  LABEL  None  test3.expanded.craft:41:9  TEXT  0x0244  -    0     yes
-      .L7_if_end   LABEL  None  test3.expanded.craft:41:9  TEXT  0x0244  -    0     yes
-      .L8_if_else  LABEL  None  test3.expanded.craft:50:9  TEXT  0x02CC  -    0     yes
-      .L9_if_end   LABEL  None  test3.expanded.craft:50:9  TEXT  0x02EC  -    0     yes
+      name         kind   type  decl                       seg   addr  off  size  res
+      -----------  -----  ----  -------------------------  ----  ----  ---  ----  ---
+      .L6_if_else  LABEL  None  test3.expanded.craft:41:9  TEXT  -     -    0     no 
+      .L7_if_end   LABEL  None  test3.expanded.craft:41:9  TEXT  -     -    0     no 
+      .L8_if_else  LABEL  None  test3.expanded.craft:50:9  TEXT  -     -    0     no 
+      .L9_if_end   LABEL  None  test3.expanded.craft:50:9  TEXT  -     -    0     no 
 
       [scope 6] CONDITIONAL 'if'
         symbols: (none)

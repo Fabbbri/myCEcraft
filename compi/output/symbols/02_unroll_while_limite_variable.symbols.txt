@@ -24,13 +24,13 @@ Legend:
 
   [scope 1] FUNCTION main (stack_size=12)
     symbols:
-    name             kind      type  decl                                        seg    addr             off  size  res
-    ---------------  --------  ----  ------------------------------------------  -----  ---------------  ---  ----  ---
-    n                VARIABLE  int   02_unroll_while_limite_variable.craft:9:5   STACK  runtime(x17-4)   -4   4     yes
-    i                VARIABLE  int   02_unroll_while_limite_variable.craft:10:5  STACK  runtime(x17-8)   -8   4     yes
-    suma             VARIABLE  int   02_unroll_while_limite_variable.craft:11:5  STACK  runtime(x17-12)  -12  4     yes
-    .L0_while_start  LABEL     None  02_unroll_while_limite_variable.craft:13:5  TEXT   -                -    0     no 
-    .L1_while_end    LABEL     None  02_unroll_while_limite_variable.craft:13:5  TEXT   -                -    0     no 
+    name             kind      type  decl                                        seg    addr    off  size  res
+    ---------------  --------  ----  ------------------------------------------  -----  ------  ---  ----  ---
+    n                VARIABLE  int   02_unroll_while_limite_variable.craft:9:5   STACK  0x7FEC  -4   4     yes
+    i                VARIABLE  int   02_unroll_while_limite_variable.craft:10:5  STACK  0x7FE8  -8   4     yes
+    suma             VARIABLE  int   02_unroll_while_limite_variable.craft:11:5  STACK  0x7FE4  -12  4     yes
+    .L0_while_start  LABEL     None  02_unroll_while_limite_variable.craft:13:5  TEXT   -       -    0     no 
+    .L1_while_end    LABEL     None  02_unroll_while_limite_variable.craft:13:5  TEXT   -       -    0     no 
 
     [scope 2] LOOP 'while'
       symbols: (none)

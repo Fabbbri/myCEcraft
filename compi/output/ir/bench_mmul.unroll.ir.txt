@@ -1,0 +1,241 @@
+main:
+  a = 0
+  b = 0
+  c = 0
+  i = 0
+  j = 0
+  k = 0
+  ia = 0
+  kb = 0
+  acc = 0
+  suma = 0
+L_while_start_0:
+  t21 = i < 64
+  ifFalse t21 goto L_while_end_1
+  a[i] = i
+  b[i] = 1
+  a[(i + 1)] = (i + 1)
+  b[(i + 1)] = 1
+  a[(i + 2)] = (i + 2)
+  b[(i + 2)] = 1
+  a[(i + 3)] = (i + 3)
+  b[(i + 3)] = 1
+  a[(i + 4)] = (i + 4)
+  b[(i + 4)] = 1
+  a[(i + 5)] = (i + 5)
+  b[(i + 5)] = 1
+  a[(i + 6)] = (i + 6)
+  b[(i + 6)] = 1
+  a[(i + 7)] = (i + 7)
+  b[(i + 7)] = 1
+  t22 = i + 8
+  i = t22
+  goto L_while_start_0
+L_while_end_1:
+  i = 0
+  ia = 0
+L_while_start_2:
+  t2 = i < 8
+  ifFalse t2 goto L_while_end_3
+  j = 0
+L_while_start_4:
+  t3 = j < 8
+  ifFalse t3 goto L_while_end_5
+  acc = 0
+  k = 0
+  kb = 0
+L_while_start_6:
+  t4 = k < 8
+  ifFalse t4 goto L_while_end_7
+  t5 = ia + k
+  t6 = a[t5]
+  t7 = kb + j
+  t8 = b[t7]
+  t9 = t6 * t8
+  t10 = acc + t9
+  acc = t10
+  t11 = k + 1
+  k = t11
+  t12 = kb + 8
+  kb = t12
+  goto L_while_start_6
+L_while_end_7:
+  t13 = ia + j
+  c[t13] = acc
+  t14 = j + 1
+  j = t14
+  goto L_while_start_4
+L_while_end_5:
+  t15 = i + 1
+  i = t15
+  t16 = ia + 8
+  ia = t16
+  goto L_while_start_2
+L_while_end_3:
+  suma = 0
+  i = 0
+L_while_start_8:
+  t23 = i < 64
+  ifFalse t23 goto L_while_end_9
+  t24 = c[i]
+  t25 = suma + t24
+  suma = t25
+  t26 = c[(i + 1)]
+  t27 = suma + t26
+  suma = t27
+  t28 = c[(i + 2)]
+  t29 = suma + t28
+  suma = t29
+  t30 = c[(i + 3)]
+  t31 = suma + t30
+  suma = t31
+  t32 = i + 4
+  i = t32
+  goto L_while_start_8
+L_while_end_9:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    a = 0
+    b = 0
+    c = 0
+    i = 0
+    j = 0
+    k = 0
+    ia = 0
+    kb = 0
+    acc = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t21 = i < 64
+    ifFalse t21 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    a[i] = i
+    b[i] = 1
+    a[(i + 1)] = (i + 1)
+    b[(i + 1)] = 1
+    a[(i + 2)] = (i + 2)
+    b[(i + 2)] = 1
+    a[(i + 3)] = (i + 3)
+    b[(i + 3)] = 1
+    a[(i + 4)] = (i + 4)
+    b[(i + 4)] = 1
+    a[(i + 5)] = (i + 5)
+    b[(i + 5)] = 1
+    a[(i + 6)] = (i + 6)
+    b[(i + 6)] = 1
+    a[(i + 7)] = (i + 7)
+    b[(i + 7)] = 1
+    t22 = i + 8
+    i = t22
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_1:
+    i = 0
+    ia = 0
+
+[B_label_L_while_start_2]
+  -> Sucesores: B_label_L_while_end_3, B_fallthrough_5
+    L_while_start_2:
+    t2 = i < 8
+    ifFalse t2 goto L_while_end_3
+
+[B_fallthrough_5]
+  -> Sucesores: B_label_L_while_start_4
+    j = 0
+
+[B_label_L_while_start_4]
+  -> Sucesores: B_label_L_while_end_5, B_fallthrough_7
+    L_while_start_4:
+    t3 = j < 8
+    ifFalse t3 goto L_while_end_5
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_while_start_6
+    acc = 0
+    k = 0
+    kb = 0
+
+[B_label_L_while_start_6]
+  -> Sucesores: B_label_L_while_end_7, B_fallthrough_9
+    L_while_start_6:
+    t4 = k < 8
+    ifFalse t4 goto L_while_end_7
+
+[B_fallthrough_9]
+  -> Sucesores: B_label_L_while_start_6
+    t5 = ia + k
+    t6 = a[t5]
+    t7 = kb + j
+    t8 = b[t7]
+    t9 = t6 * t8
+    t10 = acc + t9
+    acc = t10
+    t11 = k + 1
+    k = t11
+    t12 = kb + 8
+    kb = t12
+    goto L_while_start_6
+
+[B_label_L_while_end_7]
+  -> Sucesores: B_label_L_while_start_4
+    L_while_end_7:
+    t13 = ia + j
+    c[t13] = acc
+    t14 = j + 1
+    j = t14
+    goto L_while_start_4
+
+[B_label_L_while_end_5]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_5:
+    t15 = i + 1
+    i = t15
+    t16 = ia + 8
+    ia = t16
+    goto L_while_start_2
+
+[B_label_L_while_end_3]
+  -> Sucesores: B_label_L_while_start_8
+    L_while_end_3:
+    suma = 0
+    i = 0
+
+[B_label_L_while_start_8]
+  -> Sucesores: B_label_L_while_end_9, B_fallthrough_14
+    L_while_start_8:
+    t23 = i < 64
+    ifFalse t23 goto L_while_end_9
+
+[B_fallthrough_14]
+  -> Sucesores: B_label_L_while_start_8
+    t24 = c[i]
+    t25 = suma + t24
+    suma = t25
+    t26 = c[(i + 1)]
+    t27 = suma + t26
+    suma = t27
+    t28 = c[(i + 2)]
+    t29 = suma + t28
+    suma = t29
+    t30 = c[(i + 3)]
+    t31 = suma + t30
+    suma = t31
+    t32 = i + 4
+    i = t32
+    goto L_while_start_8
+
+[B_label_L_while_end_9]
+    L_while_end_9:
+    return suma

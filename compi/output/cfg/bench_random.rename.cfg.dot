@@ -1,0 +1,30 @@
+digraph "bench_random.rename" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\larr = 0\li = 0\lidx = 0\lsuma = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt0__x3 = i < 480\lifFalse t0__x3 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\larr[i] = i\lt1__x4 = i + 1\li = t1__x4\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\li = 0\lidx = 0\l"];
+  "B_label_L_while_start_2" [label="B_label_L_while_start_2\lL_while_start_2:\lt2__x5 = i < 480\lifFalse t2__x5 goto L_while_end_3\l"];
+  "B_fallthrough_5" [label="B_fallthrough_5\lt3__x6 = arr[idx]\lt4__x7 = suma + t3__x6\lsuma = t4__x7\lt5__x8 = idx + 341\lidx = t5__x8\lt6__x9 = idx >= 480\lifFalse t6__x9 goto L_else_4\l"];
+  "B_fallthrough_6" [label="B_fallthrough_6\lt7__x10 = idx - 480\lidx = t7__x10\lgoto L_end_if_5\l"];
+  "B_label_L_else_4" [label="B_label_L_else_4\lL_else_4:\l"];
+  "B_label_L_end_if_5" [label="B_label_L_end_if_5\lL_end_if_5:\lt8__x3 = i + 1\li = t8__x3\lgoto L_while_start_2\l"];
+  "B_label_L_while_end_3" [label="B_label_L_while_end_3\lL_while_end_3:\lreturn suma\l"];
+
+  "B_label_main" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_1" -> "B_label_L_while_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_2" -> "B_label_L_while_end_3" [label="false", color="#B22222"];
+  "B_label_L_while_start_2" -> "B_fallthrough_5" [label="true", color="#2E8B57"];
+  "B_fallthrough_5" -> "B_label_L_else_4" [label="false", color="#B22222"];
+  "B_fallthrough_5" -> "B_fallthrough_6" [label="true", color="#2E8B57"];
+  "B_fallthrough_6" -> "B_label_L_end_if_5" [label="jump", color="#4169E1"];
+  "B_label_L_else_4" -> "B_label_L_end_if_5" [label="fallthrough", color="#555555"];
+  "B_label_L_end_if_5" -> "B_label_L_while_start_2" [label="jump", color="#4169E1"];
+}

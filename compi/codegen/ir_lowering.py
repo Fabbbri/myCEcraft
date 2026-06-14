@@ -69,9 +69,14 @@ class IRLoweringBackend(EmitMixin):
         self._register_valid: set[str] = set()
         self._register_dirty: set[str] = set()
         self._function_end_label: str | None = None
+        # frame_size real por funcion (incluye slots de temporales/spills);
+        # se usa para anotar scope.static_fp y derivar las direcciones STACK
+        # absolutas de la tabla de simbolos.
+        self._frame_sizes: dict[str, int] = {}
 
     def generate(self, instructions: list[IRInstruction]) -> str:
         self.lines = []
+        self._frame_sizes = {}
         globals_ir, functions = self._split_module(instructions)
         functions.sort(key=lambda function: function.label.name != "main")
 
@@ -98,7 +103,54 @@ class IRLoweringBackend(EmitMixin):
             self._emit("    ; final de programa")
             self._emit("    freeze")
 
+        self._annotate_static_fps(functions)
+
         return self._with_instruction_addresses("\n".join(self.lines))
+
+    def _annotate_static_fps(self, functions: list[_FunctionIR]) -> None:
+        """Anota scope.static_fp recorriendo el call-graph desde el entry.
+
+        Sin esto, la tabla de simbolos no puede dar direcciones STACK
+        absolutas (cae a 'runtime(fp+off)'). El fp estatico de una funcion es
+        fp(caller) - frame_size(caller); usamos el frame_size REAL del IR
+        (con slots de temporales/spills), no el del generador viejo.
+        El grafo se extrae de las instrucciones IRCall: mas fiel al binario
+        real tras optimizaciones que recorrer el AST.
+        """
+        callees: dict[str, list[str]] = {}
+        for function in functions:
+            names: list[str] = []
+            for instruction in function.instructions:
+                if isinstance(instruction, IRCall) and instruction.func_name not in names:
+                    names.append(instruction.func_name)
+            callees[function.label.name] = names
+
+        entry = next(
+            (function.label.name for function in functions if function.label.is_entry_point),
+            None,
+        )
+        if entry is None and any(function.label.name == "main" for function in functions):
+            entry = "main"
+        if entry is None:
+            return
+
+        visited: set[str] = set()
+
+        def trace(name: str, current_fp: int) -> None:
+            if name in visited:
+                return
+            visited.add(name)
+            scope = self._function_scope_for(name)
+            if scope is not None:
+                scope.static_fp = current_fp
+            frame_size = self._frame_sizes.get(name)
+            if frame_size is None:
+                return
+            child_fp = current_fp - frame_size
+            for callee in callees.get(name, ()):
+                trace(callee, child_fp)
+
+        trace(entry, self.INITIAL_STACK_POINTER)
 
     def _split_module(
         self,
@@ -218,6 +270,7 @@ class IRLoweringBackend(EmitMixin):
         self._function_end_label = self._new_label(f"{function.label.name}_end")
         local_size = self._required_local_size(function_scope, self._temp_offsets)
         frame_size = local_size + 8
+        self._frame_sizes[function.label.name] = frame_size
 
         self._emit(f"{function.label.name}:")
         if function.label.name == "main":

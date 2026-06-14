@@ -1,0 +1,102 @@
+main:
+  arr = 0
+  i = 0
+  suma = 0
+L_while_start_0:
+  t6 = i < 256
+  ifFalse t6 goto L_while_end_1
+  arr[i] = i
+  arr[(i + 8)] = (i + 8)
+  arr[(i + 16)] = (i + 16)
+  arr[(i + 24)] = (i + 24)
+  arr[(i + 32)] = (i + 32)
+  arr[(i + 40)] = (i + 40)
+  arr[(i + 48)] = (i + 48)
+  arr[(i + 56)] = (i + 56)
+  t7 = i + 64
+  i = t7
+  goto L_while_start_0
+L_while_end_1:
+  i = 0
+L_while_start_2:
+  t8 = i < 256
+  ifFalse t8 goto L_while_end_3
+  t9 = arr[i]
+  t10 = suma + t9
+  suma = t10
+  t11 = arr[(i + 8)]
+  t12 = suma + t11
+  suma = t12
+  t13 = arr[(i + 16)]
+  t14 = suma + t13
+  suma = t14
+  t15 = arr[(i + 24)]
+  t16 = suma + t15
+  suma = t16
+  t17 = i + 32
+  i = t17
+  goto L_while_start_2
+L_while_end_3:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    arr = 0
+    i = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t6 = i < 256
+    ifFalse t6 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    arr[i] = i
+    arr[(i + 8)] = (i + 8)
+    arr[(i + 16)] = (i + 16)
+    arr[(i + 24)] = (i + 24)
+    arr[(i + 32)] = (i + 32)
+    arr[(i + 40)] = (i + 40)
+    arr[(i + 48)] = (i + 48)
+    arr[(i + 56)] = (i + 56)
+    t7 = i + 64
+    i = t7
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_1:
+    i = 0
+
+[B_label_L_while_start_2]
+  -> Sucesores: B_label_L_while_end_3, B_fallthrough_5
+    L_while_start_2:
+    t8 = i < 256
+    ifFalse t8 goto L_while_end_3
+
+[B_fallthrough_5]
+  -> Sucesores: B_label_L_while_start_2
+    t9 = arr[i]
+    t10 = suma + t9
+    suma = t10
+    t11 = arr[(i + 8)]
+    t12 = suma + t11
+    suma = t12
+    t13 = arr[(i + 16)]
+    t14 = suma + t13
+    suma = t14
+    t15 = arr[(i + 24)]
+    t16 = suma + t15
+    suma = t16
+    t17 = i + 32
+    i = t17
+    goto L_while_start_2
+
+[B_label_L_while_end_3]
+    L_while_end_3:
+    return suma

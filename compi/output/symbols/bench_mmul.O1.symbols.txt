@@ -1,0 +1,83 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+L_while_start_0              pc=0x0080
+.L_ir_2_ir_cmp_true          pc=0x0090
+.L_ir_3_ir_cmp_end           pc=0x0094
+L_while_end_1                pc=0x02B8
+L_while_start_2              pc=0x02C8
+.L_ir_4_ir_cmp_true          pc=0x02D8
+.L_ir_5_ir_cmp_end           pc=0x02DC
+L_while_start_4              pc=0x02F0
+.L_ir_6_ir_cmp_true          pc=0x0304
+.L_ir_7_ir_cmp_end           pc=0x0308
+L_while_start_6              pc=0x032C
+.L_ir_8_ir_cmp_true          pc=0x0340
+.L_ir_9_ir_cmp_end           pc=0x0344
+L_while_end_7                pc=0x03EC
+L_while_end_5                pc=0x042C
+L_while_end_3                pc=0x044C
+L_while_start_8              pc=0x045C
+.L_ir_10_ir_cmp_true         pc=0x046C
+.L_ir_11_ir_cmp_end          pc=0x0470
+L_while_end_9                pc=0x0534
+.L_ir_1_main_end             pc=0x053C
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                  seg   addr    off  size  res
+  ----  --------  ----  --------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   bench_mmul.craft:2:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=796)
+    symbols:
+    name             kind      type            decl                   seg    addr              off   size  res
+    ---------------  --------  --------------  ---------------------  -----  ----------------  ----  ----  ---
+    a                VARIABLE  chest[int, 64]  bench_mmul.craft:3:5   STACK  runtime(x17-256)  -256  256   yes
+    b                VARIABLE  chest[int, 64]  bench_mmul.craft:4:5   STACK  runtime(x17-512)  -512  256   yes
+    c                VARIABLE  chest[int, 64]  bench_mmul.craft:5:5   STACK  runtime(x17-768)  -768  256   yes
+    i                VARIABLE  int             bench_mmul.craft:6:5   STACK  runtime(x17-772)  -772  4     yes
+    j                VARIABLE  int             bench_mmul.craft:7:5   STACK  runtime(x17-776)  -776  4     yes
+    k                VARIABLE  int             bench_mmul.craft:8:5   STACK  runtime(x17-780)  -780  4     yes
+    ia               VARIABLE  int             bench_mmul.craft:9:5   STACK  runtime(x17-784)  -784  4     yes
+    kb               VARIABLE  int             bench_mmul.craft:10:5  STACK  runtime(x17-788)  -788  4     yes
+    acc              VARIABLE  int             bench_mmul.craft:11:5  STACK  runtime(x17-792)  -792  4     yes
+    suma             VARIABLE  int             bench_mmul.craft:12:5  STACK  runtime(x17-796)  -796  4     yes
+    .L0_while_start  LABEL     None            bench_mmul.craft:14:5  TEXT   -                 -     0     no 
+    .L1_while_end    LABEL     None            bench_mmul.craft:14:5  TEXT   -                 -     0     no 
+    .L2_while_start  LABEL     None            bench_mmul.craft:22:5  TEXT   -                 -     0     no 
+    .L3_while_end    LABEL     None            bench_mmul.craft:22:5  TEXT   -                 -     0     no 
+    .L8_while_start  LABEL     None            bench_mmul.craft:42:5  TEXT   -                 -     0     no 
+    .L9_while_end    LABEL     None            bench_mmul.craft:42:5  TEXT   -                 -     0     no 
+
+    [scope 2] LOOP 'while'
+      symbols: (none)
+
+    [scope 3] LOOP 'while'
+      symbols:
+      name             kind   type  decl                   seg   addr  off  size  res
+      ---------------  -----  ----  ---------------------  ----  ----  ---  ----  ---
+      .L4_while_start  LABEL  None  bench_mmul.craft:24:9  TEXT  -     -    0     no 
+      .L5_while_end    LABEL  None  bench_mmul.craft:24:9  TEXT  -     -    0     no 
+
+      [scope 4] LOOP 'while'
+        symbols:
+        name             kind   type  decl                    seg   addr  off  size  res
+        ---------------  -----  ----  ----------------------  ----  ----  ---  ----  ---
+        .L6_while_start  LABEL  None  bench_mmul.craft:28:13  TEXT  -     -    0     no 
+        .L7_while_end    LABEL  None  bench_mmul.craft:28:13  TEXT  -     -    0     no 
+
+        [scope 5] LOOP 'while'
+          symbols: (none)
+
+    [scope 6] LOOP 'while'
+      symbols: (none)

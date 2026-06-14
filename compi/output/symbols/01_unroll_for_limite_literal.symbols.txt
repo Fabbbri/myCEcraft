@@ -24,15 +24,15 @@ Legend:
 
   [scope 1] FUNCTION main (stack_size=12)
     symbols:
-    name    kind      type  decl                                    seg    addr            off  size  res
-    ------  --------  ----  --------------------------------------  -----  --------------  ---  ----  ---
-    suma_a  VARIABLE  int   01_unroll_for_limite_literal.craft:8:5  STACK  runtime(x17-4)  -4   4     yes
-    suma_b  VARIABLE  int   01_unroll_for_limite_literal.craft:9:5  STACK  runtime(x17-8)  -8   4     yes
+    name    kind      type  decl                                    seg    addr    off  size  res
+    ------  --------  ----  --------------------------------------  -----  ------  ---  ----  ---
+    suma_a  VARIABLE  int   01_unroll_for_limite_literal.craft:8:5  STACK  0x7FEC  -4   4     yes
+    suma_b  VARIABLE  int   01_unroll_for_limite_literal.craft:9:5  STACK  0x7FE8  -8   4     yes
 
     [scope 2] LOOP 'for'
       symbols:
-      name           kind      type  decl                                      seg    addr             off  size  res
-      -------------  --------  ----  ----------------------------------------  -----  ---------------  ---  ----  ---
-      .L0_for_start  LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -                -    0     no 
-      .L1_for_end    LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -                -    0     no 
-      i              VARIABLE  int   01_unroll_for_limite_literal.craft:11:10  STACK  runtime(x17-12)  -12  4     yes
+      name           kind      type  decl                                      seg    addr    off  size  res
+      -------------  --------  ----  ----------------------------------------  -----  ------  ---  ----  ---
+      .L0_for_start  LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -       -    0     no 
+      .L1_for_end    LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -       -    0     no 
+      i              VARIABLE  int   01_unroll_for_limite_literal.craft:11:10  STACK  0x7FE4  -12  4     yes

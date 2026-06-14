@@ -1,0 +1,102 @@
+main:
+  arr = 0
+  i = 0
+  suma = 0
+L_while_start_0:
+  t6__x3 = i < 256
+  ifFalse t6__x3 goto L_while_end_1
+  arr[i] = i
+  arr[(i + 8)] = (i + 8)
+  arr[(i + 16)] = (i + 16)
+  arr[(i + 24)] = (i + 24)
+  arr[(i + 32)] = (i + 32)
+  arr[(i + 40)] = (i + 40)
+  arr[(i + 48)] = (i + 48)
+  arr[(i + 56)] = (i + 56)
+  t7__x4 = i + 64
+  i = t7__x4
+  goto L_while_start_0
+L_while_end_1:
+  i = 0
+L_while_start_2:
+  t8__x5 = i < 256
+  ifFalse t8__x5 goto L_while_end_3
+  t9__x6 = arr[i]
+  t10__x7 = suma + t9__x6
+  suma = t10__x7
+  t11__x8 = arr[(i + 8)]
+  t12__x9 = suma + t11__x8
+  suma = t12__x9
+  t13__x10 = arr[(i + 16)]
+  t14__x3 = suma + t13__x10
+  suma = t14__x3
+  t15__x4 = arr[(i + 24)]
+  t16__x5 = suma + t15__x4
+  suma = t16__x5
+  t17__x6 = i + 32
+  i = t17__x6
+  goto L_while_start_2
+L_while_end_3:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    arr = 0
+    i = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t6__x3 = i < 256
+    ifFalse t6__x3 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    arr[i] = i
+    arr[(i + 8)] = (i + 8)
+    arr[(i + 16)] = (i + 16)
+    arr[(i + 24)] = (i + 24)
+    arr[(i + 32)] = (i + 32)
+    arr[(i + 40)] = (i + 40)
+    arr[(i + 48)] = (i + 48)
+    arr[(i + 56)] = (i + 56)
+    t7__x4 = i + 64
+    i = t7__x4
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_1:
+    i = 0
+
+[B_label_L_while_start_2]
+  -> Sucesores: B_label_L_while_end_3, B_fallthrough_5
+    L_while_start_2:
+    t8__x5 = i < 256
+    ifFalse t8__x5 goto L_while_end_3
+
+[B_fallthrough_5]
+  -> Sucesores: B_label_L_while_start_2
+    t9__x6 = arr[i]
+    t10__x7 = suma + t9__x6
+    suma = t10__x7
+    t11__x8 = arr[(i + 8)]
+    t12__x9 = suma + t11__x8
+    suma = t12__x9
+    t13__x10 = arr[(i + 16)]
+    t14__x3 = suma + t13__x10
+    suma = t14__x3
+    t15__x4 = arr[(i + 24)]
+    t16__x5 = suma + t15__x4
+    suma = t16__x5
+    t17__x6 = i + 32
+    i = t17__x6
+    goto L_while_start_2
+
+[B_label_L_while_end_3]
+    L_while_end_3:
+    return suma
