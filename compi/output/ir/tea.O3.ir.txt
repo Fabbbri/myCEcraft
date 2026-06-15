@@ -1,0 +1,389 @@
+  key = [0, 1, 2, 3]
+  plain = [0, 0]
+  cipher = [0, 0]
+  roundtrip = [0, 0]
+  DELTA = 2654435769
+  SUM_INIT = 3337565984
+tea_encrypt:
+  t0__x3 = v[0]
+  t1__x4 = v[1]
+  v0 = t0__x3
+  v1 = t1__x4
+  sum = 0
+  i = 0
+L_for_start_0:
+  t54__x5 = i < 32
+  ifFalse t54__x5 goto L_for_end_1
+  t55__x6 = sum + DELTA
+  sum = t55__x6
+  t56__x7 = tea_key[0]
+  t58__x9 = v1 + sum
+  t57__x8 = v1 <+4 t56__x7
+  left0 = t57__x8
+  mid0 = t58__x9
+  t59__x10 = tea_key[1]
+  t61__x4 = left0 ^ mid0
+  t60__x3 = v1 >+5 t59__x10
+  right0 = t60__x3
+  t62__x5 = t61__x4 ^ right0
+  t63__x6 = v0 + t62__x5
+  v0 = t63__x6
+  t64__x7 = tea_key[2]
+  t66__x9 = v0 + sum
+  t65__x8 = v0 <+4 t64__x7
+  left1 = t65__x8
+  mid1 = t66__x9
+  t67__x10 = tea_key[3]
+  t69__x4 = left1 ^ mid1
+  t68__x3 = v0 >+5 t67__x10
+  right1 = t68__x3
+  t70__x5 = t69__x4 ^ right1
+  t71__x6 = v1 + t70__x5
+  v1 = t71__x6
+  t72__x7 = sum + DELTA
+  sum = t72__x7
+  t73__x8 = tea_key[0]
+  t75__x10 = v1 + sum
+  t74__x9 = v1 <+4 t73__x8
+  left0 = t74__x9
+  mid0 = t75__x10
+  t76__x3 = tea_key[1]
+  t78__x5 = left0 ^ mid0
+  t77__x4 = v1 >+5 t76__x3
+  right0 = t77__x4
+  t79__x6 = t78__x5 ^ right0
+  t80__x7 = v0 + t79__x6
+  v0 = t80__x7
+  t81__x8 = tea_key[2]
+  t83__x10 = v0 + sum
+  t82__x9 = v0 <+4 t81__x8
+  left1 = t82__x9
+  mid1 = t83__x10
+  t84__x3 = tea_key[3]
+  t86__x5 = left1 ^ mid1
+  t85__x4 = v0 >+5 t84__x3
+  right1 = t85__x4
+  t87__x6 = t86__x5 ^ right1
+  t88__x7 = v1 + t87__x6
+  v1 = t88__x7
+  t89__x8 = i + 2
+  i = t89__x8
+  goto L_for_start_0
+L_for_end_1:
+  v[0] = v0
+  v[1] = v1
+tea_decrypt:
+  t21__x9 = v[0]
+  t22__x10 = v[1]
+  v0 = t21__x9
+  v1 = t22__x10
+  sum = SUM_INIT
+  i = 0
+L_for_start_2:
+  t90__x3 = i < 32
+  ifFalse t90__x3 goto L_for_end_3
+  t91__x4 = tea_key[2]
+  t93__x6 = v0 + sum
+  t92__x5 = v0 <+4 t91__x4
+  left1 = t92__x5
+  mid1 = t93__x6
+  t94__x7 = tea_key[3]
+  t96__x9 = left1 ^ mid1
+  t95__x8 = v0 >+5 t94__x7
+  right1 = t95__x8
+  t97__x10 = t96__x9 ^ right1
+  t98__x3 = v1 - t97__x10
+  v1 = t98__x3
+  t99__x4 = tea_key[0]
+  t101__x6 = v1 + sum
+  t100__x5 = v1 <+4 t99__x4
+  left0 = t100__x5
+  mid0 = t101__x6
+  t102__x7 = tea_key[1]
+  t104__x9 = left0 ^ mid0
+  t103__x8 = v1 >+5 t102__x7
+  right0 = t103__x8
+  t105__x10 = t104__x9 ^ right0
+  t106__x3 = v0 - t105__x10
+  v0 = t106__x3
+  t107__x4 = sum - DELTA
+  sum = t107__x4
+  t108__x5 = tea_key[2]
+  t110__x7 = v0 + sum
+  t109__x6 = v0 <+4 t108__x5
+  left1 = t109__x6
+  mid1 = t110__x7
+  t111__x8 = tea_key[3]
+  t113__x10 = left1 ^ mid1
+  t112__x9 = v0 >+5 t111__x8
+  right1 = t112__x9
+  t114__x3 = t113__x10 ^ right1
+  t115__x4 = v1 - t114__x3
+  v1 = t115__x4
+  t116__x5 = tea_key[0]
+  t118__x7 = v1 + sum
+  t117__x6 = v1 <+4 t116__x5
+  left0 = t117__x6
+  mid0 = t118__x7
+  t119__x8 = tea_key[1]
+  t121__x10 = left0 ^ mid0
+  t120__x9 = v1 >+5 t119__x8
+  right0 = t120__x9
+  t122__x3 = t121__x10 ^ right0
+  t123__x4 = v0 - t122__x3
+  v0 = t123__x4
+  t124__x5 = sum - DELTA
+  sum = t124__x5
+  t125__x6 = i + 2
+  i = t125__x6
+  goto L_for_start_2
+L_for_end_3:
+  v[0] = v0
+  v[1] = v1
+main:
+  t42__x7 = plain[0]
+  cipher[0] = t42__x7
+  t43__x8 = plain[1]
+  cipher[1] = t43__x8
+  t44__x9 = call tea_encrypt(cipher, key)
+  t45__x10 = cipher[0]
+  roundtrip[0] = t45__x10
+  t46__x3 = cipher[1]
+  roundtrip[1] = t46__x3
+  t47__x4 = call tea_decrypt(roundtrip, key)
+  t48__x5 = roundtrip[0]
+  t49__x6 = plain[0]
+  t50__x7 = t48__x5 == t49__x6
+  ifFalse t50__x7 goto L_else_4
+  t51__x8 = roundtrip[1]
+  t52__x9 = plain[1]
+  t53__x10 = t51__x8 == t52__x9
+  ifFalse t53__x10 goto L_else_6
+  return 0
+  goto L_end_if_7
+L_else_6:
+L_end_if_7:
+  goto L_end_if_5
+L_else_4:
+L_end_if_5:
+  return 1
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_tea_encrypt
+    IRArrayAssign(elements=[0, 1, 2, 3], result='key')
+    IRArrayAssign(elements=[0, 0], result='plain')
+    IRArrayAssign(elements=[0, 0], result='cipher')
+    IRArrayAssign(elements=[0, 0], result='roundtrip')
+    DELTA = 2654435769
+    SUM_INIT = 3337565984
+
+[B_label_tea_encrypt]
+  -> Sucesores: B_label_L_for_start_0
+  tea_encrypt:
+    t0__x3 = v[0]
+    t1__x4 = v[1]
+    v0 = t0__x3
+    v1 = t1__x4
+    sum = 0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_3
+  L_for_start_0:
+    t54__x5 = i < 32
+    ifFalse t54__x5 goto L_for_end_1
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_for_start_0
+    t55__x6 = sum + DELTA
+    sum = t55__x6
+    t56__x7 = tea_key[0]
+    t58__x9 = v1 + sum
+    t57__x8 = v1 <+4 t56__x7
+    left0 = t57__x8
+    mid0 = t58__x9
+    t59__x10 = tea_key[1]
+    t61__x4 = left0 ^ mid0
+    t60__x3 = v1 >+5 t59__x10
+    right0 = t60__x3
+    t62__x5 = t61__x4 ^ right0
+    t63__x6 = v0 + t62__x5
+    v0 = t63__x6
+    t64__x7 = tea_key[2]
+    t66__x9 = v0 + sum
+    t65__x8 = v0 <+4 t64__x7
+    left1 = t65__x8
+    mid1 = t66__x9
+    t67__x10 = tea_key[3]
+    t69__x4 = left1 ^ mid1
+    t68__x3 = v0 >+5 t67__x10
+    right1 = t68__x3
+    t70__x5 = t69__x4 ^ right1
+    t71__x6 = v1 + t70__x5
+    v1 = t71__x6
+    t72__x7 = sum + DELTA
+    sum = t72__x7
+    t73__x8 = tea_key[0]
+    t75__x10 = v1 + sum
+    t74__x9 = v1 <+4 t73__x8
+    left0 = t74__x9
+    mid0 = t75__x10
+    t76__x3 = tea_key[1]
+    t78__x5 = left0 ^ mid0
+    t77__x4 = v1 >+5 t76__x3
+    right0 = t77__x4
+    t79__x6 = t78__x5 ^ right0
+    t80__x7 = v0 + t79__x6
+    v0 = t80__x7
+    t81__x8 = tea_key[2]
+    t83__x10 = v0 + sum
+    t82__x9 = v0 <+4 t81__x8
+    left1 = t82__x9
+    mid1 = t83__x10
+    t84__x3 = tea_key[3]
+    t86__x5 = left1 ^ mid1
+    t85__x4 = v0 >+5 t84__x3
+    right1 = t85__x4
+    t87__x6 = t86__x5 ^ right1
+    t88__x7 = v1 + t87__x6
+    v1 = t88__x7
+    t89__x8 = i + 2
+    i = t89__x8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  -> Sucesores: B_label_tea_decrypt
+  L_for_end_1:
+    v[0] = v0
+    v[1] = v1
+
+[B_label_tea_decrypt]
+  -> Sucesores: B_label_L_for_start_2
+  tea_decrypt:
+    t21__x9 = v[0]
+    t22__x10 = v[1]
+    v0 = t21__x9
+    v1 = t22__x10
+    sum = SUM_INIT
+    i = 0
+
+[B_label_L_for_start_2]
+  -> Sucesores: B_label_L_for_end_3, B_fallthrough_7
+  L_for_start_2:
+    t90__x3 = i < 32
+    ifFalse t90__x3 goto L_for_end_3
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_for_start_2
+    t91__x4 = tea_key[2]
+    t93__x6 = v0 + sum
+    t92__x5 = v0 <+4 t91__x4
+    left1 = t92__x5
+    mid1 = t93__x6
+    t94__x7 = tea_key[3]
+    t96__x9 = left1 ^ mid1
+    t95__x8 = v0 >+5 t94__x7
+    right1 = t95__x8
+    t97__x10 = t96__x9 ^ right1
+    t98__x3 = v1 - t97__x10
+    v1 = t98__x3
+    t99__x4 = tea_key[0]
+    t101__x6 = v1 + sum
+    t100__x5 = v1 <+4 t99__x4
+    left0 = t100__x5
+    mid0 = t101__x6
+    t102__x7 = tea_key[1]
+    t104__x9 = left0 ^ mid0
+    t103__x8 = v1 >+5 t102__x7
+    right0 = t103__x8
+    t105__x10 = t104__x9 ^ right0
+    t106__x3 = v0 - t105__x10
+    v0 = t106__x3
+    t107__x4 = sum - DELTA
+    sum = t107__x4
+    t108__x5 = tea_key[2]
+    t110__x7 = v0 + sum
+    t109__x6 = v0 <+4 t108__x5
+    left1 = t109__x6
+    mid1 = t110__x7
+    t111__x8 = tea_key[3]
+    t113__x10 = left1 ^ mid1
+    t112__x9 = v0 >+5 t111__x8
+    right1 = t112__x9
+    t114__x3 = t113__x10 ^ right1
+    t115__x4 = v1 - t114__x3
+    v1 = t115__x4
+    t116__x5 = tea_key[0]
+    t118__x7 = v1 + sum
+    t117__x6 = v1 <+4 t116__x5
+    left0 = t117__x6
+    mid0 = t118__x7
+    t119__x8 = tea_key[1]
+    t121__x10 = left0 ^ mid0
+    t120__x9 = v1 >+5 t119__x8
+    right0 = t120__x9
+    t122__x3 = t121__x10 ^ right0
+    t123__x4 = v0 - t122__x3
+    v0 = t123__x4
+    t124__x5 = sum - DELTA
+    sum = t124__x5
+    t125__x6 = i + 2
+    i = t125__x6
+    goto L_for_start_2
+
+[B_label_L_for_end_3]
+  -> Sucesores: B_label_main
+  L_for_end_3:
+    v[0] = v0
+    v[1] = v1
+
+[B_label_main]
+  -> Sucesores: B_label_L_else_4, B_fallthrough_10
+  main:
+    t42__x7 = plain[0]
+    cipher[0] = t42__x7
+    t43__x8 = plain[1]
+    cipher[1] = t43__x8
+    call tea_encrypt
+    t45__x10 = cipher[0]
+    roundtrip[0] = t45__x10
+    t46__x3 = cipher[1]
+    roundtrip[1] = t46__x3
+    call tea_decrypt
+    t48__x5 = roundtrip[0]
+    t49__x6 = plain[0]
+    t50__x7 = t48__x5 == t49__x6
+    ifFalse t50__x7 goto L_else_4
+
+[B_fallthrough_10]
+  -> Sucesores: B_label_L_else_6, B_fallthrough_11
+    t51__x8 = roundtrip[1]
+    t52__x9 = plain[1]
+    t53__x10 = t51__x8 == t52__x9
+    ifFalse t53__x10 goto L_else_6
+
+[B_fallthrough_11]
+    return 0
+
+[B_fallthrough_12]
+  -> Sucesores: B_label_L_end_if_7
+    goto L_end_if_7
+
+[B_label_L_else_6]
+  -> Sucesores: B_label_L_end_if_7
+  L_else_6:
+
+[B_label_L_end_if_7]
+  -> Sucesores: B_label_L_end_if_5
+  L_end_if_7:
+    goto L_end_if_5
+
+[B_label_L_else_4]
+  -> Sucesores: B_label_L_end_if_5
+  L_else_4:
+
+[B_label_L_end_if_5]
+  L_end_if_5:
+    return 1

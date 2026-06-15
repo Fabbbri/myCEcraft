@@ -1,0 +1,210 @@
+maximo_lista:
+  t0 = lista[0]
+  maximo = t0
+  num = 0
+  esMayor = 0
+  limite = largo
+  i = 0
+L_for_start_0:
+  t1 = limite + 0
+  t2 = i < t1
+  ifFalse t2 goto L_for_end_1
+  t3 = lista[i]
+  num = t3
+  t4 = num > maximo
+  esMayor = t4
+  t5 = esMayor + 0
+  ifFalse t5 goto L_else_2
+  maximo = num
+  goto L_end_if_3
+L_else_2:
+L_end_if_3:
+  t6 = i + 1
+  i = t6
+  goto L_for_start_0
+L_for_end_1:
+  return maximo
+  suma = 0
+  multiplicacion = 1
+  resultado = [0, 0]
+sumeMayores:
+  valorMaximo = 0
+  seguir = 0
+  esDiez = 0
+  esGrande = 0
+  t7 = suma < 100
+  seguir = t7
+L_while_start_4:
+  t8 = seguir + 0
+  ifFalse t8 goto L_while_end_5
+  t9 = call maximo_lista(lista, 5)
+  valorMaximo = t9
+  t10 = valorMaximo / 2
+  t11 = t10 == 5
+  esDiez = t11
+  t12 = esDiez + 0
+  ifFalse t12 goto L_else_6
+  t13 = valorMaximo * 2
+  valorMaximo = t13
+  goto L_end_if_7
+L_else_6:
+L_end_if_7:
+  t14 = suma + valorMaximo
+  suma = t14
+  t15 = multiplicacion * valorMaximo
+  multiplicacion = t15
+  t16 = multiplicacion > 500
+  esGrande = t16
+  t17 = esGrande + 0
+  ifFalse t17 goto L_else_8
+  multiplicacion = 10
+  goto L_end_if_9
+L_else_8:
+  t18 = multiplicacion - 10
+  multiplicacion = t18
+L_end_if_9:
+  t19 = suma < 100
+  seguir = t19
+  goto L_while_start_4
+L_while_end_5:
+  salida[0] = suma
+  salida[1] = multiplicacion
+  t20 = salida[0]
+  return t20
+main:
+  lista = [10, 2, 3, 4, 5]
+  t21 = call sumeMayores(lista, resultado)
+  return t21
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_maximo_lista]
+  -> Sucesores: B_label_L_for_start_0
+    maximo_lista:
+    t0 = lista[0]
+    maximo = t0
+    num = 0
+    esMayor = 0
+    limite = largo
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t1 = limite + 0
+    t2 = i < t1
+    ifFalse t2 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_3
+    t3 = lista[i]
+    num = t3
+    t4 = num > maximo
+    esMayor = t4
+    t5 = esMayor + 0
+    ifFalse t5 goto L_else_2
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_end_if_3
+    maximo = num
+    goto L_end_if_3
+
+[B_label_L_else_2]
+  -> Sucesores: B_label_L_end_if_3
+    L_else_2:
+
+[B_label_L_end_if_3]
+  -> Sucesores: B_label_L_for_start_0
+    L_end_if_3:
+    t6 = i + 1
+    i = t6
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    return maximo
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_sumeMayores
+    suma = 0
+    multiplicacion = 1
+    resultado = [0, 0]
+
+[B_label_sumeMayores]
+  -> Sucesores: B_label_L_while_start_4
+    sumeMayores:
+    valorMaximo = 0
+    seguir = 0
+    esDiez = 0
+    esGrande = 0
+    t7 = suma < 100
+    seguir = t7
+
+[B_label_L_while_start_4]
+  -> Sucesores: B_label_L_while_end_5, B_fallthrough_10
+    L_while_start_4:
+    t8 = seguir + 0
+    ifFalse t8 goto L_while_end_5
+
+[B_fallthrough_10]
+  -> Sucesores: B_label_L_else_6, B_fallthrough_11
+    t9 = call maximo_lista(lista, 5)
+    valorMaximo = t9
+    t10 = valorMaximo / 2
+    t11 = t10 == 5
+    esDiez = t11
+    t12 = esDiez + 0
+    ifFalse t12 goto L_else_6
+
+[B_fallthrough_11]
+  -> Sucesores: B_label_L_end_if_7
+    t13 = valorMaximo * 2
+    valorMaximo = t13
+    goto L_end_if_7
+
+[B_label_L_else_6]
+  -> Sucesores: B_label_L_end_if_7
+    L_else_6:
+
+[B_label_L_end_if_7]
+  -> Sucesores: B_label_L_else_8, B_fallthrough_14
+    L_end_if_7:
+    t14 = suma + valorMaximo
+    suma = t14
+    t15 = multiplicacion * valorMaximo
+    multiplicacion = t15
+    t16 = multiplicacion > 500
+    esGrande = t16
+    t17 = esGrande + 0
+    ifFalse t17 goto L_else_8
+
+[B_fallthrough_14]
+  -> Sucesores: B_label_L_end_if_9
+    multiplicacion = 10
+    goto L_end_if_9
+
+[B_label_L_else_8]
+  -> Sucesores: B_label_L_end_if_9
+    L_else_8:
+    t18 = multiplicacion - 10
+    multiplicacion = t18
+
+[B_label_L_end_if_9]
+  -> Sucesores: B_label_L_while_start_4
+    L_end_if_9:
+    t19 = suma < 100
+    seguir = t19
+    goto L_while_start_4
+
+[B_label_L_while_end_5]
+    L_while_end_5:
+    salida[0] = suma
+    salida[1] = multiplicacion
+    t20 = salida[0]
+    return t20
+
+[B_label_main]
+    main:
+    lista = [10, 2, 3, 4, 5]
+    t21 = call sumeMayores(lista, resultado)
+    return t21

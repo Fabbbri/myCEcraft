@@ -1,0 +1,173 @@
+es_primo:
+  t0__x3 = n <= 1
+  ifFalse t0__x3 goto L_else_0
+  return 0
+  goto L_end_if_1
+L_else_0:
+L_end_if_1:
+  t1__x4 = divisor * divisor
+  t2__x5 = t1__x4 > n
+  ifFalse t2__x5 goto L_else_2
+  return 1
+  goto L_end_if_3
+L_else_2:
+L_end_if_3:
+  t3__x6 = n / divisor
+  cociente__v1__x7 = t3__x6
+  t4__x8 = cociente__v1__x7 * divisor
+  producto__v1__x9 = t4__x8
+  t5__x10 = producto__v1__x9 == n
+  commit cociente = cociente__v1__x7
+  commit producto = producto__v1__x9
+  ifFalse t5__x10 goto L_else_4
+  return 0
+  goto L_end_if_5
+L_else_4:
+L_end_if_5:
+  t6__x3 = divisor + 1
+  t7__x4 = call es_primo(n, t6__x3)
+  return t7__x4
+sume:
+  suma__v1__x5 = 0
+  i__v1__x6 = 0
+  commit suma = suma__v1__x5
+  commit i = i__v1__x6
+L_for_start_6:
+  t8__x7 = i < 10
+  ifFalse t8__x7 goto L_for_end_7
+  t9__x8 = lista[i]
+  t10__x9 = call es_primo(t9__x8, 2)
+  ifFalse t10__x9 goto L_else_8
+  t11__x10 = lista[i]
+  t12__x3 = suma + t11__x10
+  suma__v2__x4 = t12__x3
+  commit suma = suma__v2__x4
+  goto L_end_if_9
+L_else_8:
+L_end_if_9:
+  t13__x5 = i + 1
+  i__v2__x6 = t13__x5
+  commit i = i__v2__x6
+  goto L_for_start_6
+L_for_end_7:
+  return suma
+main:
+  lista = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11]
+  t14__x7 = call sume(lista)
+  return t14__x7
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_es_primo]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_1
+  es_primo:
+    t0__x3 = n <= 1
+    ifFalse t0__x3 goto L_else_0
+
+[B_fallthrough_1]
+    return 0
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+  -> Sucesores: B_label_L_end_if_1
+  L_else_0:
+
+[B_label_L_end_if_1]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_5
+  L_end_if_1:
+    t1__x4 = divisor * divisor
+    t2__x5 = t1__x4 > n
+    ifFalse t2__x5 goto L_else_2
+
+[B_fallthrough_5]
+    return 1
+
+[B_fallthrough_6]
+  -> Sucesores: B_label_L_end_if_3
+    goto L_end_if_3
+
+[B_label_L_else_2]
+  -> Sucesores: B_label_L_end_if_3
+  L_else_2:
+
+[B_label_L_end_if_3]
+  -> Sucesores: B_label_L_else_4, B_fallthrough_9
+  L_end_if_3:
+    t3__x6 = n / divisor
+    cociente__v1__x7 = t3__x6
+    t4__x8 = cociente__v1__x7 * divisor
+    producto__v1__x9 = t4__x8
+    t5__x10 = producto__v1__x9 == n
+    commit cociente = cociente__v1__x7
+    commit producto = producto__v1__x9
+    ifFalse t5__x10 goto L_else_4
+
+[B_fallthrough_9]
+    return 0
+
+[B_fallthrough_10]
+  -> Sucesores: B_label_L_end_if_5
+    goto L_end_if_5
+
+[B_label_L_else_4]
+  -> Sucesores: B_label_L_end_if_5
+  L_else_4:
+
+[B_label_L_end_if_5]
+  L_end_if_5:
+    t6__x3 = divisor + 1
+    call es_primo
+    return t7__x4
+
+[B_label_sume]
+  -> Sucesores: B_label_L_for_start_6
+  sume:
+    suma__v1__x5 = 0
+    i__v1__x6 = 0
+    commit suma = suma__v1__x5
+    commit i = i__v1__x6
+
+[B_label_L_for_start_6]
+  -> Sucesores: B_label_L_for_end_7, B_fallthrough_15
+  L_for_start_6:
+    t8__x7 = i < 10
+    ifFalse t8__x7 goto L_for_end_7
+
+[B_fallthrough_15]
+  -> Sucesores: B_label_L_else_8, B_fallthrough_16
+    t9__x8 = lista[i]
+    call es_primo
+    ifFalse t10__x9 goto L_else_8
+
+[B_fallthrough_16]
+  -> Sucesores: B_label_L_end_if_9
+    t11__x10 = lista[i]
+    t12__x3 = suma + t11__x10
+    suma__v2__x4 = t12__x3
+    commit suma = suma__v2__x4
+    goto L_end_if_9
+
+[B_label_L_else_8]
+  -> Sucesores: B_label_L_end_if_9
+  L_else_8:
+
+[B_label_L_end_if_9]
+  -> Sucesores: B_label_L_for_start_6
+  L_end_if_9:
+    t13__x5 = i + 1
+    i__v2__x6 = t13__x5
+    commit i = i__v2__x6
+    goto L_for_start_6
+
+[B_label_L_for_end_7]
+  L_for_end_7:
+    return suma
+
+[B_label_main]
+  main:
+    IRArrayAssign(elements=[1, 2, 3, 4, 5, 6, 7, 8, 9, 11], result='lista')
+    call sume
+    return t14__x7

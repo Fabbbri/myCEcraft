@@ -1,0 +1,19 @@
+@EnterCraftWorld
+
+// WAW en secuencia densa: la variable 'a' se reescribe 3 veces antes
+// de usarse. El renombramiento crea versiones distintas de los temporales
+// intermedios (t0, t1, t2 -> t0__x3, t1__x4, t2__x5) permitiendo al
+// asignador de registros asignar fisicos distintos y reducir
+// dependencias de datos cuando hay muchos temporales simultaneamente vivos.
+// El efecto es visible en instrucciones generadas (menos spills al stack).
+// Resultado esperado: (1+10) + (2+20) + (3+30) = 11 + 22 + 33 = 66 = 0x42.
+
+craft:int main() {
+    a:int = 1;
+    primero:int = a + 10;
+    a = 2;
+    segundo:int = a + 20;
+    a = 3;
+    tercero:int = a + 30;
+    return primero + segundo + tercero;
+}

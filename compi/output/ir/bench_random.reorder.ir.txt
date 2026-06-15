@@ -1,0 +1,101 @@
+main:
+  arr = 0
+  i = 0
+  idx = 0
+  suma = 0
+L_while_start_0:
+  t0 = i < 480
+  ifFalse t0 goto L_while_end_1
+  arr[i] = i
+  t1 = i + 1
+  i = t1
+  goto L_while_start_0
+L_while_end_1:
+  i = 0
+  idx = 0
+L_while_start_2:
+  t2 = i < 480
+  ifFalse t2 goto L_while_end_3
+  t3 = arr[idx]
+  t5 = idx + 341
+  t4 = suma + t3
+  suma = t4
+  idx = t5
+  t6 = idx >= 480
+  ifFalse t6 goto L_else_4
+  t7 = idx - 480
+  idx = t7
+  goto L_end_if_5
+L_else_4:
+L_end_if_5:
+  t8 = i + 1
+  i = t8
+  goto L_while_start_2
+L_while_end_3:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    arr = 0
+    i = 0
+    idx = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t0 = i < 480
+    ifFalse t0 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    arr[i] = i
+    t1 = i + 1
+    i = t1
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_1:
+    i = 0
+    idx = 0
+
+[B_label_L_while_start_2]
+  -> Sucesores: B_label_L_while_end_3, B_fallthrough_5
+    L_while_start_2:
+    t2 = i < 480
+    ifFalse t2 goto L_while_end_3
+
+[B_fallthrough_5]
+  -> Sucesores: B_label_L_else_4, B_fallthrough_6
+    t3 = arr[idx]
+    t5 = idx + 341
+    t4 = suma + t3
+    suma = t4
+    idx = t5
+    t6 = idx >= 480
+    ifFalse t6 goto L_else_4
+
+[B_fallthrough_6]
+  -> Sucesores: B_label_L_end_if_5
+    t7 = idx - 480
+    idx = t7
+    goto L_end_if_5
+
+[B_label_L_else_4]
+  -> Sucesores: B_label_L_end_if_5
+    L_else_4:
+
+[B_label_L_end_if_5]
+  -> Sucesores: B_label_L_while_start_2
+    L_end_if_5:
+    t8 = i + 1
+    i = t8
+    goto L_while_start_2
+
+[B_label_L_while_end_3]
+    L_while_end_3:
+    return suma

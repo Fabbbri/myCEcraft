@@ -1,0 +1,38 @@
+main:
+  a = 4
+  b = 3
+  t0__x3 = a + b
+  previo = t0__x3
+  t1__x4 = b + 5
+  a = t1__x4
+  t2__x5 = b * 2
+  t3__x6 = a + t2__x5
+  medio = t3__x6
+  t4__x7 = a + 1
+  b = t4__x7
+  t5__x8 = b + 2
+  final = t5__x8
+  t6__x9 = previo + medio
+  t7__x10 = t6__x9 + final
+  return t7__x10
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+    main:
+    a = 4
+    b = 3
+    t0__x3 = a + b
+    previo = t0__x3
+    t1__x4 = b + 5
+    a = t1__x4
+    t2__x5 = b * 2
+    t3__x6 = a + t2__x5
+    medio = t3__x6
+    t4__x7 = a + 1
+    b = t4__x7
+    t5__x8 = b + 2
+    final = t5__x8
+    t6__x9 = previo + medio
+    t7__x10 = t6__x9 + final
+    return t7__x10

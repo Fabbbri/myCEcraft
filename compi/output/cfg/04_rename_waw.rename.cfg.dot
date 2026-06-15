@@ -1,0 +1,9 @@
+digraph "04_rename_waw.rename" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\la = 1\lt0__x3 = a + 10\lprimero = t0__x3\la = 2\lt1__x4 = a + 20\lsegundo = t1__x4\la = 3\lt2__x5 = a + 30\ltercero = t2__x5\lt3__x6 = primero + segundo\lt4__x7 = t3__x6 + tercero\lreturn t4__x7\l"];
+
+}

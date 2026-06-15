@@ -1,0 +1,57 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_2_ir_cmp_true          pc=0x00C0
+.L_ir_3_ir_cmp_end           pc=0x00C4
+L_else_2                     pc=0x00EC
+L_end_if_3                   pc=0x00EC
+.L_ir_1_main_end             pc=0x00F8
+seleccionar                  pc=0x0104
+.L_ir_5_ir_cmp_true          pc=0x0128
+.L_ir_6_ir_cmp_end           pc=0x012C
+L_else_0                     pc=0x0140
+L_end_if_1                   pc=0x0140
+.L_ir_4_seleccionar_end      pc=0x0148
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name         kind      type  decl                                       seg   addr    off  size  res
+  -----------  --------  ----  -----------------------------------------  ----  ------  ---  ----  ---
+  seleccionar  FUNCTION  int   11_reorder_load_branch_funcion.craft:4:1   TEXT  0x0104  -    0     yes
+  main         FUNCTION  int   11_reorder_load_branch_funcion.craft:12:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION seleccionar (stack_size=8)
+    symbols:
+    name         kind       type  decl                                       seg    addr            off  size  res
+    -----------  ---------  ----  -----------------------------------------  -----  --------------  ---  ----  ---
+    valor        PARAMETER  int   11_reorder_load_branch_funcion.craft:4:23  STACK  runtime(x17-4)  -4   4     yes
+    respaldo     PARAMETER  int   11_reorder_load_branch_funcion.craft:4:34  STACK  runtime(x17-8)  -8   4     yes
+    .L0_if_else  LABEL      None  11_reorder_load_branch_funcion.craft:5:5   TEXT   -               -    0     no 
+    .L1_if_end   LABEL      None  11_reorder_load_branch_funcion.craft:5:5   TEXT   -               -    0     no 
+
+    [scope 2] CONDITIONAL 'if'
+      symbols: (none)
+
+  [scope 3] FUNCTION main (stack_size=28)
+    symbols:
+    name           kind      type           decl                                       seg    addr             off  size  res
+    -------------  --------  -------------  -----------------------------------------  -----  ---------------  ---  ----  ---
+    datos          VARIABLE  chest[int, 3]  11_reorder_load_branch_funcion.craft:13:5  STACK  runtime(x17-12)  -12  12    yes
+    cargado        VARIABLE  int            11_reorder_load_branch_funcion.craft:14:5  STACK  runtime(x17-16)  -16  4     yes
+    independiente  VARIABLE  int            11_reorder_load_branch_funcion.craft:15:5  STACK  runtime(x17-20)  -20  4     yes
+    candidato      VARIABLE  int            11_reorder_load_branch_funcion.craft:16:5  STACK  runtime(x17-24)  -24  4     yes
+    elegido        VARIABLE  int            11_reorder_load_branch_funcion.craft:17:5  STACK  runtime(x17-28)  -28  4     yes
+    .L2_if_else    LABEL     None           11_reorder_load_branch_funcion.craft:19:5  TEXT   -                -    0     no 
+    .L3_if_end     LABEL     None           11_reorder_load_branch_funcion.craft:19:5  TEXT   -                -    0     no 
+
+    [scope 4] CONDITIONAL 'if'
+      symbols: (none)

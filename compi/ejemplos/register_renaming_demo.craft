@@ -1,0 +1,13 @@
+@EnterCraftWorld
+craft:int main() {
+    a:int = 1;
+    first:int = a + 10;
+
+    // La segunda escritura de a crea una dependencia WAW aparente.
+    // El uso anterior de a tambien crea una dependencia WAR aparente.
+    a = 2;
+    second:int = a + 20;
+
+    // Resultado esperado: 11 + 22 = 33.
+    return first + second;
+}

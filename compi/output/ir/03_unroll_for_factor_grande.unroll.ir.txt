@@ -1,0 +1,79 @@
+main:
+  par = 0
+  impar = 0
+  i = 0
+L_for_start_0:
+  t6 = i < 32
+  ifFalse t6 goto L_for_end_1
+  t7 = par + i
+  par = t7
+  t8 = impar + i
+  t9 = t8 + 1
+  impar = t9
+  t10 = par + (i + 2)
+  par = t10
+  t11 = impar + (i + 2)
+  t12 = t11 + 1
+  impar = t12
+  t13 = par + (i + 4)
+  par = t13
+  t14 = impar + (i + 4)
+  t15 = t14 + 1
+  impar = t15
+  t16 = par + (i + 6)
+  par = t16
+  t17 = impar + (i + 6)
+  t18 = t17 + 1
+  impar = t18
+  t19 = i + 8
+  i = t19
+  goto L_for_start_0
+L_for_end_1:
+  t5 = par + impar
+  return t5
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+    main:
+    par = 0
+    impar = 0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t6 = i < 32
+    ifFalse t6 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    t7 = par + i
+    par = t7
+    t8 = impar + i
+    t9 = t8 + 1
+    impar = t9
+    t10 = par + (i + 2)
+    par = t10
+    t11 = impar + (i + 2)
+    t12 = t11 + 1
+    impar = t12
+    t13 = par + (i + 4)
+    par = t13
+    t14 = impar + (i + 4)
+    t15 = t14 + 1
+    impar = t15
+    t16 = par + (i + 6)
+    par = t16
+    t17 = impar + (i + 6)
+    t18 = t17 + 1
+    impar = t18
+    t19 = i + 8
+    i = t19
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    t5 = par + impar
+    return t5

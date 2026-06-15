@@ -1,0 +1,39 @@
+// FOR donde el cuerpo acumula calculos cuyo resultado no sale del loop.
+// El acumulador 'desperdicio' solo se usa para calcular mas 'desperdicio',
+// nunca llega a return ni a summon: DCE elimina toda la cadena.
+// La llamada con efecto (registrar) y su retorno que alimenta 'contador'
+// se conservan porque si son observables.
+// Resultado esperado: 6 (contador tras registrar(6)).
+
+@EnterCraftWorld
+
+contador:int = 0;
+
+craft:int registrar(v:int) {
+    contador = contador + v;
+    return v + 1;
+}
+
+
+craft:int main() {
+    // bloque lineal muerto antes de la llamada
+    local:int = 4;
+    p1:int = local + 7;
+    p2:int = p1 + p1;
+    p3:int = p2 + p1;
+    p4:int = p3 + p2;
+    p5:int = p4 + p3;
+
+    // llamada con efecto: se conserva; su retorno alimenta cadena muerta
+    ret:int = summon:registrar(6);
+    q1:int = ret + p5;
+    q2:int = q1 + q1;
+    q3:int = q2 + q1;
+
+    // segundo bloque muerto post-llamada
+    r1:int = local + q3;
+    r2:int = r1 + r1;
+    r3:int = r2 + r1;
+
+    return contador;
+}

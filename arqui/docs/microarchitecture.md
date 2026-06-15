@@ -5,9 +5,10 @@ organizacion interna se integra en `arqui/rtl/top.sv`, donde se conectan las
 etapas de fetch, decode, execute, memory y writeback mediante registros de
 pipeline. El diseno incluye banco de registros general, ALU, unidad de control,
 RAM de datos, ROM de instrucciones y una boveda de llaves compuesta por banco de
-registros Vault, RAM Vault y control de Secure Mode.
+registros Vault, RAM Vault y control de Secure Mode. Note además que se realizó la extensión del bloque negro **MEMORY HIERARCHY** el cuál consiste en los niveles L1 y L2 de caché seguidos de la DRAM realista. Para mayor referencia de su implementación, decisiones de diseño y aspectos de organización revisar: [jerarquia_memoria.md](jerarquia_memoria.md)
 
-![Diagrama de bloques de la microarquitectura Craft21](microarch.png)
+![img:Diagrama de bloques de la microarquitectura Craft21](images/microarch.png)
+
 
 ## Vista general del datapath
 
@@ -149,21 +150,36 @@ Luego se selecciona el destino correcto y se propaga hacia writeback como
 
 ## Memory stage
 
-La etapa `memory.sv` usa el resultado de la ALU como direccion efectiva. Dentro
-de esta etapa se instancian dos memorias:
+La etapa `memory.sv` usa el resultado de la ALU como direccion efectiva.
+Desde el Proyecto Grupal II, el acceso a datos pasa por una jerarquia de
+cache de dos niveles antes de llegar a la RAM:
 
-| Memoria | Modulo | Acceso |
+```
+alu_result --> L1-D (4KB, 2-way) --> L2 (16KB, 4-way) --> mem_controller --> data_ram
+               l1d_cache + l1_con    l2_cache + l2_con    (colas + FSM +     (64 KiB,
+               hit: 1 ciclo          hit: 8 ciclos        burst 8 palabras)   50 MHz)
+```
+
+| Componente | Modulo | Rol |
 | --- | --- | --- |
-| RAM normal | `data_ram.sv` | `lw`, `sw`, `lb`, `sb`. |
-| RAM Vault | `neather_ram.sv` | `lwv`, `swv` en Secure Mode. |
+| Cache L1-D | `l1d_cache.sv` + `l1_con.sv` | Lookup combinacional; fill por linea de 32 B. |
+| Cache L2 | `l2_cache.sv` + `l2_con.sv` | FSM de loads (request queue) + drain de stores (write buffer). |
+| Acumulador de refill | `refill_regs.sv` | Junta el burst de 8 palabras en una linea de 256 bits. |
+| Controlador de memoria | `mem_controller.sv` + `fsm_memory.sv` + `wb_drain.sv` | Cola asincrona (cruce 100→50 MHz), bursts alineados a linea y drenado de escrituras. |
+| RAM normal | `data_ram.sv` | `lw`, `sw`, `lb`, `sb` (64 KiB por bytes, a 50 MHz). |
+| RAM Vault | `neather_ram.sv` | `lwv`, `swv` en Secure Mode (camino directo, sin cache). |
 
-`data_ram.sv` es una memoria de 64 KiB organizada por bytes y direccionada con
-`addr[15:0]`. Para `lw`, combina cuatro bytes en una palabra de 32 bits; para
-`lb`, extiende el signo del byte leido. En escritura soporta `sw` y `sb`.
+Politicas: write-through + no-write-allocate en ambos niveles, reemplazo FIFO
+por set (`set_reg.sv`). La señal `stall_mem` congela el pipeline cuando un
+load no tiene dato valido en ningun nivel o cuando las colas estan llenas;
+los flushes por branch se difieren mientras el pipeline esta congelado.
 
-`neather_ram.sv` tambien es una memoria de 64 KiB por bytes. Sus escrituras
-estan protegidas por Secure Mode, de modo que la boveda no se modifica fuera de
-las instrucciones autorizadas.
+El detalle de decisiones, flujos y ordenamiento esta en
+[jerarquia_memoria.md](jerarquia_memoria.md); la metodologia de medicion y
+los resultados en [analisis_rendimiento.md](analisis_rendimiento.md).
+
+`neather_ram.sv` mantiene su proteccion por Secure Mode, de modo que la
+boveda no se modifica fuera de las instrucciones autorizadas.
 
 ## Writeback
 
@@ -220,3 +236,10 @@ complejidad de las interconexiones dentro de `top.sv`.
 | Boveda separada | Aisla llaves y valores sensibles del banco general. |
 | Secure Mode como compuerta | Protege escrituras Vault con poca logica adicional. |
 | Soporte TEA con ALU y Vault | Evita un acelerador criptografico dedicado y reutiliza recursos existentes. |
+
+## Apéndice: extensión para métricas
+
+Para el benchmark se incorporó el módulo `perf_counters.sv` (PMU) directamente en `top.sv`. El módulo recibe señales ya presentes en el top: `instrDE`, `flushE`, `stallE`, `flushD`, `stall_mem`, `result_src`, `we_mem` y `alu_result` del pipeline, más los eventos de caché `hit_l1`, `hit_l2`, `hit_l2_wb`, `wb_commit`, `burst_active` y `ram_we` expuestos por la jerarquía de memoria. Los contadores cubren: ciclos totales, instrucciones retiradas, stalls de memoria, stalls de control, accesos y aciertos/fallos en L1-D (lecturas y escrituras por separado), accesos y aciertos/fallos en L2, accesos a RAM, cantidad de bursts y ciclos activos de transferencia a RAM. Todos los valores quedan accesibles para simulación y son leídos por el testbench para el análisis de rendimiento.
+
+![img:Diagrama de bloques de la microarquitectura Craft21](images/microarch_metrics.png)
+

@@ -1,0 +1,2 @@
+Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util
+10_reorder_1load_uso_inmediato,178,34,5.235294,136,1,3,4,1,2,1,3,28.57,71.43,5,0,5,0.00,100.00,5,86,48.31

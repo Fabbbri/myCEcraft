@@ -1,0 +1,110 @@
+procesar_bloques:
+  total = 0
+  b = 0
+L_for_start_0:
+  t0 = b < 3
+  ifFalse t0 goto L_for_end_1
+  i = 0
+L_for_start_2:
+  t10 = i < 2
+  ifFalse t10 goto L_for_end_3
+  t11 = b * 3
+  t12 = t11 + i
+  t13 = bloques[t12]
+  t14 = t13 * 2
+  t15 = total + t14
+  total = t15
+  t16 = b * 3
+  t17 = t16 + (i + 1)
+  t18 = bloques[t17]
+  t19 = t18 * 2
+  t20 = total + t19
+  total = t20
+  t21 = i + 2
+  i = t21
+  goto L_for_start_2
+L_for_end_3:
+  t22 = b * 3
+  t23 = t22 + 2
+  t24 = bloques[t23]
+  t25 = t24 * 2
+  t26 = total + t25
+  total = t26
+  t27 = i + 1
+  i = t27
+  t8 = b + 1
+  b = t8
+  goto L_for_start_0
+L_for_end_1:
+  return total
+main:
+  datos = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  t9 = call procesar_bloques(datos)
+  return t9
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_procesar_bloques]
+  -> Sucesores: B_label_L_for_start_0
+    procesar_bloques:
+    total = 0
+    b = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t0 = b < 3
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_2
+    i = 0
+
+[B_label_L_for_start_2]
+  -> Sucesores: B_label_L_for_end_3, B_fallthrough_4
+    L_for_start_2:
+    t10 = i < 2
+    ifFalse t10 goto L_for_end_3
+
+[B_fallthrough_4]
+  -> Sucesores: B_label_L_for_start_2
+    t11 = b * 3
+    t12 = t11 + i
+    t13 = bloques[t12]
+    t14 = t13 * 2
+    t15 = total + t14
+    total = t15
+    t16 = b * 3
+    t17 = t16 + (i + 1)
+    t18 = bloques[t17]
+    t19 = t18 * 2
+    t20 = total + t19
+    total = t20
+    t21 = i + 2
+    i = t21
+    goto L_for_start_2
+
+[B_label_L_for_end_3]
+  -> Sucesores: B_label_L_for_start_0
+    L_for_end_3:
+    t22 = b * 3
+    t23 = t22 + 2
+    t24 = bloques[t23]
+    t25 = t24 * 2
+    t26 = total + t25
+    total = t26
+    t27 = i + 1
+    i = t27
+    t8 = b + 1
+    b = t8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    return total
+
+[B_label_main]
+    main:
+    datos = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    t9 = call procesar_bloques(datos)
+    return t9

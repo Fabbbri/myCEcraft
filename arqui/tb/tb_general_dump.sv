@@ -14,6 +14,8 @@ module tb_general_dump;
     string loader_hex;
     string out_prefix;
     int max_cycles;
+    longint metric_cycles;
+    longint metric_instructions;
 
     logic [7:0] loader_mem [0:RAM_DEPTH-1];
 
@@ -26,8 +28,29 @@ module tb_general_dump;
     `define VREGS dut.Decode.RegVBank.regs
     `define PC    dut.Issue.addr_aux
     `define ROM   dut.Issue.ROM.memory
-    `define NRAM  dut.mem.VaultRam.mem
-    `define DRAM  dut.mem.NormalRam.mem
+    `define NRAM  dut.Memory.VaultRam.mem
+    `define DRAM  dut.Memory.NormalRam.mem
+
+    localparam logic [31:0] NOP = 32'h00580000;
+
+    // ==========================================================
+    //  Contadores de metricas (replica de tb_topG)
+    //  pc_en==0 = instruccion FREEZE (halt); equivale al halt_pc
+    //  de tb_topG. Los stalls usan stallIF, no pc_en, asi que el
+    //  gating !halt_detected solo se apaga al terminar el programa.
+    // ==========================================================
+    integer csv_fd;
+    // Contadores -> los lleva la PMU en hardware (dut.Perf.*). El testbench
+    // ya no acumula: solo LEE los contadores en print_performance_metrics.
+    // Se conservan estos espejos para no tocar el formato del CSV / [METRICS].
+    longint l1_reads,   l1_writes;
+    longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
+    longint l2_acc,     l2_hits,    l2_miss;
+    longint l2_reads,   l2_writes;
+    longint mem_acc,    mem_bursts;
+    longint stall_mem_cycles;
+    longint ctrl_stalls;
+    longint mem_xfer_cycles;
 
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
@@ -75,10 +98,14 @@ module tb_general_dump;
         timed_out = 0;
         cycles = 0;
         next_progress = 1000000;
+        metric_cycles = 0;
+        metric_instructions = 0;
 
         forever begin
-            repeat (1000) @(posedge clk);
-            cycles += 1000;
+            @(posedge clk);
+            cycles++;
+            // metric_cycles / metric_instructions ahora salen de la PMU
+            // (se leen en print_performance_metrics); aqui solo control de loop.
 
             if (cycles >= next_progress) begin
                 $display("[INFO]  Ejecutando... ciclo=%0d/%0d PC=%h",
@@ -89,7 +116,6 @@ module tb_general_dump;
             if (dut.Issue.pc_en === 1'b0) begin
                 $display("[INFO]  FREEZE detectado en PC=%h (ciclo aprox %0d)",
                          `PC, cycles);
-                repeat (5) @(posedge clk);
                 return;
             end
 
@@ -100,6 +126,131 @@ module tb_general_dump;
                 return;
             end
         end
+    endtask
+
+    task automatic print_performance_metrics();
+        real cpi, l1_hr, l1_mr, l2_hr, l2_mr, bw_util;
+        longint l1_total;
+        string  test_name;
+
+        test_name = out_prefix;
+
+        // Leer los contadores de la PMU (hardware). La PMU cuenta libre desde
+        // el reset; el conteo historico del TB arrancaba 1 ciclo despues (dentro
+        // de wait_for_finish), de ahi el -1 (igual que eff_cycles en tb_topG).
+        metric_cycles       = (dut.Perf.cycles > 0) ? dut.Perf.cycles - 1 : 0;
+        metric_instructions = dut.Perf.instr;
+        stall_mem_cycles    = dut.Perf.stall_mem_cyc;
+        ctrl_stalls         = dut.Perf.ctrl_stalls;
+        l1_reads   = dut.Perf.l1_reads;    l1_writes  = dut.Perf.l1_writes;
+        l1_rd_hits = dut.Perf.l1_rd_hits;  l1_rd_miss = dut.Perf.l1_rd_miss;
+        l1_wr_hits = dut.Perf.l1_wr_hits;  l1_wr_miss = dut.Perf.l1_wr_miss;
+        l2_acc     = dut.Perf.l2_acc;      l2_reads   = dut.Perf.l2_reads;
+        l2_writes  = dut.Perf.l2_writes;
+        l2_hits    = dut.Perf.l2_hits;     l2_miss    = dut.Perf.l2_miss;
+        mem_acc    = dut.Perf.mem_acc;     mem_bursts = dut.Perf.mem_bursts;
+        mem_xfer_cycles = dut.Perf.mem_xfer_cyc;
+
+        cpi = (metric_instructions != 0)
+            ? (1.0 * metric_cycles) / metric_instructions
+            : 0.0;
+
+        l1_total = l1_reads + l1_writes;
+        l1_hr = (l1_total != 0) ? 100.0 * (l1_rd_hits + l1_wr_hits) / l1_total : 0.0;
+        l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
+        l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
+        l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
+        bw_util = (metric_cycles != 0) ? 100.0 * mem_xfer_cycles / metric_cycles : 0.0;
+
+        if (csv_fd != 0) begin
+            $fwrite(csv_fd,
+                    "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%.2f\n",
+                    test_name, metric_cycles, metric_instructions, cpi,
+                    stall_mem_cycles, ctrl_stalls,
+                    l1_reads, l1_writes,
+                    l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
+                    l1_hr, l1_mr,
+                    l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                    mem_acc, mem_xfer_cycles, bw_util);
+        end
+
+        $display("\n  --- Metricas de rendimiento ---");
+        $display("  Ciclos        : %0d", metric_cycles);
+        $display("  Instrucciones : %0d", metric_instructions);
+        $display("  CPI           : %f", cpi);
+        $display("  Stalls mem    : %0d ciclos | flush control: %0d", stall_mem_cycles, ctrl_stalls);
+        $display("  L1: reads=%0d writes=%0d | rd h/m=%0d/%0d wr h/m=%0d/%0d | hit=%.2f%%",
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr);
+        $display("  L2: acc=%0d hits=%0d miss=%0d | hit=%.2f%%",
+                 l2_acc, l2_hits, l2_miss, l2_hr);
+        $display("  Mem: accesos=%0d xfer=%0d ciclos bw=%.2f%% (bursts=%0d)",
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
+        $display("  --------------------------------");
+
+        // linea parseable para scripts/benchmarks.py
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d|l2_reads=%0d|l2_writes=%0d",
+                 test_name, metric_cycles, metric_instructions, cpi,
+                 stall_mem_cycles, ctrl_stalls,
+                 l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
+                 l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
+                 l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts,
+                 l2_reads, l2_writes);
+    endtask
+
+    function automatic bit memory_hierarchy_idle();
+        memory_hierarchy_idle =
+            (dut.stall_mem === 1'b0) &&
+            (dut.Memory.L2Con.rq_empty === 1'b1) &&
+            (dut.Memory.L2Con.wb_empty === 1'b1) &&
+            (dut.Memory.L2Con.load_state == 2'b00) &&
+            (dut.Memory.L2Con.wb_state == 2'b00) &&
+            (dut.Memory.MemCtrl.rq_empty === 1'b1) &&
+            (dut.Memory.MemCtrl.wb_empty === 1'b1) &&
+            (dut.Memory.MemCtrl.wbd_busy === 1'b0) &&
+            (dut.Memory.burst_active === 1'b0) &&
+            (dut.Memory.ram_we === 1'b0);
+    endfunction
+
+    task automatic wait_for_memory_drain(output bit timed_out);
+        int cycles;
+        int quiet_cycles;
+
+        cycles = 0;
+        quiet_cycles = 0;
+        timed_out = 0;
+
+        // FREEZE detiene fetch, pero stores anteriores pueden seguir en los
+        // buffers write-through de L2 y del controlador de memoria.
+        while (quiet_cycles < 8) begin
+            @(posedge clk);
+            cycles++;
+
+            if (memory_hierarchy_idle())
+                quiet_cycles++;
+            else
+                quiet_cycles = 0;
+
+            if (cycles >= max_cycles) begin
+                $display("[ERROR] Timeout drenando la jerarquia de memoria");
+                $display("        L2 rq_empty=%b wb_empty=%b load_state=%0d wb_state=%0d",
+                         dut.Memory.L2Con.rq_empty,
+                         dut.Memory.L2Con.wb_empty,
+                         dut.Memory.L2Con.load_state,
+                         dut.Memory.L2Con.wb_state);
+                $display("        MC rq_empty=%b wb_empty=%b wbd_busy=%b burst=%b ram_we=%b",
+                         dut.Memory.MemCtrl.rq_empty,
+                         dut.Memory.MemCtrl.wb_empty,
+                         dut.Memory.MemCtrl.wbd_busy,
+                         dut.Memory.burst_active,
+                         dut.Memory.ram_we);
+                timed_out = 1;
+                return;
+            end
+        end
+
+        $display("[INFO]  Jerarquia de memoria drenada (%0d ciclos)", cycles);
     endtask
 
     task automatic load_raw_hex();
@@ -245,6 +396,7 @@ module tb_general_dump;
     initial begin
         bit timed_out;
         bit load_failed;
+        bit drain_timed_out;
 
         rom_hex = "programs/program.hex";
         data_hex = "programs/data.hex";
@@ -271,6 +423,12 @@ module tb_general_dump;
         $display("          CRAFT21 GENERAL MEMORY DUMP TESTBENCH");
         $display("============================================================");
 
+        csv_fd = $fopen($sformatf("outputs/%0s_metrics.csv", out_prefix), "w");
+        if (csv_fd == 0)
+            $display("[WARN]  No se pudo abrir el CSV de metricas");
+        else
+            $fwrite(csv_fd, "Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util\n");
+
         clear_machine();
 
         load_failed = 0;
@@ -285,13 +443,21 @@ module tb_general_dump;
             @(negedge clk);
             dut.Decode.SM.sm = 1'b0;
             wait_for_finish(timed_out);
+            if (!timed_out)
+                wait_for_memory_drain(drain_timed_out);
+            else
+                drain_timed_out = 0;
         end else begin
             timed_out = 0;
+            drain_timed_out = 0;
         end
 
-        if (timed_out) begin
+        if (timed_out || drain_timed_out) begin
             $display("[ERROR] Test abortado por timeout");
         end
+
+        if (!load_failed)
+            print_performance_metrics();
 
         dump_nonzero_regs();
         dump_outputs();
@@ -299,6 +465,8 @@ module tb_general_dump;
         $display("============================================================");
         $display("  FIN TB GENERAL");
         $display("============================================================\n");
+
+        if (csv_fd != 0) $fclose(csv_fd);
         $finish;
     end
 

@@ -1,0 +1,49 @@
+main:
+  par = 0
+  impar = 0
+  i = 0
+L_for_start_0:
+  t0 = i < 32
+  ifFalse t0 goto L_for_end_1
+  t1 = par + i
+  par = t1
+  t2 = impar + i
+  t3 = t2 + 1
+  impar = t3
+  t4 = i + 2
+  i = t4
+  goto L_for_start_0
+L_for_end_1:
+  t5 = par + impar
+  return t5
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+    main:
+    par = 0
+    impar = 0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t0 = i < 32
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    t1 = par + i
+    par = t1
+    t2 = impar + i
+    t3 = t2 + 1
+    impar = t3
+    t4 = i + 2
+    i = t4
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    t5 = par + impar
+    return t5

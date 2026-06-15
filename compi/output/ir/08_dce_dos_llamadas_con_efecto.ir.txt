@@ -1,0 +1,45 @@
+  acumulado = 1
+acumular:
+  t0 = acumulado + valor
+  acumulado = t0
+  return acumulado
+main:
+  semilla = 10
+  t1 = semilla * 8
+  cadena_muerta = t1
+  t2 = cadena_muerta + 77
+  cadena_muerta = t2
+  t3 = call acumular(2)
+  t4 = cadena_muerta * 3
+  otro_muerto = t4
+  t5 = call acumular(4)
+  t6 = otro_muerto + 1
+  otro_muerto = t6
+  return acumulado
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_acumular
+    acumulado = 1
+
+[B_label_acumular]
+    acumular:
+    t0 = acumulado + valor
+    acumulado = t0
+    return acumulado
+
+[B_label_main]
+    main:
+    semilla = 10
+    t1 = semilla * 8
+    cadena_muerta = t1
+    t2 = cadena_muerta + 77
+    cadena_muerta = t2
+    t3 = call acumular(2)
+    t4 = cadena_muerta * 3
+    otro_muerto = t4
+    t5 = call acumular(4)
+    t6 = otro_muerto + 1
+    otro_muerto = t6
+    return acumulado

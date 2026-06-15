@@ -1,0 +1,26 @@
+main:
+  datos = [10, 20, 30]
+  a = 2
+  b = 3
+  t0 = datos[0]
+  t2 = a + b
+  t1 = t0 + 1
+  x = t1
+  y = t2
+  t3 = x + y
+  return t3
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+    main:
+    datos = [10, 20, 30]
+    a = 2
+    b = 3
+    t0 = datos[0]
+    t2 = a + b
+    t1 = t0 + 1
+    x = t1
+    y = t2
+    t3 = x + y
+    return t3

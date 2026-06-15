@@ -1,0 +1,37 @@
+main:
+  x = 0
+L_while_start_0:
+  t2__x3 = x < 4
+  ifFalse t2__x3 goto L_while_end_1
+  t3__x4 = x + 2
+  x = t3__x4
+  goto L_while_start_0
+L_while_end_1:
+  t4__x5 = x + 1
+  x = t4__x5
+  return x
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    x = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t2__x3 = x < 4
+    ifFalse t2__x3 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    t3__x4 = x + 2
+    x = t3__x4
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+    L_while_end_1:
+    t4__x5 = x + 1
+    x = t4__x5
+    return x

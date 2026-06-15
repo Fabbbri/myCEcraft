@@ -1,0 +1,17 @@
+@EnterCraftWorld
+
+// FOR con N constante (8) y dos acumuladores independientes.
+// El unroller elige factor 4: convierte 8 iteraciones en 2 bloques,
+// eliminando 6 de cada 8 saltos de control.
+// Resultado esperado: suma_a + suma_b = 28.
+craft:int main() {
+    suma_a:int = 0;
+    suma_b:int = 0;
+
+    for (i:int = 0; i < 8; i = i + 2) {
+        suma_a = suma_a + i;
+        suma_b = suma_b + i + 1;
+    }
+
+    return suma_a + suma_b;
+}

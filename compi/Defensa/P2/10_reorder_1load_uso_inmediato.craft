@@ -1,0 +1,21 @@
+@EnterCraftWorld
+
+// Un load desde memoria global con uso inmediato seguido de trabajo independiente.
+// Sin reorder: lw a -> 3 stalls -> usa a (en part = a + 1)
+// Con reorder: lw a -> w1, w2, w3 (mueven aqui) -> usa a -> return
+// El scheduler mueve w1, w2, w3 entre el lw y el primer uso de 'a'.
+// Resultado: a=9, part=10, w1=11, w2=15, w3=26 -> total=10+26=36 = 0x24.
+
+base:int = 9;
+
+craft:int main() {
+    a:int = base;
+    part:int = a + 1;
+
+    w1:int = 5 + 6;
+    w2:int = 7 + 8;
+    w3:int = w1 + w2;
+
+    total:int = part + w3;
+    return total;
+}

@@ -1,0 +1,13 @@
+@EnterCraftWorld
+
+craft:int main() {
+    x:int = 1;
+    y:int = 2;
+    z:int = x + y;
+
+    muerto:int = z * 3;
+    vivo:int = z + 4;
+    muerto = vivo + 99;
+
+    return vivo;
+}

@@ -1,0 +1,24 @@
+@EnterCraftWorld
+
+craft:int main() {
+    i:int = 0;
+    suma:int = 0;
+    mezcla:int = 1;
+    total:int = 0;
+    while (i < 8) {
+        suma = suma + i;
+        mezcla = mezcla * 2;
+        total = total + suma;
+        suma = suma + (i + 1);
+        mezcla = mezcla * 2;
+        total = total + suma;
+        suma = suma + (i + 2);
+        mezcla = mezcla * 2;
+        total = total + suma;
+        suma = suma + (i + 3);
+        mezcla = mezcla * 2;
+        total = total + suma;
+        i = i + 4;
+    }
+    return total;
+}

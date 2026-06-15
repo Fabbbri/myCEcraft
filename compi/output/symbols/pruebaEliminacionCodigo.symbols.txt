@@ -1,0 +1,71 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+L_for_start_0                pc=0x00C8
+.L_ir_2_ir_cmp_true          pc=0x00D8
+.L_ir_3_ir_cmp_end           pc=0x00DC
+L_for_start_2                pc=0x00FC
+.L_ir_4_ir_cmp_true          pc=0x010C
+.L_ir_5_ir_cmp_end           pc=0x0110
+L_for_start_4                pc=0x0134
+.L_ir_6_ir_cmp_true          pc=0x0148
+.L_ir_7_ir_cmp_end           pc=0x014C
+L_for_end_5                  pc=0x021C
+L_for_end_3                  pc=0x0270
+L_for_end_1                  pc=0x0280
+.L_ir_1_main_end             pc=0x0344
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                                seg   addr    off  size  res
+  ----  --------  ----  ----------------------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   pruebaEliminacionCodigo.craft:11:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=92)
+    symbols:
+    name               kind      type           decl                                seg    addr    off  size  res
+    -----------------  --------  -------------  ----------------------------------  -----  ------  ---  ----  ---
+    A                  VARIABLE  chest[int, 4]  pruebaEliminacionCodigo.craft:12:5  STACK  0x7FE0  -16  16    yes
+    B                  VARIABLE  chest[int, 4]  pruebaEliminacionCodigo.craft:13:5  STACK  0x7FD0  -32  16    yes
+    C                  VARIABLE  chest[int, 4]  pruebaEliminacionCodigo.craft:14:5  STACK  0x7FC0  -48  16    yes
+    total_operaciones  VARIABLE  int            pruebaEliminacionCodigo.craft:16:5  STACK  0x7FBC  -52  4     yes
+    suma               VARIABLE  int            pruebaEliminacionCodigo.craft:17:5  STACK  0x7FB8  -56  4     yes
+    temporal_externo   VARIABLE  int            pruebaEliminacionCodigo.craft:18:5  STACK  0x7FB4  -60  4     yes
+    basura1            VARIABLE  int            pruebaEliminacionCodigo.craft:19:5  STACK  0x7FB0  -64  4     yes
+    basura2            VARIABLE  int            pruebaEliminacionCodigo.craft:20:5  STACK  0x7FAC  -68  4     yes
+    basura3            VARIABLE  int            pruebaEliminacionCodigo.craft:21:5  STACK  0x7FA8  -72  4     yes
+    estadistica        VARIABLE  int            pruebaEliminacionCodigo.craft:41:5  STACK  0x7F98  -88  4     yes
+    desperdicio        VARIABLE  int            pruebaEliminacionCodigo.craft:42:5  STACK  0x7F94  -92  4     yes
+
+    [scope 2] LOOP 'for'
+      symbols:
+      name           kind      type  decl                                 seg    addr    off  size  res
+      -------------  --------  ----  -----------------------------------  -----  ------  ---  ----  ---
+      .L0_for_start  LABEL     None  pruebaEliminacionCodigo.craft:23:5   TEXT   -       -    0     no 
+      .L1_for_end    LABEL     None  pruebaEliminacionCodigo.craft:23:5   TEXT   -       -    0     no 
+      i              VARIABLE  int   pruebaEliminacionCodigo.craft:23:10  STACK  0x7FA4  -76  4     yes
+
+      [scope 3] LOOP 'for'
+        symbols:
+        name           kind      type  decl                                 seg    addr    off  size  res
+        -------------  --------  ----  -----------------------------------  -----  ------  ---  ----  ---
+        .L2_for_start  LABEL     None  pruebaEliminacionCodigo.craft:26:9   TEXT   -       -    0     no 
+        .L3_for_end    LABEL     None  pruebaEliminacionCodigo.craft:26:9   TEXT   -       -    0     no 
+        j              VARIABLE  int   pruebaEliminacionCodigo.craft:26:14  STACK  0x7FA0  -80  4     yes
+
+        [scope 4] LOOP 'for'
+          symbols:
+          name           kind      type  decl                                 seg    addr    off  size  res
+          -------------  --------  ----  -----------------------------------  -----  ------  ---  ----  ---
+          .L4_for_start  LABEL     None  pruebaEliminacionCodigo.craft:30:13  TEXT   -       -    0     no 
+          .L5_for_end    LABEL     None  pruebaEliminacionCodigo.craft:30:13  TEXT   -       -    0     no 
+          k              VARIABLE  int   pruebaEliminacionCodigo.craft:30:18  STACK  0x7F9C  -84  4     yes

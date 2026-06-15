@@ -206,6 +206,7 @@ class Scope:
     kind: ScopeKind
     parent: Scope | None = None
     level: int = 0
+    static_fp: int | None = None
     symbols: dict[str, Symbol] = field(default_factory=dict)
     children: list[Scope] = field(default_factory=list)
 
@@ -451,20 +452,31 @@ class SymbolTable:
         """
         Retorna una representación legible de toda la jerarquía de scopes.
         """
-        lines: list[str] = []
+        lines: list[str] = [
+            "SYMBOL TABLE",
+            "============",
+            "Legend:",
+            "  TEXT  addr is a program counter / code address.",
+            "  DATA  addr is an absolute DRAM address.",
+            "  VAULT addr is an absolute Vault memory address.",
+            "  STACK addr is runtime(fp + off); exact only while that frame is active.",
+            "  res=yes means the compiler resolved the storage/address metadata.",
+            "",
+        ]
         self._dump_scope(self.global_scope, lines)
         return "\n".join(lines)
 
     def _dump_scope(self, scope: Scope, lines: list[str]) -> None:
         indent = "  " * scope.level
-        lines.append(
-            f"{indent}Scope(id={scope.id}, name={scope.name!r}, kind={scope.kind.name})"
-        )
+        if lines and lines[-1] != "":
+            lines.append("")
+
+        lines.append(f"{indent}{self._scope_title(scope)}")
 
         if scope.symbols:
             frame_size = self._find_enclosing_frame_size(scope)
             rows = [
-                self._format_symbol_row(symbol, frame_size)
+                self._format_symbol_row(symbol, scope, frame_size)
                 for symbol in scope.symbols.values()
             ]
             header_cells = [
@@ -480,17 +492,30 @@ class SymbolTable:
             ]
             widths = self._column_widths([header_cells, *rows])
             header = self._format_row(header_cells, widths)
+            lines.append(f"{indent}  symbols:")
             lines.append(f"{indent}  {header}")
             lines.append(f"{indent}  {self._format_row(['-' * w for w in widths], widths)}")
             for row in rows:
                 lines.append(f"{indent}  {self._format_row(row, widths)}")
+        else:
+            lines.append(f"{indent}  symbols: (none)")
 
         for child in scope.children:
             self._dump_scope(child, lines)
 
+    def _scope_title(self, scope: Scope) -> str:
+        if scope.kind == ScopeKind.GLOBAL:
+            return f"[scope {scope.id}] GLOBAL"
+
+        if scope.kind == ScopeKind.FUNCTION and scope.name.startswith("function:"):
+            return f"[scope {scope.id}] FUNCTION {scope.name[len('function:'):]}"
+
+        return f"[scope {scope.id}] {scope.kind.name} {scope.name!r}"
+
     def _format_symbol_row(
         self,
         symbol: Symbol,
+        scope: Scope,
         frame_size: int | None,
     ) -> list[str]:
         type_repr = symbol.type.describe() if symbol.type is not None else "None"
@@ -498,11 +523,19 @@ class SymbolTable:
         memory = symbol.memory_info
         segment = memory.segment or "-"
         if memory.segment == "STACK" and memory.offset is not None:
-            if frame_size is not None:
-                address = f"0x{frame_size + memory.offset:04X}"
+            current: Scope | None = scope
+            func_static_fp = None
+            while current is not None:
+                if current.kind == ScopeKind.FUNCTION and current.static_fp is not None:
+                    func_static_fp = current.static_fp
+                    break
+                current = current.parent
+                
+            if func_static_fp is not None:
+                addr_val = func_static_fp + memory.offset
+                address = f"0x{addr_val:04X}"
             else:
-                base = FP.asm()
-                address = f"{base}{memory.offset:+}"
+                address = f"runtime({FP.asm()}{memory.offset:+})"
         else:
             address = f"0x{memory.address:04X}" if memory.address is not None else "-"
 

@@ -1,0 +1,24 @@
+digraph "LoopUnrolling.reorder" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_procesar_bloques" [label="B_label_procesar_bloques\lprocesar_bloques:\ltotal = 0\lb = 0\l"];
+  "B_label_L_for_start_0" [label="B_label_L_for_start_0\lL_for_start_0:\lt0 = b < 3\lifFalse t0 goto L_for_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\li = 0\l"];
+  "B_label_L_for_start_2" [label="B_label_L_for_start_2\lL_for_start_2:\lt1 = i < 3\lifFalse t1 goto L_for_end_3\l"];
+  "B_fallthrough_4" [label="B_fallthrough_4\lt2 = b * 3\lt3 = t2 + i\lt4 = bloques[t3]\lt7 = i + 1\lt5 = t4 * 2\lt6 = total + t5\ltotal = t6\li = t7\lgoto L_for_start_2\l"];
+  "B_label_L_for_end_3" [label="B_label_L_for_end_3\lL_for_end_3:\lt8 = b + 1\lb = t8\lgoto L_for_start_0\l"];
+  "B_label_L_for_end_1" [label="B_label_L_for_end_1\lL_for_end_1:\lreturn total\l"];
+  "B_label_main" [label="B_label_main\lmain:\ldatos = [1, 2, 3, 4, 5, 6, 7, 8, 9]\lt9 = call procesar_bloques(datos)\lreturn t9\l"];
+
+  "B_label_procesar_bloques" -> "B_label_L_for_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_0" -> "B_label_L_for_end_1" [label="false", color="#B22222"];
+  "B_label_L_for_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_for_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_2" -> "B_label_L_for_end_3" [label="false", color="#B22222"];
+  "B_label_L_for_start_2" -> "B_fallthrough_4" [label="true", color="#2E8B57"];
+  "B_fallthrough_4" -> "B_label_L_for_start_2" [label="jump", color="#4169E1"];
+  "B_label_L_for_end_3" -> "B_label_L_for_start_0" [label="jump", color="#4169E1"];
+}

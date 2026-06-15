@@ -1,0 +1,65 @@
+main:
+  suma = 0
+  producto = 1
+  total = 0
+  i = 0
+L_for_start_0:
+  t0 = i < 8
+  ifFalse t0 goto L_for_end_1
+  t1 = suma + i
+  suma = t1
+  t2 = producto * 2
+  producto = t2
+  t3 = total + suma
+  total = t3
+  t4 = i + 1
+  t5 = suma + t4
+  suma = t5
+  t6 = producto * 2
+  producto = t6
+  t7 = total + suma
+  total = t7
+  t8 = i + 2
+  i = t8
+  goto L_for_start_0
+L_for_end_1:
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+  main:
+    suma = 0
+    producto = 1
+    total = 0
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+  L_for_start_0:
+    t0 = i < 8
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    t1 = suma + i
+    suma = t1
+    t2 = producto * 2
+    producto = t2
+    t3 = total + suma
+    total = t3
+    t4 = i + 1
+    t5 = suma + t4
+    suma = t5
+    t6 = producto * 2
+    producto = t6
+    t7 = total + suma
+    total = t7
+    t8 = i + 2
+    i = t8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  L_for_end_1:
+    return total

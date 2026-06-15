@@ -1,0 +1,44 @@
+digraph "bench_mmul.O3" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\la = 0\lb = 0\lc = 0\li = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt21__x3 = i < 64\lifFalse t21__x3 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\la[i] = i\lb[i] = 1\la[(i + 1)] = (i + 1)\lb[(i + 1)] = 1\la[(i + 2)] = (i + 2)\lb[(i + 2)] = 1\la[(i + 3)] = (i + 3)\lb[(i + 3)] = 1\la[(i + 4)] = (i + 4)\lb[(i + 4)] = 1\la[(i + 5)] = (i + 5)\lb[(i + 5)] = 1\la[(i + 6)] = (i + 6)\lb[(i + 6)] = 1\la[(i + 7)] = (i + 7)\lb[(i + 7)] = 1\lt22__x4 = i + 8\li = t22__x4\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\li = 0\lia = 0\l"];
+  "B_label_L_while_start_2" [label="B_label_L_while_start_2\lL_while_start_2:\lt2__x5 = i < 8\lifFalse t2__x5 goto L_while_end_3\l"];
+  "B_fallthrough_5" [label="B_fallthrough_5\lj = 0\l"];
+  "B_label_L_while_start_4" [label="B_label_L_while_start_4\lL_while_start_4:\lt3__x6 = j < 8\lifFalse t3__x6 goto L_while_end_5\l"];
+  "B_fallthrough_7" [label="B_fallthrough_7\lacc = 0\lk = 0\lkb = 0\l"];
+  "B_label_L_while_start_6" [label="B_label_L_while_start_6\lL_while_start_6:\lt4__x7 = k < 8\lifFalse t4__x7 goto L_while_end_7\l"];
+  "B_fallthrough_9" [label="B_fallthrough_9\lt5__x8 = ia + k\lt6__x9 = a[t5__x8]\lt7__x10 = kb + j\lt8__x3 = b[t7__x10]\lt11__x6 = k + 1\lt9__x4 = t6__x9 * t8__x3\lt10__x5 = acc + t9__x4\lacc = t10__x5\lk = t11__x6\lt12__x7 = kb + 8\lkb = t12__x7\lgoto L_while_start_6\l"];
+  "B_label_L_while_end_7" [label="B_label_L_while_end_7\lL_while_end_7:\lt13__x8 = ia + j\lc[t13__x8] = acc\lt14__x9 = j + 1\lj = t14__x9\lgoto L_while_start_4\l"];
+  "B_label_L_while_end_5" [label="B_label_L_while_end_5\lL_while_end_5:\lt15__x10 = i + 1\li = t15__x10\lt16__x3 = ia + 8\lia = t16__x3\lgoto L_while_start_2\l"];
+  "B_label_L_while_end_3" [label="B_label_L_while_end_3\lL_while_end_3:\lsuma = 0\li = 0\l"];
+  "B_label_L_while_start_8" [label="B_label_L_while_start_8\lL_while_start_8:\lt23__x4 = i < 64\lifFalse t23__x4 goto L_while_end_9\l"];
+  "B_fallthrough_14" [label="B_fallthrough_14\lt24__x5 = c[i]\lt26__x7 = c[(i + 1)]\lt25__x6 = suma + t24__x5\lsuma = t25__x6\lt27__x8 = suma + t26__x7\lsuma = t27__x8\lt28__x9 = c[(i + 2)]\lt30__x3 = c[(i + 3)]\lt29__x10 = suma + t28__x9\lsuma = t29__x10\lt31__x4 = suma + t30__x3\lsuma = t31__x4\lt32__x5 = i + 4\li = t32__x5\lgoto L_while_start_8\l"];
+  "B_label_L_while_end_9" [label="B_label_L_while_end_9\lL_while_end_9:\lreturn suma\l"];
+
+  "B_label_main" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_1" -> "B_label_L_while_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_2" -> "B_label_L_while_end_3" [label="false", color="#B22222"];
+  "B_label_L_while_start_2" -> "B_fallthrough_5" [label="true", color="#2E8B57"];
+  "B_fallthrough_5" -> "B_label_L_while_start_4" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_4" -> "B_label_L_while_end_5" [label="false", color="#B22222"];
+  "B_label_L_while_start_4" -> "B_fallthrough_7" [label="true", color="#2E8B57"];
+  "B_fallthrough_7" -> "B_label_L_while_start_6" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_6" -> "B_label_L_while_end_7" [label="false", color="#B22222"];
+  "B_label_L_while_start_6" -> "B_fallthrough_9" [label="true", color="#2E8B57"];
+  "B_fallthrough_9" -> "B_label_L_while_start_6" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_7" -> "B_label_L_while_start_4" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_5" -> "B_label_L_while_start_2" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_3" -> "B_label_L_while_start_8" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_8" -> "B_label_L_while_end_9" [label="false", color="#B22222"];
+  "B_label_L_while_start_8" -> "B_fallthrough_14" [label="true", color="#2E8B57"];
+  "B_fallthrough_14" -> "B_label_L_while_start_8" [label="jump", color="#4169E1"];
+}

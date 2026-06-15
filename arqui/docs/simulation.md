@@ -250,6 +250,50 @@ $dumpfile("sim/waves/<test>.vcd");
 $dumpvars(0, <testbench>);
 ```
 
+### Formas de onda bajo demanda (`+VCD`) y GTKWave
+
+En `tb_topG` (el testbench general) la onda es **opcional**: solo se genera si la
+simulacion recibe el plusarg `+VCD`. Asi la suite de benchmarks corre liviana
+(sin escribir VCDs de miles de ciclos que nadie abre) y la onda se pide solo
+cuando se quiere inspeccionar señales.
+
+**Atajo (vista lista para la defensa).** Hay una vista preparada con las señales
+de interes ya cargadas y agrupadas (`sim/gtkwave/tb_topG_demo.gtkw`). Un solo
+comando corre el while loop, genera el VCD y abre GTKWave con todo listo:
+
+```bash
+cd arqui
+make wave-demo        # corre + genera VCD + abre la vista preparada
+```
+
+(En GTKWave, `Ctrl+Shift+F` ajusta el zoom para ver toda la corrida.)
+
+Flujo manual equivalente, para cualquier programa:
+
+```bash
+cd arqui
+make run TOP=tb_topG ROM=program.hex VVP_FLAGS=+VCD   # corre y escribe sim/waves/tb_topG.vcd
+make wave TOP=tb_topG                                 # abre el VCD en GTKWave/Surfer
+```
+
+Funciona con cualquier programa (`ROM=bench_seq.hex`, etc.); para programas
+largos el VCD crece rapido, por eso conviene un programa corto para inspeccion.
+
+Señales sugeridas para ver la jerarquia de memoria en accion (agregar en
+GTKWave desde `tb_topG > dut`):
+
+| Señal | Que muestra |
+| --- | --- |
+| `dut.Issue.addr_aux` | el PC avanzando (y congelandose en cada miss) |
+| `dut.stall_mem` | el pipeline congelado esperando memoria |
+| `dut.Memory.hit_l1`, `dut.Memory.hit_l2` | en que nivel acierta cada acceso |
+| `dut.Memory.burst_active` | el burst de 8 palabras trayendo la linea desde RAM |
+| `dut.Memory.alu_result` | la direccion del acceso a memoria |
+
+Con esas cinco se ve la cadena completa de un miss: el PC se detiene,
+`stall_mem` sube, `hit_l1=0`, L2 resuelve (o lanza `burst_active` hacia RAM) y
+al volver el dato el pipeline continua.
+
 ## Validacion de programas completos
 
 `tb_top.sv` prueba el procesador completo cargando varios `.hex` en la ROM:

@@ -1,0 +1,12 @@
+digraph "08_dce_dos_llamadas_con_efecto.dce" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_entry" [label="B_entry\lacumulado = 1\l"];
+  "B_label_acumular" [label="B_label_acumular\lacumular:\lt0 = acumulado + valor\lacumulado = t0\lreturn acumulado\l"];
+  "B_label_main" [label="B_label_main\lmain:\lt3 = call acumular(2)\lt5 = call acumular(4)\lreturn acumulado\l"];
+
+  "B_entry" -> "B_label_acumular" [label="fallthrough", color="#555555"];
+}

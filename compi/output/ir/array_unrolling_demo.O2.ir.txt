@@ -1,0 +1,43 @@
+main:
+  datos = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  i = 0
+L_for_start_0:
+  t0 = i < 10
+  ifFalse t0 goto L_for_end_1
+  t1 = datos[i]
+  t2 = t1 + 1
+  datos[i] = t2
+  t3 = i + 1
+  i = t3
+  goto L_for_start_0
+L_for_end_1:
+  t4 = datos[9]
+  return t4
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_0
+  main:
+    IRArrayAssign(elements=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result='datos')
+    i = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+  L_for_start_0:
+    t0 = i < 10
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_0
+    t1 = datos[i]
+    t2 = t1 + 1
+    datos[i] = t2
+    t3 = i + 1
+    i = t3
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  L_for_end_1:
+    t4 = datos[9]
+    return t4

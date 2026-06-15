@@ -1,0 +1,2 @@
+Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util
+ide_2178bb1cfa0e,206,100,2.060000,80,11,5,7,4,1,4,3,66.67,33.33,7,3,4,42.86,57.14,7,112,54.37

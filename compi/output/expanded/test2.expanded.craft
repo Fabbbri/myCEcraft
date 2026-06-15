@@ -1,5 +1,5 @@
 @EnterCraftWorld
-// --- import: C:\Users\snipe\OneDrive\Desktop\myCEcraft\compi\Defensa\maximo_lista.craft ---
+// --- import: /home/fabbbri/Escritorio/myCEcraft/compi/Defensa/P1/maximo_lista.craft ---
 
 craft:int maximo_lista(lista:chest[int, 7], largo:int) {
     maximo:int = lista[0];

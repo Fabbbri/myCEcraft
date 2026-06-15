@@ -1,0 +1,38 @@
+@EnterCraftWorld
+// Equivalente en Craft de Reordenamiento.py
+//
+// El .py recorre lecturas de un sensor: por cada lectura carga datos[i],
+// calcula trabajo independiente (log) y una cadena dependiente
+// (promedio -> ajuste -> resultado), y acumula si la lectura supera 50.
+// 'log' no depende del load, asi que el reordenador de instrucciones puede
+// moverlo entre el load datos[i] y su primer uso para cubrir la latencia.
+//
+// Lecturas > 50: 60, 80, 55.
+//   resultado = ((lectura*2)+10)*3  ->  390 + 510 + 360 = 1260.
+craft:int analizar_sensor(datos:chest[int, 7]) {
+    i:int = 0;
+    total:int = 0;
+
+    while (i < 7) {
+        lectura:int = datos[i];
+
+        log:int = i * 100;            // independiente del load: reordenable
+
+        promedio:int = lectura * 2;
+        ajuste:int = promedio + 10;
+        resultado:int = ajuste * 3;
+
+        if (lectura > 50) {
+            total = total + resultado;
+        }
+
+        i = i + 1;
+    }
+
+    return total;
+}
+
+craft:int main() {
+    datos:chest[int, 7] = [10, 20, 30, 40, 50, 60, 70];
+    return summon:analizar_sensor(datos);
+}

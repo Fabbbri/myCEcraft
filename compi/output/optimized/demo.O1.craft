@@ -1,0 +1,10 @@
+@EnterCraftWorld
+
+craft:int main() {
+    x:int = 0;
+    while (x < 4) {
+        x = x + 2;
+    }
+    x = x + 1;
+    return x;
+}

@@ -1,0 +1,37 @@
+  contador = 0
+registrar:
+  t0 = contador + valor
+  contador = t0
+  t1 = valor * 2
+  return t1
+main:
+  t2 = 7 * 9
+  local_muerto = t2
+  t3 = call registrar(6)
+  retorno_muerto = t3
+  t4 = local_muerto + retorno_muerto
+  local_muerto = t4
+  return contador
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_registrar
+    contador = 0
+
+[B_label_registrar]
+    registrar:
+    t0 = contador + valor
+    contador = t0
+    t1 = valor * 2
+    return t1
+
+[B_label_main]
+    main:
+    t2 = 7 * 9
+    local_muerto = t2
+    t3 = call registrar(6)
+    retorno_muerto = t3
+    t4 = local_muerto + retorno_muerto
+    local_muerto = t4
+    return contador

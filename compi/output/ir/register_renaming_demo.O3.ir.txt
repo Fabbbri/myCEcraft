@@ -1,0 +1,28 @@
+main:
+  a__v1__x3 = 1
+  t0__x4 = a__v1__x3 + 10
+  first__v1__x5 = t0__x4
+  a__v2__x6 = 2
+  t1__x7 = a__v2__x6 + 20
+  second__v1__x8 = t1__x7
+  t2__x9 = first__v1__x5 + second__v1__x8
+  commit a = a__v2__x6
+  commit first = first__v1__x5
+  commit second = second__v1__x8
+  return t2__x9
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  main:
+    a__v1__x3 = 1
+    t0__x4 = a__v1__x3 + 10
+    first__v1__x5 = t0__x4
+    a__v2__x6 = 2
+    t1__x7 = a__v2__x6 + 20
+    second__v1__x8 = t1__x7
+    t2__x9 = first__v1__x5 + second__v1__x8
+    commit a = a__v2__x6
+    commit first = first__v1__x5
+    commit second = second__v1__x8
+    return t2__x9

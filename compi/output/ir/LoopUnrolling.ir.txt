@@ -1,0 +1,82 @@
+procesar_bloques:
+  total = 0
+  b = 0
+L_for_start_0:
+  t0 = b < 8
+  ifFalse t0 goto L_for_end_1
+  i = 0
+L_for_start_2:
+  t1 = i < 8
+  ifFalse t1 goto L_for_end_3
+  t2 = b * 8
+  t3 = t2 + i
+  t4 = bloques[t3]
+  t5 = t4 * 2
+  t6 = total + t5
+  total = t6
+  t7 = i + 1
+  i = t7
+  goto L_for_start_2
+L_for_end_3:
+  t8 = b + 1
+  b = t8
+  goto L_for_start_0
+L_for_end_1:
+  return total
+main:
+  datos = [10, 20, 30, 40, 50, 60, 70, 80, 15, 25, 35, 45, 55, 65, 75, 85, 11, 22, 33, 44, 55, 66, 77, 88, 12, 24, 36, 48, 60, 72, 84, 96, 100, 200, 150, 250, 120, 180, 140, 160, 90, 110, 130, 170, 190, 210, 230, 70, 5, 15, 25, 35, 45, 55, 65, 75, 8, 16, 24, 32, 40, 48, 56, 64]
+  t9 = call procesar_bloques(datos)
+  return t9
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_procesar_bloques]
+  -> Sucesores: B_label_L_for_start_0
+    procesar_bloques:
+    total = 0
+    b = 0
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+    L_for_start_0:
+    t0 = b < 8
+    ifFalse t0 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_for_start_2
+    i = 0
+
+[B_label_L_for_start_2]
+  -> Sucesores: B_label_L_for_end_3, B_fallthrough_4
+    L_for_start_2:
+    t1 = i < 8
+    ifFalse t1 goto L_for_end_3
+
+[B_fallthrough_4]
+  -> Sucesores: B_label_L_for_start_2
+    t2 = b * 8
+    t3 = t2 + i
+    t4 = bloques[t3]
+    t5 = t4 * 2
+    t6 = total + t5
+    total = t6
+    t7 = i + 1
+    i = t7
+    goto L_for_start_2
+
+[B_label_L_for_end_3]
+  -> Sucesores: B_label_L_for_start_0
+    L_for_end_3:
+    t8 = b + 1
+    b = t8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+    L_for_end_1:
+    return total
+
+[B_label_main]
+    main:
+    datos = [10, 20, 30, 40, 50, 60, 70, 80, 15, 25, 35, 45, 55, 65, 75, 85, 11, 22, 33, 44, 55, 66, 77, 88, 12, 24, 36, 48, 60, 72, 84, 96, 100, 200, 150, 250, 120, 180, 140, 160, 90, 110, 130, 170, 190, 210, 230, 70, 5, 15, 25, 35, 45, 55, 65, 75, 8, 16, 24, 32, 40, 48, 56, 64]
+    t9 = call procesar_bloques(datos)
+    return t9

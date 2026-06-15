@@ -25,6 +25,8 @@ a.out
 *.gtkw
 *.sav
 *.surfer
+# excepcion: vista de onda versionada para la demo (ver arqui/docs/simulation.md)
+!arqui/sim/gtkwave/tb_topG_demo.gtkw
 
 # =========================
 # Carpetas de build

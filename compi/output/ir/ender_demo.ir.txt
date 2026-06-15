@@ -1,0 +1,38 @@
+main:
+  password = 2121
+  vault enderPortal password
+  ifFalse portal(password) goto L_endchange_0
+  t0 = [2332323, 1234, 13234, 124]
+  key = t0
+  vault enderlow v2, v0, 0x1234
+  vault enderhigh v2, v2, 0xABCD
+  vault enderkey v2, v1
+  vault enderload v3, 0(v0)
+  vault enderstore v3, 4(v0)
+  vault enderclose
+L_endchange_0:
+  return 0
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_endchange_0, B_fallthrough_1
+  main:
+    password = 2121
+    vault enderPortal password
+    ifFalse portal(password) goto L_endchange_0
+
+[B_fallthrough_1]
+  -> Sucesores: B_label_L_endchange_0
+    t0 = [2332323, 1234, 13234, 124]
+    key = t0
+    vault enderlow v2, v0, 0x1234
+    vault enderhigh v2, v2, 0xABCD
+    vault enderkey v2, v1
+    vault enderload v3, 0(v0)
+    vault enderstore v3, 4(v0)
+    vault enderclose
+
+[B_label_L_endchange_0]
+  L_endchange_0:
+    return 0

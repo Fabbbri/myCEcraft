@@ -1,0 +1,25 @@
+digraph "06_rename_waw_war_funcion" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_combinar" [label="B_label_combinar\lcombinar:\lt0 = a + b\lacc = t0\lt1 = a > b\lifFalse t1 goto L_else_0\l"];
+  "B_fallthrough_1" [label="B_fallthrough_1\lprev_if = acc\lt2 = acc + prev_if\lacc = t2\lreturn acc\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lgoto L_end_if_1\l"];
+  "B_label_L_else_0" [label="B_label_L_else_0\lL_else_0:\lprev_el = acc\lt3 = acc + a\lacc = t3\lt4 = acc + prev_el\lreturn t4\l"];
+  "B_label_L_end_if_1" [label="B_label_L_end_if_1\lL_end_if_1:\l"];
+  "B_label_main" [label="B_label_main\lmain:\ltotal = 0\li = 1\l"];
+  "B_label_L_for_start_2" [label="B_label_L_for_start_2\lL_for_start_2:\lt5 = i <= 5\lifFalse t5 goto L_for_end_3\l"];
+  "B_fallthrough_7" [label="B_fallthrough_7\lt6 = 6 - i\lt7 = call combinar(i, t6)\lt8 = total + t7\ltotal = t8\lt9 = i + 1\li = t9\lgoto L_for_start_2\l"];
+  "B_label_L_for_end_3" [label="B_label_L_for_end_3\lL_for_end_3:\lreturn total\l"];
+
+  "B_label_combinar" -> "B_label_L_else_0" [label="false", color="#B22222"];
+  "B_label_combinar" -> "B_fallthrough_1" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_end_if_1" [label="jump", color="#4169E1"];
+  "B_label_L_end_if_1" -> "B_label_main" [label="fallthrough", color="#555555"];
+  "B_label_main" -> "B_label_L_for_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_for_start_2" -> "B_label_L_for_end_3" [label="false", color="#B22222"];
+  "B_label_L_for_start_2" -> "B_fallthrough_7" [label="true", color="#2E8B57"];
+  "B_fallthrough_7" -> "B_label_L_for_start_2" [label="jump", color="#4169E1"];
+}

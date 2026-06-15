@@ -1,0 +1,28 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_1_main_end             pc=0x008C
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                     seg   addr    off  size  res
+  ----  --------  ----  -----------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   04_rename_waw.craft:5:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=16)
+    symbols:
+    name     kind      type  decl                      seg    addr             off  size  res
+    -------  --------  ----  ------------------------  -----  ---------------  ---  ----  ---
+    a        VARIABLE  int   04_rename_waw.craft:6:5   STACK  runtime(x17-4)   -4   4     yes
+    primero  VARIABLE  int   04_rename_waw.craft:7:5   STACK  runtime(x17-8)   -8   4     yes
+    segundo  VARIABLE  int   04_rename_waw.craft:10:5  STACK  runtime(x17-12)  -12  4     yes
+    tercero  VARIABLE  int   04_rename_waw.craft:13:5  STACK  runtime(x17-16)  -16  4     yes

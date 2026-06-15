@@ -1,0 +1,28 @@
+main:
+  x__v1__x3 = 1
+  y__v1__x4 = 2
+  t0__x5 = x__v1__x3 + y__v1__x4
+  z__v1__x6 = t0__x5
+  t2__x7 = z__v1__x6 + 4
+  vivo__v1__x8 = t2__x7
+  commit x = x__v1__x3
+  commit y = y__v1__x4
+  commit z = z__v1__x6
+  commit vivo = vivo__v1__x8
+  return vivo
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  main:
+    x__v1__x3 = 1
+    y__v1__x4 = 2
+    t0__x5 = x__v1__x3 + y__v1__x4
+    z__v1__x6 = t0__x5
+    t2__x7 = z__v1__x6 + 4
+    vivo__v1__x8 = t2__x7
+    commit x = x__v1__x3
+    commit y = y__v1__x4
+    commit z = z__v1__x6
+    commit vivo = vivo__v1__x8
+    return vivo

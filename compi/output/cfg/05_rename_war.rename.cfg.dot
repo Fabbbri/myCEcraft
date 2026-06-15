@@ -1,0 +1,9 @@
+digraph "05_rename_war.rename" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\ldato = 7\lt0__x3 = dato * 3\lviejo = t0__x3\ldato = 2\lt1__x4 = dato * 5\lnuevo = t1__x4\lt2__x5 = viejo + nuevo\lreturn t2__x5\l"];
+
+}

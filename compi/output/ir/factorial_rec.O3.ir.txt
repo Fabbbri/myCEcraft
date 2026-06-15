@@ -1,0 +1,45 @@
+fact:
+  t0__x3 = n <= 1
+  ifFalse t0__x3 goto L_else_0
+  return 1
+  goto L_end_if_1
+L_else_0:
+L_end_if_1:
+  t1__x4 = n - 1
+  t2__x5 = call fact(t1__x4)
+  t3__x6 = n * t2__x5
+  return t3__x6
+main:
+  t4__x7 = call fact(5)
+  return t4__x7
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_fact]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_1
+  fact:
+    t0__x3 = n <= 1
+    ifFalse t0__x3 goto L_else_0
+
+[B_fallthrough_1]
+    return 1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+  -> Sucesores: B_label_L_end_if_1
+  L_else_0:
+
+[B_label_L_end_if_1]
+  L_end_if_1:
+    t1__x4 = n - 1
+    call fact
+    t3__x6 = n * t2__x5
+    return t3__x6
+
+[B_label_main]
+  main:
+    call fact
+    return t4__x7

@@ -10,12 +10,12 @@ python3 compi/main.py --tokens compi/ejemplos/demo.craft
 ```bash
 python3 compi/main.py -t compi/ejemplos/demo.craft
 ```
-- Imprimir AST
+- Guardar AST en `compi/output/ast/<archivo>.ast.txt`
 ```bash
 python3 compi/main.py --ast compi/ejemplos/demo.craft
 ```
 
-- Imprimir tabla de simbolos con referencias sin resolver:
+- Guardar tabla de simbolos con referencias sin resolver en `compi/output/symbols/<archivo>.symbols.txt`:
 ```bash
 python3 compi/main.py -m compi/ejemplos/demo.craft
 ```
@@ -25,7 +25,7 @@ python3 compi/main.py -m compi/ejemplos/demo.craft
 python3 compi/main.py -r compi/ejemplos/demo.craft
 ```
 
-- Generar ensamblador resuelto e imprimir la tabla de simbolos actualizada con listado de labels:
+- Generar ensamblador resuelto y guardar la tabla de simbolos actualizada con listado de labels:
 ```bash
 python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
 ```
@@ -65,19 +65,20 @@ El archivo expandido se genera como:
 compi/output/expanded/<archivo>.expanded.craft
 ```
 
-## Tabla de simbolos: direccion en STACK
+## Tabla de simbolos: variables en STACK
 
-Para variables locales en `STACK`, la tabla muestra la direccion ya calculada
-como offset relativo al `sp` despues del prologo de la funcion. Por ejemplo,
-si en ensamblador se ve:
+Para variables locales en `STACK`, la tabla no muestra una direccion absoluta
+del dump final. Muestra la direccion efectiva como expresion de runtime basada
+en el `fp` de la funcion activa. Por ejemplo, si en ensamblador se ve:
 
 ```riscv
 lw x3, -4(x17) ; x
 ```
 
-`x17` es el `fp` (frame pointer) y el prologo hace `addi x17, x2, frame_size`.
-Entonces la direccion efectiva es `sp + (frame_size - 4)`. En la tabla se
-imprime ese valor en hexadecimal (por ejemplo `0x000C`).
+`x17` es el `fp` (frame pointer). En la tabla se imprime como
+`runtime(x17-4)`, porque esa direccion solo se puede resolver mientras la
+funcion esta activa. Despues del epilogo, el `fp` se restaura y el dump final no
+permite asociar de forma confiable esa variable local con una direccion unica.
 
 
 ## 1. Análisis léxico
@@ -261,7 +262,8 @@ usá `-m/--symbols` junto con `-o`:
 python compi/main.py -m -o compi/demo.bin compi/demo.craft
 ```
 
-Esto imprime:
+Esto genera:
+- `compi/output/symbols/<archivo>.symbols.txt` con la tabla en texto monoespaciado.
 - la salida habitual de generación (`.hex`, `.bin`, `.lst`), y
 - el dump de la tabla de símbolos (scopes + símbolos + memoria).
 
@@ -384,7 +386,134 @@ python compi/main.py -s compi/demo.craft
 Opciones útiles:
 
 - `-s` o `--asm`: genera el archivo `.asm` del programa de entrada.
+- `-O0`: no aplica optimizaciones.
+- `-O1`, `-O` o `--optimize`: activa loop unrolling y renombramiento de registros.
+- `-O2`: activa eliminacion de codigo muerto y reordenamiento.
+- `-O3`: activa todas las optimizaciones disponibles (`-O1` + `-O2`).
+- `--unroll-factor N`: aplica loop unrolling con factor configurable
+  entre 1 y 64. Si no se indica en `-O1`, se escoge automaticamente con
+  un maximo heuristico de 8.
+- `--rename-registers`: activa solo el renombramiento de registros estaticos en IR.
+- `--dce`: activa solo la eliminacion de codigo muerto sobre IR.
+- `--reorder`: activa solo el reordenamiento seguro de instrucciones sobre IR.
 - Los artefactos generados por defecto se escriben en `output/`.
+- Sin optimizaciones se conservan los nombres tradicionales, por ejemplo
+  `demo.bin`, `demo.hex` y `demo.asm`.
+- Con optimizaciones se generan artefactos separados por nivel, por ejemplo
+  `demo.O1.bin`, `demo.O2.hex` y `demo.O3.asm`. Los archivos normales no se
+  sobrescriben.
+
+### Generar binarios optimizados
+
+```bash
+# O1: loop unrolling y renombramiento de registros
+python compi/main.py -O1 -b compi/ejemplos/demo.craft
+
+# O2: eliminacion de codigo muerto y reordenamiento
+python compi/main.py -O2 -b compi/ejemplos/dce_demo.craft
+
+# O3: todas las optimizaciones disponibles
+python compi/main.py -O3 -b compi/ejemplos/array_unrolling_demo.craft
+```
+
+Los binarios se escriben respectivamente en:
+
+```text
+compi/output/bin_output/demo.O1.bin
+compi/output/bin_output/dce_demo.O2.bin
+compi/output/bin_output/array_unrolling_demo.O3.bin
+```
+
+Para compilar otro archivo, se conserva la misma forma:
+
+```bash
+python compi/main.py -O3 -b ruta/al/programa.craft
+```
+
+### Optimizaciones de iteracion 3
+
+Con `-O1`, `-O` o `--optimize`, el compilador aplica solamente:
+
+- **Loop unrolling sobre IR**. La pasada trabaja sobre instrucciones
+  `IRInstruction` ya generadas. Para loops contados con inicio, limite e
+  incremento constantes, usa el estilo clasico: aumenta el stride por el factor,
+  sustituye `i`, `i + 1`, etc. en las copias del cuerpo y emite el remainder
+  despues del loop. En `-O1`, si no se pasa `--unroll-factor`, el factor se
+  escoge con heuristica automatica y maximo 8, alineado con los 8 registros
+  temporales `x3` a `x10`. Si el usuario pide manualmente un factor mayor que
+  las iteraciones conocidas, reporta un error de optimizacion. Los factores
+  manuales pueden llegar hasta 64 porque el backend reutiliza registros entre
+  las copias; el limite evita crecimiento excesivo del codigo.
+- **Renombramiento de registros estaticos en IR**. La pasada conserva un nombre
+  virtual unico para cada temporal y le agrega una sugerencia de registro
+  fisico de Craft21 entre `x3` y `x10`. `IRAssemblyGenerator` respeta esa
+  sugerencia al bajar cada
+  instruccion, por lo que el cambio llega al `.asm`, `.hex`, `.lst` y `.bin`
+  sin inventar registros que no existen en la arquitectura.
+
+El AST original se usa para analisis semantico y para construir el IR. Las
+optimizaciones se aplican exclusivamente sobre ese IR, y el backend
+`IRAssemblyGenerator` genera desde el IR resultante el ensamblador,
+hexadecimal, listado y binario. No se crea ni se optimiza una copia del AST.
+
+Ejemplos:
+
+```bash
+python compi/main.py -O1 -i compi/ejemplos/demo.craft
+python compi/main.py -O1 -s -r -b compi/ejemplos/demo.craft
+python compi/main.py --unroll-factor 4 -i compi/ejemplos/array_unrolling_demo.craft
+python compi/main.py --unroll-factor 4 --rename-registers -i compi/ejemplos/array_unrolling_demo.craft
+```
+
+---
+
+### Optimizaciones de iteracion 4
+
+Con `-O2` o `--dce`, el compilador aplica **eliminacion de codigo muerto
+(DCE)** sobre la representacion intermedia:
+
+- construye el CFG con los bloques basicos existentes;
+- calcula variables vivas por bloque;
+- recorre las instrucciones en orden inverso;
+- elimina definiciones cuyo resultado no esta vivo en la salida;
+- conserva instrucciones con efectos laterales, como stores a arreglos/campos,
+  llamadas, retornos, saltos e instrucciones de boveda.
+
+Con `-O2` o `--reorder`, tambien aplica **reordenamiento seguro de
+instrucciones**:
+
+- construye el CFG y trabaja dentro de cada bloque basico;
+- no cruza labels, saltos, returns, llamadas, stores ni instrucciones de boveda;
+- calcula dependencias RAW, WAR y WAW entre instrucciones candidatas;
+- usa list scheduling conservador para preservar dependencias;
+- si detecta una carga seguida por un uso inmediato, intenta colocar una
+  instruccion independiente entre ambas para reducir el caso `LW -> ALU` que
+  todavia produce stall en la arquitectura.
+
+El codigo de optimizaciones esta separado en `compi/Optimizations/`:
+
+```text
+compi/Optimizations/
+├── pipeline.py
+├── loop_unrolling.py
+├── dead_code_elimination.py
+├── instruction_reordering.py
+├── static_register_renaming.py
+└── common.py
+```
+
+Las utilidades compartidas para calcular `uses`, `defs`, efectos laterales y
+candidatos reordenables viven en `compi/IR/ir_analysis.py`, porque describen el
+IR y pueden reutilizarse fuera de las optimizaciones.
+
+Ejemplos:
+
+```bash
+python compi/main.py --dce -i compi/ejemplos/dce_demo.craft
+python compi/main.py --reorder -i compi/ejemplos/reorder_demo.craft
+python compi/main.py -O2 -i compi/ejemplos/dce_demo.craft
+python compi/main.py -O3 -i compi/ejemplos/array_unrolling_demo.craft
+```
 
 ---
 

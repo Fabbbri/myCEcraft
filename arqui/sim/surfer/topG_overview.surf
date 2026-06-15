@@ -1,0 +1,21 @@
+# Vista general de tb_topG para `make surf`.
+# Comandos de Surfer ejecutados tras cargar el VCD (uno por linea; # = comentario).
+# Edita libremente: agrega/quita scopes segun lo que quieras observar.
+
+# --- Testbench: contadores y senales de control de la corrida ---
+scope_add tb_topG
+
+# --- Top del procesador: instr por etapa, stalls/flush, nuevo PC ---
+scope_add tb_topG.dut
+
+# --- Fetch/Issue: PC (addr_aux), decodificador de PC, PC+4 ---
+scope_add tb_topG.dut.Issue
+
+# --- ALU: operandos, resultado y banderas ---
+scope_add tb_topG.dut.Exec.ALU
+
+# --- Memoria: senales de cache/burst de nivel superior ---
+scope_add tb_topG.dut.Memory
+
+# Ajustar la onda a toda la simulacion
+zoom_fit

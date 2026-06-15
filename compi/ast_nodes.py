@@ -221,50 +221,76 @@ class MemberExpression(ASTNode):
 
 def format_ast(node: ASTNode) -> str:
     """
-    Devuelve una version legible del AST usando indentacion.
+    Devuelve una version legible del AST como arbol ASCII.
     """
     lines: list[str] = []
-    _format_value(node, lines, 0, None)
+    lines.append("AST")
+    lines.append("===")
+    _format_tree(node, lines, prefix="", label=None, is_last=True, is_root=True)
     return "\n".join(lines)
 
 
-def _format_value(value: Any, lines: list[str], level: int, label: str | None) -> None:
-    indent = "  " * level
+def _format_tree(
+    value: Any,
+    lines: list[str],
+    *,
+    prefix: str,
+    label: str | None,
+    is_last: bool,
+    is_root: bool = False,
+) -> None:
+    connector = "" if is_root else ("`- " if is_last else "+- ")
+    node_prefix = "" if is_root else prefix + connector
+    child_prefix = prefix if is_root else prefix + ("   " if is_last else "|  ")
 
     if isinstance(value, TypeNode):
-        prefix = f"{label}: " if label else ""
-        lines.append(
-            f"{indent}{prefix}Type({value.describe()}) "
-            f"@ {value.line}:{value.column}"
-        )
+        lines.append(f"{node_prefix}{_label_prefix(label)}Type {value.describe()} @ {value.line}:{value.column}")
         return
 
     if isinstance(value, ASTNode) and is_dataclass(value):
-        prefix = f"{label}: " if label else ""
-        lines.append(f"{indent}{prefix}{value.__class__.__name__}{_node_summary(value)}")
+        lines.append(f"{node_prefix}{_label_prefix(label)}{value.__class__.__name__}{_node_summary(value)}")
 
+        children = []
         for item in fields(value):
             if item.name in {"line", "column"} or item.name in _summary_fields(value):
                 continue
-            child = getattr(value, item.name)
-            _format_value(child, lines, level + 1, item.name)
+            children.append((item.name, getattr(value, item.name)))
+
+        for index, (child_label, child) in enumerate(children):
+            _format_tree(
+                child,
+                lines,
+                prefix=child_prefix,
+                label=child_label,
+                is_last=index == len(children) - 1,
+            )
         return
 
     if isinstance(value, list):
-        prefix = f"{label}: " if label else ""
-        lines.append(f"{indent}{prefix}[")
-        for item in value:
-            _format_value(item, lines, level + 1, None)
-        lines.append(f"{indent}]")
+        if not value:
+            lines.append(f"{node_prefix}{_label_prefix(label)}[]")
+            return
+
+        lines.append(f"{node_prefix}{_label_prefix(label)}list ({len(value)} items)")
+        for index, item in enumerate(value):
+            _format_tree(
+                item,
+                lines,
+                prefix=child_prefix,
+                label=f"[{index}]",
+                is_last=index == len(value) - 1,
+            )
         return
 
     if value is None:
-        prefix = f"{label}: " if label else ""
-        lines.append(f"{indent}{prefix}None")
+        lines.append(f"{node_prefix}{_label_prefix(label)}None")
         return
 
-    prefix = f"{label}: " if label else ""
-    lines.append(f"{indent}{prefix}{value!r}")
+    lines.append(f"{node_prefix}{_label_prefix(label)}{value!r}")
+
+
+def _label_prefix(label: str | None) -> str:
+    return f"{label}: " if label else ""
 
 
 def _summary_fields(node: ASTNode) -> set[str]:
