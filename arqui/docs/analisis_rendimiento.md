@@ -2,9 +2,9 @@
 
 Este analisis se construyo a partir de las metricas generadas en
 `outputs/reports/results.html` y de los datos crudos de `results.csv` y
-`results_no_cash.csv`. El objetivo es medir por separado el efecto de la
-jerarquia de cache y el de las optimizaciones del compilador sobre el
-procesador.
+`results_no_cash.csv`, junto con las pruebas dirigidas de `results_p2.csv`. El
+objetivo es medir por separado el efecto de la jerarquia de cache y el de las
+optimizaciones del compilador sobre el procesador.
 
 ## Metodologia de medicion
 
@@ -121,9 +121,13 @@ aciertos, stalls y CPI.
 
 O1 y O3 reducen de forma importante el numero de instrucciones dinamicas en
 los recorridos simples: `bench_seq` pasa de 9,251 a 5,955 instrucciones,
-`bench_stride` de 1,187 a 775 y `bench_random` de 23,964 a aproximadamente
-21,023. La mejora proviene principalmente del *unrolling* y de la reduccion de
-dependencias asociada al renombrado.
+`bench_stride` de 1,187 a 775 y `bench_random` de 23,964 a 21,024 con O1 y
+21,022 con O3. Como O1 combina *unrolling* y renombrado, esta tabla por si sola
+no permite atribuir todo el efecto a un pase. Sin embargo, las pruebas P2
+aisladas muestran que el *unrolling* si reduce ciclos, mientras que el
+renombrado conserva los mismos ciclos en las cuatro cargas dirigidas actuales.
+Por ello, la evidencia disponible atribuye la mayor parte de la mejora de
+O1/O3 al desenrollado de bucles.
 
 El aumento del tamano estatico es el costo principal: `bench_seq` y
 `bench_stride` pasan de 252 a 636 bytes con O1/O3, y `bench_random` de 336 a
@@ -139,12 +143,23 @@ las mejoras de O1 y agrega una reduccion pequeña en `bench_mmul`, donde alcanza
 proporcional; el resultado depende de que el programa contenga el patron que
 cada optimizacion puede explotar.
 
-Las pruebas dirigidas P2 confirman esta dependencia. DCE obtiene aceleraciones
-entre 1.74x y 2.39x en las cadenas de codigo muerto; *unrolling* obtiene entre
-1.10x y 1.40x; y el reordenamiento varia entre 1.01x y 1.23x. Las pruebas de
-renombrado conservan los mismos ciclos en estos casos, aunque registran entre
-5 y 12 renombrados, por lo que validan la transformacion semantica pero no una
-ganancia de rendimiento para esas cargas.
+Las pruebas dirigidas P2 confirman esta dependencia:
+
+| Optimizacion aislada | Programas OK | Rango de speedup | Mejora media reportada |
+|---|---:|---:|---:|
+| *Loop unrolling* | 4/4 | 1.10x a 1.40x | 22.9% |
+| Renombrado | 4/4 | 1.00x | 0.0% |
+| DCE | 4/4 | 1.21x a 2.39x | 77.5% |
+| Reordenamiento | 4/4 | 1.01x a 1.23x | 9.2% |
+
+DCE presenta la mayor mejora media, aunque depende de la cantidad de codigo
+muerto: `dce_cadenas_post` alcanza 2.39x, mientras que
+`pruebaEliminacionCodigo` obtiene 1.21x. El reordenamiento reduce los stalls de
+memoria en las cuatro pruebas, pero puede aumentar el numero de instrucciones
+estaticas y dinamicas; por eso su ganancia varia desde un 0.6% marginal hasta
+un 22.7%. Las pruebas de renombrado registran entre 5 y 12 renombrados y
+mantienen el resultado correcto, pero no producen una reduccion de ciclos en
+las cargas actuales.
 
 ## Validacion experimental
 
@@ -160,13 +175,13 @@ La validacion combina consistencia funcional y consistencia de las metricas:
 - Los conteos de cache son coherentes: lecturas y escrituras se descomponen en
   hits y misses, y los accesos L2 corresponden a las solicitudes que bajan
   desde L1.
-- Las 16 pruebas P2 reportadas tambien terminan con estado `OK` tanto en O0
-  como con su optimizacion especifica.
+- Los 16 programas P2 terminan con estado `OK` en sus dos variantes; en total,
+  las 32 corridas O0/opt preservan el resultado esperado.
 
 Los experimentos respaldan dos conclusiones. Primero, la jerarquia L1/L2 es
 efectiva: reduce entre 1.59x y 3.09x los ciclos y entre 1.6x y 2.5x el trafico
 hacia RAM. Segundo, las optimizaciones del compilador son selectivas: O1/O3
-benefician especialmente a los ciclos con bucles, mientras que O2 solo aporta
+benefician especialmente a los programas con bucles, mientras que O2 solo aporta
 cuando existe codigo muerto o trabajo reordenable. La correccion se mantiene
 en todos los casos mediante la comprobacion del resultado arquitectonico.
 
@@ -181,3 +196,12 @@ make bench
 Los resultados se escriben en `outputs/reports/results.html`, con los datos
 tabulares completos en `results.csv`, `results_no_cash.csv` y
 `results_p2.csv`.
+
+## Anexo: señales del procesador en Surfer
+
+La siguiente captura muestra las señales internas del procesador durante la
+simulacion, visualizadas mediante Surfer. Esta vista permite inspeccionar la
+evolucion del pipeline, los registros, las operaciones de memoria y las
+señales de control ciclo a ciclo.
+
+![Señales del procesador visualizadas en Surfer](surfer.png)
