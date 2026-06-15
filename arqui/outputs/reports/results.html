@@ -184,30 +184,36 @@
 
 <section><h2>5.3 M&eacute;tricas de memoria principal</h2>
 <p class="nota">Accesos = misses de lectura de L2 + stores drenados (write-through).
- BW = fracci&oacute;n del <b>ancho de banda te&oacute;rico m&aacute;ximo</b> del bus
- (0.5 palabras/ciclo: memoria a 50 MHz, burst de 8) usada con cach&eacute;.</p>
+ Ciclos de transferencia = ciclos con el bus RAM activo (burst o escritura drenada).
+ Columnas <span class="p2nc" style="padding:1px 4px;border-radius:3px">azules</span>
+ = medici&oacute;n sin cach&eacute; (<code>top_no_cash</code>).</p>
 <table><thead><tr>
- <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
- <th>BW %</th>
-</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>1,063</td><td>19,000</td><td>86.43</td></tr>
-<tr><td>bench_random (O0)</td><td>2,948</td><td>52,796</td><td>87.68</td></tr>
-<tr><td>bench_stride (O0)</td><td>166</td><td>2,891</td><td>71.22</td></tr>
-<tr><td>bench_mmul (O0)</td><td>5,507</td><td>98,918</td><td>89.41</td></tr>
+ <th>Benchmark</th><th class="p2nc">Accesos sin$</th><th class="p2nc">Ciclos de transferencia sin$</th>
+ <th>Accesos con$</th><th>Ciclos de transferencia con$</th>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td class="p2nc">2,055</td><td class="p2nc">34,931</td><td>1,063</td><td>19,000</td></tr>
+<tr><td>bench_random (O0)</td><td class="p2nc">5,769</td><td class="p2nc">98,066</td><td>2,948</td><td>52,796</td></tr>
+<tr><td>bench_stride (O0)</td><td class="p2nc">263</td><td class="p2nc">4,467</td><td>166</td><td>2,891</td></tr>
+<tr><td>bench_mmul (O0)</td><td class="p2nc">13,891</td><td class="p2nc">233,204</td><td>5,507</td><td>98,918</td></tr>
 </tbody></table>
 
 <h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
-<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa
- baja a RAM &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla
- (Memory_Accesses). La <b>Reducci&oacute;n</b> es cu&aacute;ntas veces menos tr&aacute;fico
- pone el cach&eacute; en el bus. <i>Acc/instr</i> = transacciones a memoria por
- instrucci&oacute;n.</p>
+<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa baja a RAM
+ <b>Con cach&eacute;</b>: solo los misses de L2 (Memory_Accesses).
+ <i>Acc/instr</i> = transacciones a memoria por instrucci&oacute;n ejecutada.
+ <b>BW (acc/ciclo)</b> = accesos a RAM por ciclo de pipeline medido en simulaci&oacute;n.
+ <b>Nota:</b> es normal que BW con$ &gt; BW sin$ en varios benchmarks. Sin cach&eacute; cada
+ acceso a memoria genera decenas de ciclos de stall, inflando el denominador
+ (ciclos totales) m&aacute;s de lo que el numerador (accesos) crece; el ratio baja.
+ Con cach&eacute; los ciclos totales se reducen dr&aacute;sticamente (pocos stalls),
+ por lo que aunque llegan menos accesos a RAM, la fracci&oacute;n accesos/ciclo sube.</p>
 <table><thead><tr>
  <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
  <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
-</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>2,055</td><td>1,063</td><td><b>1.9&times;</b></td><td>0.222</td><td>0.115</td></tr>
-<tr><td>bench_random (O0)</td><td>5,769</td><td>2,948</td><td><b>2.0&times;</b></td><td>0.241</td><td>0.123</td></tr>
-<tr><td>bench_stride (O0)</td><td>263</td><td>166</td><td><b>1.6&times;</b></td><td>0.222</td><td>0.140</td></tr>
-<tr><td>bench_mmul (O0)</td><td>13,891</td><td>5,507</td><td><b>2.5&times;</b></td><td>0.482</td><td>0.191</td></tr>
+ <th class="p2nc">BW sin$<br><span style="font-size:0.8em">(acc/ciclo)</span></th><th>BW con$<br><span style="font-size:0.8em">(acc/ciclo)</span></th>
+</tr></thead><tbody><tr><td>bench_seq (O0)</td><td>2,055</td><td>1,063</td><td><b>1.9&times;</b></td><td>0.222</td><td>0.115</td><td class="p2nc">0.0408</td><td>0.0484</td></tr>
+<tr><td>bench_random (O0)</td><td>5,769</td><td>2,948</td><td><b>2.0&times;</b></td><td>0.241</td><td>0.123</td><td class="p2nc">0.0410</td><td>0.0490</td></tr>
+<tr><td>bench_stride (O0)</td><td>263</td><td>166</td><td><b>1.6&times;</b></td><td>0.222</td><td>0.140</td><td class="p2nc">0.0409</td><td>0.0409</td></tr>
+<tr><td>bench_mmul (O0)</td><td>13,891</td><td>5,507</td><td><b>2.5&times;</b></td><td>0.482</td><td>0.191</td><td class="p2nc">0.0406</td><td>0.0498</td></tr>
 </tbody></table>
 </section>
 
@@ -452,9 +458,12 @@ hit L1=1, hit L2=8, mem=25 ciclos</pre></div>
 ------------- x 100
  L2 Accesses</pre></div>
 <div class="f"><b>Memory Accesses</b><pre>Numero total de accesos a memoria principal</pre></div>
-<div class="f"><b>BW Util</b><pre>Mem Transfer Cycles
+<div class="f"><b>BW%</b><pre>Mem Transfer Cycles
 -------------------- x 100
    Ciclos totales</pre></div>
+<div class="f"><b>BW (acc/ciclo)</b><pre>Memory Accesses / Ciclos
+transacciones a RAM por ciclo
+de pipeline (medido)</pre></div>
 </div>
 <p class="nota"><b>Nota sobre Memory Accesses:</b> no coincide con L2_Misses
 porque la pol&iacute;tica es write-through: <i>todo</i> store drenado llega a RAM

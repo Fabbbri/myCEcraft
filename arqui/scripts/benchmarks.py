@@ -570,7 +570,14 @@ def load_no_cache():
             for r in csv.DictReader(f):
                 name = r.get("Test Ejecutado", "")
                 key = "while loop x<5" if name.startswith("while") else name
-                ref[key] = {"Ciclos": r.get("Ciclos"), "CPI": r.get("CPI")}
+                ref[key] = {
+                    "Ciclos": r.get("Ciclos"),
+                    "CPI": r.get("CPI"),
+                    "Instr": r.get("Instr"),
+                    "Memory_Accesses": r.get("Memory_Accesses"),
+                    "Mem_Transfer_Cycles": r.get("Mem_Transfer_Cycles"),
+                    "BW_Util": r.get("BW_Util"),
+                }
     except (OSError, KeyError):
         pass
     return ref
@@ -801,9 +808,12 @@ hit L1=1, hit L2=8, mem=25 ciclos</pre></div>
 ------------- x 100
  L2 Accesses</pre></div>
 <div class="f"><b>Memory Accesses</b><pre>Numero total de accesos a memoria principal</pre></div>
-<div class="f"><b>BW Util</b><pre>Mem Transfer Cycles
+<div class="f"><b>BW%</b><pre>Mem Transfer Cycles
 -------------------- x 100
    Ciclos totales</pre></div>
+<div class="f"><b>BW (acc/ciclo)</b><pre>Memory Accesses / Ciclos
+transacciones a RAM por ciclo
+de pipeline (medido)</pre></div>
 </div>
 <p class="nota"><b>Nota sobre Memory Accesses:</b> no coincide con L2_Misses
 porque la pol&iacute;tica es write-through: <i>todo</i> store drenado llega a RAM
@@ -1128,47 +1138,89 @@ def cache_section(rows):
 """
 
 
-def memory_section(rows):
+def memory_section(rows, no_cache=None):
     """5.3 Metricas de memoria principal + trafico con vs sin cache."""
     data = _sorted_rows(rows)
+    # detectar si hay datos medidos sin cache para la primera tabla
+    has_nc = any(
+        _fnum(((no_cache or {}).get(r.get("Test Ejecutado", ""), {}) or {}).get("Memory_Accesses")) is not None
+        for r in data
+    )
+
     body = ""
     for r in data:
-        body += (f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
-                 f'<td>{_num(r.get("Memory_Accesses"))}</td>'
-                 f'<td>{_num(r.get("Mem_Transfer_Cycles"))}</td>'
-                 f'<td>{_num(r.get("BW_Util"), 2)}</td></tr>\n')
-    # Trafico al bus: sin cache (modelo) cada acceso del programa baja a RAM
-    # = L1 Reads + Writes; con cache solo Memory_Accesses (misses + write-through).
+        name = r.get("Test Ejecutado", "")
+        nc   = (no_cache or {}).get(name, {}) or {}
+        acc    = _fnum(r.get("Memory_Accesses"))
+        xfr    = _fnum(r.get("Mem_Transfer_Cycles"))
+        nc_acc = _fnum(nc.get("Memory_Accesses"))
+        nc_xfr = _fnum(nc.get("Mem_Transfer_Cycles"))
+        nc_cols = (
+            f'<td class="p2nc">{_num(nc_acc)}</td>'
+            f'<td class="p2nc">{_num(nc_xfr)}</td>'
+            if has_nc else ""
+        )
+        body += (f'<tr><td>{name}</td>'
+                 + nc_cols
+                 + f'<td>{_num(acc)}</td>'
+                 f'<td>{_num(xfr)}</td></tr>\n')
+
+    hdr_nc = ('<th class="p2nc">Accesos sin$</th>'
+              '<th class="p2nc">Ciclos de transferencia sin$</th>'
+              if has_nc else "")
+
+    # ── Trafico al bus (modelo analitico + BW medido) ─────────────────────────
     traffic = ""
     for r in data:
-        rd, wr = _fnum(r.get("L1_Reads")), _fnum(r.get("L1_Writes"))
+        name = r.get("Test Ejecutado", "")
+        nc   = (no_cache or {}).get(name, {}) or {}
+        rd, wr   = _fnum(r.get("L1_Reads")),        _fnum(r.get("L1_Writes"))
         acc, instr = _fnum(r.get("Memory_Accesses")), _fnum(r.get("Instr"))
-        nocache = (rd + wr) if (rd is not None and wr is not None) else None
-        red = f"{nocache / acc:.1f}&times;" if (nocache and acc) else "&mdash;"
-        api_no = f"{nocache / instr:.3f}" if (nocache is not None and instr) else "&mdash;"
-        api_si = f"{acc / instr:.3f}" if (acc is not None and instr) else "&mdash;"
-        traffic += (f'<tr><td>{r.get("Test Ejecutado", "")}</td>'
+        nc_acc   = _fnum(nc.get("Memory_Accesses"))
+        nc_cyc   = _fnum(nc.get("Ciclos"))
+        cyc      = _fnum(r.get("Ciclos"))
+        nocache  = (rd + wr) if (rd is not None and wr is not None) else None
+        red      = f"{nocache / acc:.1f}&times;" if (nocache and acc) else "&mdash;"
+        api_no   = f"{nocache / instr:.3f}" if (nocache is not None and instr) else "&mdash;"
+        api_si   = f"{acc / instr:.3f}"     if (acc is not None and instr)     else "&mdash;"
+        apc_sin  = f"{nc_acc / nc_cyc:.4f}" if (nc_acc and nc_cyc) else "&mdash;"
+        apc_con  = f"{acc / cyc:.4f}"       if (acc is not None and cyc)       else "&mdash;"
+        bw_extra = (f'<td class="p2nc">{apc_sin}</td><td>{apc_con}</td>'
+                    if has_nc else "")
+        traffic += (f'<tr><td>{name}</td>'
                     f'<td>{_num(nocache)}</td><td>{_num(acc)}</td>'
-                    f'<td><b>{red}</b></td><td>{api_no}</td><td>{api_si}</td></tr>\n')
+                    f'<td><b>{red}</b></td><td>{api_no}</td><td>{api_si}</td>'
+                    f'{bw_extra}</tr>\n')
+
+    bw_hdr = ('<th class="p2nc">BW sin$<br><span style="font-size:0.8em">(acc/ciclo)</span></th>'
+              '<th>BW con$<br><span style="font-size:0.8em">(acc/ciclo)</span></th>'
+              if has_nc else "")
+
     return f"""
 <section><h2>5.3 M&eacute;tricas de memoria principal</h2>
 <p class="nota">Accesos = misses de lectura de L2 + stores drenados (write-through).
- BW = fracci&oacute;n del <b>ancho de banda te&oacute;rico m&aacute;ximo</b> del bus
- (0.5 palabras/ciclo: memoria a 50 MHz, burst de 8) usada con cach&eacute;.</p>
+ Ciclos de transferencia = ciclos con el bus RAM activo (burst o escritura drenada).
+ Columnas <span class="p2nc" style="padding:1px 4px;border-radius:3px">azules</span>
+ = medici&oacute;n sin cach&eacute; (<code>top_no_cash</code>).</p>
 <table><thead><tr>
- <th>Benchmark</th><th>Accesos a memoria</th><th>Ciclos de transferencia</th>
- <th>BW %</th>
+ <th>Benchmark</th>{hdr_nc}
+ <th>Accesos con$</th><th>Ciclos de transferencia con$</th>
 </tr></thead><tbody>{body}</tbody></table>
 
 <h3>Tr&aacute;fico al bus de memoria: con vs sin cach&eacute;</h3>
-<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa
- baja a RAM &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla
- (Memory_Accesses). La <b>Reducci&oacute;n</b> es cu&aacute;ntas veces menos tr&aacute;fico
- pone el cach&eacute; en el bus. <i>Acc/instr</i> = transacciones a memoria por
- instrucci&oacute;n.</p>
+<p class="nota"><b>Sin cach&eacute;</b> (modelo anal&iacute;tico): cada acceso del programa baja a RAM
+ &rarr; L1 Reads + Writes. <b>Con cach&eacute;</b>: solo lo que falla (Memory_Accesses).
+ <i>Acc/instr</i> = transacciones a memoria por instrucci&oacute;n ejecutada.
+ <b>BW (acc/ciclo)</b> = accesos a RAM por ciclo de pipeline medido en simulaci&oacute;n.
+ <b>Nota:</b> es normal que BW con$ &gt; BW sin$ en varios benchmarks. Sin cach&eacute; cada
+ acceso a memoria genera decenas de ciclos de stall, inflando el denominador
+ (ciclos totales) m&aacute;s de lo que el numerador (accesos) crece; el ratio baja.
+ Con cach&eacute; los ciclos totales se reducen dr&aacute;sticamente (pocos stalls),
+ por lo que aunque llegan menos accesos a RAM, la fracci&oacute;n accesos/ciclo sube.</p>
 <table><thead><tr>
  <th>Benchmark</th><th>Sin cach&eacute; (ops a RAM)</th><th>Con cach&eacute; (accesos)</th>
  <th>Reducci&oacute;n</th><th>Acc/instr sin</th><th>Acc/instr con</th>
+ {bw_hdr}
 </tr></thead><tbody>{traffic}</tbody></table>
 </section>
 """
@@ -1616,7 +1668,7 @@ def render_html(rows, path, no_cache, p2_results=None):
 {cache_effect_section(base_rows, no_cache)}
 {processor_section(base_rows)}
 {cache_section(base_rows)}
-{memory_section(base_rows)}
+{memory_section(base_rows, no_cache)}
 {compiler_section(rows, no_cache)}
 {p2_html}
 {formulas_section()}
