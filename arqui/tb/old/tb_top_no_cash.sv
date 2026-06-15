@@ -8,6 +8,8 @@ module tb_top_no_cash;
     longint cycle_count;
     longint instr_count;
     longint stall_mem_cycles;
+    longint mem_acc;
+    longint mem_xfer_cycles;
     logic [31:0] expect_x11;
     bit          use_expect;
 
@@ -78,6 +80,22 @@ module tb_top_no_cash;
     always @(posedge clk) begin
         if (!reset && !halt_detected && dut.stall_mem)
             stall_mem_cycles++;
+    end
+
+    // 4. Transacciones a RAM
+    always @(posedge clk) begin
+        if (!reset && !halt_detected) begin
+            if (dut.Memory.MemCtrl.rq_wr_en) mem_acc++;
+        end
+    end
+
+    // 5. Ciclos activos en el bus de RAM (burst de lectura O escritura drenada).
+    //    Equivalente al mem_xfer_cyc de la PMU en el modelo con cache.
+    always @(posedge clk) begin
+        if (!reset && !halt_detected) begin
+            if (dut.Memory.MemCtrl.burst_active || dut.Memory.ram_we)
+                mem_xfer_cycles++;
+        end
     end
 
     // ==========================================
@@ -198,6 +216,8 @@ module tb_top_no_cash;
         cycle_count = 0;
         instr_count = 0;
         stall_mem_cycles = 0;
+        mem_acc = 0;
+        mem_xfer_cycles = 0;
         halt_detected = 0;
 
         load_and_reset(rom_file, ram_file);
@@ -246,21 +266,20 @@ module tb_top_no_cash;
         // ======================================
 
         begin
-            real cpi;
+            real cpi, bw_util;
 
-            cpi = (instr_count != 0)
-                ? (1.0 * cycle_count) / instr_count
-                : 0.0;
+            cpi = (instr_count != 0) ? (1.0 * cycle_count) / instr_count : 0.0;
+            bw_util  = (cycle_count  != 0) ? 100.0 * mem_xfer_cycles / cycle_count : 0.0;
 
-            $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d",
-                     test_name, cycle_count, instr_count, cpi, stall_mem_cycles);
+            $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f",
+                     test_name, cycle_count, instr_count, cpi, stall_mem_cycles,
+                     mem_acc, mem_xfer_cycles, bw_util);
 
             $display("\n  --- Performance ---");
             $display("  Ciclos        : %0d", cycle_count-1);
-            // -1 porque cycle_count para de contar hasta el ciclo después de que detecta el HALT
-            // sería +3 si se quiere contar los ciclos del drenado
             $display("  Instrucciones : %0d", instr_count);
             $display("  CPI           : %f", cpi);
+            $display("  Mem: accesos=%0d xfer=%0d ciclos bw=%.2f%%", mem_acc, mem_xfer_cycles, bw_util);
         end
 
         end // else (no timed_out)
