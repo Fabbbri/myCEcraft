@@ -7,7 +7,7 @@ pipeline. El diseno incluye banco de registros general, ALU, unidad de control,
 RAM de datos, ROM de instrucciones y una boveda de llaves compuesta por banco de
 registros Vault, RAM Vault y control de Secure Mode. Note además que se realizó la extensión del bloque negro **MEMORY HIERARCHY** el cuál consiste en los niveles L1 y L2 de caché seguidos de la DRAM realista. Para mayor referencia de su implementación, decisiones de diseño y aspectos de organización revisar: [jerarquia_memoria.md](jerarquia_memoria.md)
 
-![Diagrama de bloques de la microarquitectura Craft21](microarch.png)
+![img:Diagrama de bloques de la microarquitectura Craft21](images/microarch.png)
 
 
 ## Vista general del datapath
@@ -241,5 +241,5 @@ complejidad de las interconexiones dentro de `top.sv`.
 
 Para el benchmark se incorporó el módulo `perf_counters.sv` (PMU) directamente en `top.sv`. El módulo recibe señales ya presentes en el top: `instrDE`, `flushE`, `stallE`, `flushD`, `stall_mem`, `result_src`, `we_mem` y `alu_result` del pipeline, más los eventos de caché `hit_l1`, `hit_l2`, `hit_l2_wb`, `wb_commit`, `burst_active` y `ram_we` expuestos por la jerarquía de memoria. Los contadores cubren: ciclos totales, instrucciones retiradas, stalls de memoria, stalls de control, accesos y aciertos/fallos en L1-D (lecturas y escrituras por separado), accesos y aciertos/fallos en L2, accesos a RAM, cantidad de bursts y ciclos activos de transferencia a RAM. Todos los valores quedan accesibles para simulación y son leídos por el testbench para el análisis de rendimiento.
 
-![Diagrama de bloques de la microarquitectura Craft21](microarch_metrics.png)
+![img:Diagrama de bloques de la microarquitectura Craft21](images/microarch_metrics.png)
 

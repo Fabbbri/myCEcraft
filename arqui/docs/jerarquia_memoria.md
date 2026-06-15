@@ -32,7 +32,7 @@ Este documento describe el diseño de la jerarquia de cache de datos de Craft21
 (Proyecto Grupal II), las decisiones de politica tomadas por el grupo y su
 justificacion. Dicha jerarquía se acopla al procesador pipeline diseñado e implementado previamente. El diagrama general de la conexión se muestra a continuación:
 
-![img:GENERAL-DIAG](general_diag.png)
+![img:GENERAL-DIAG](images/general_diag.png)
 
 Entre los cambios realizados se encuentra el hecho de que ahora la ROM de instrucciones es de acceso directo (1 ciclo, lectura en flanco negativo, sin misses), por lo que la jerarquia solo aplica a datos. La extensión para manejo de datos seguros del primer proyecto: la bóveda (neather_ram), no se toma en consideración para la jerarquía de memoria puesto que no será evaluado, por lo tanto es un camino aparte sin caché.
 
@@ -44,17 +44,17 @@ En general, la DRAM sigue funcionando de la misma forma que en lo previo cuando 
 
 Para mayor referencia del funcionamiento de la memoria principal realista, puede observar al diagrama de bloques de dicho diseño:
 
-![img:FIFO_ASY](fifo_async.png)
+![img:FIFO_ASY](images/fifo_async.png)
 
-![img:MEM_Controller](mem_con.png)
+![img:MEM_Controller](images/mem_con.png)
 
 Ahora bien, la jerarquía de memoria incluye también a los dos niveles de caché previos a la DRAM. Previamente se incluye un diagrama general de las conexiones de CPU, ROM y Memory Hierarchy. Ahora, se muestra el mismo diagrama pero expandido de forma que se pueda ver más transparentemente (bloque parcialmente blanco):
 
-![img:GENERAL_DIAG_EXP](gen_diag_exp.png)
+![img:GENERAL_DIAG_EXP](images/gen_diag_exp.png)
 
 Seguidamente, se muestra un diagrama donde se puede apreciar de forma específica cada entrada y salída de los módulos principales de la jerarquía de memoria (L1, L2, DRAM y sus respectivos controladores), siendo posible observar todos los buses de datos de entrada y salida internos.
 
-![img:HIERARCHY](hierarchy.png)
+![img:HIERARCHY](images/hierarchy.png)
 
 
 Hay varios aspectos a explicar pues tanto la caché L1 como L2 (los principales enfoques de este proyecto) requirieron varias decisiones de diseño para poder ser implementadas, entre ellas: decisiones de implementación (diseño de FSMs y otros módulos relevantes), parámetros configurables, políticas de escritura y de reemplazo. Todos estos aspectos se explicarán a continuación en sus respectivas secciones
@@ -132,7 +132,7 @@ La justificación de estos datos es puramente matemática y los valores no son a
 
 La figura que se muestra a continuación presenta la organización de la caché L1-D diseñada para este proyecto.
 
-![image: l1](microL1.png)
+![img: l1](images/microL1.png)
 
 ### 3. Política de Escritura
 
@@ -208,7 +208,7 @@ A diferencia de L2, cuyo controlador se implementa mediante una máquina de esta
 
 El siguiente diagrama ilustra el flujo de decisión de alto nivel del controlador. Se trata de una representación conceptual del comportamiento de l1_con ante accesos de lectura y escritura, tanto en condiciones de hit como de miss. Con el fin de mantener la claridad del diagrama, se omiten algunas señales de control y detalles específicos de implementación que se describen posteriormente en esta sección.
 
-![image:con_l1](DF-L1Con.png)
+![img:con_l1](images/DF-L1Con.png)
 
 En el caso de un Store Hit, la palabra se actualiza en la vía correspondiente durante el mismo ciclo de reloj, siguiendo una política write-through. Simultáneamente, la operación de escritura se reenvía al write buffer gestionado por l2_con.
 
@@ -334,7 +334,7 @@ La justificación de estos datos es puramente matemática y los valores no son a
 
 La figura que se muestra a continuación presenta la organización de la caché L2 diseñada para este proyecto.
 
-![image:l2](microL2.png)
+![img:l2](images/microL2.png)
 
 ### 3. Política de Escritura
  
@@ -411,7 +411,7 @@ FIFO es susceptible a la **anomalía de Bélády**: aumentar la asociatividad pu
  
 El siguiente diagrama muestra el flujo de decisión de alto nivel del controlador. Es una vista conceptual — en el código real, las rutas se implementan mediante las dos FSMs descritas en 5.1 y 5.2.
 
-![image:con_l2](DF-L2Con.png)
+![img:con_l2](images/DF-L2Con.png)
 
 De este diagrama se pueden hacer ciertas aclaraciones:
 
@@ -585,8 +585,8 @@ Para medir el impacto de la jerarquía de caché se añadió un módulo de conta
 
 A continuación se muestra el diagrama general:
 
-![img:GENERAL_DIAG_EXP](gen_diag_metrics.png)
+![img:GENERAL_DIAG_EXP](images/gen_diag_metrics.png)
 
 y el de la jerarquía con las nuevas señales de salida: 
 
-![img:HIERARCHY](hierarchy_metrics.png)
+![img:HIERARCHY](images/hierarchy_metrics.png)

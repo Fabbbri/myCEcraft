@@ -204,4 +204,4 @@ simulacion, visualizadas mediante Surfer. Esta vista permite inspeccionar la
 evolucion del pipeline, los registros, las operaciones de memoria y las
 señales de control ciclo a ciclo.
 
-![Señales del procesador visualizadas en Surfer](surfer.png)
+![img:Señales del procesador visualizadas en Surfer](images/surfer.png)
