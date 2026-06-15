@@ -1,5 +1,5 @@
 Test Ejecutado,Ciclos,Instr,CPI,Stalls_Mem,Stalls_Control,L1_Reads,L1_Writes,L1_Read_Hits,L1_Read_Misses,L1_Write_Hits,L1_Write_Misses,L1_Hit_Rate,L1_Miss_Rate,L2_Accesses,L2_Reads,L2_Writes,L2_Hits,L2_Misses,L2_Hit_Rate,L2_Miss_Rate,Memory_Accesses,Mem_Transfer_Cycles,BW_Util,IPC,AMAT,Code_Size_Bytes,Compile_ms,Opt_Unrolled,Opt_DCE_Removed,Opt_Reordered,Opt_Renamed
-bench_seq (O0),50342,9263,5.434740,38003,,,,,,,,,,,,,,,,,,,,,,,,,,,
-bench_stride (O0),6438,1199,5.369475,4851,,,,,,,,,,,,,,,,,,,,,,,,,,,
-bench_random (O0),140771,23976,5.871330,108630,,,,,,,,,,,,,,,,,,,,,,,,,,,
-bench_mmul (O0),341921,28811,11.867724,304828,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bench_seq (O0),50342,9263,5.434740,38003,,,,,,,,,,,,,,,,,2055,34931,69.39,,,,,,,,
+bench_stride (O0),6438,1199,5.369475,4851,,,,,,,,,,,,,,,,,263,4467,69.38,,,,,,,,
+bench_random (O0),140771,23976,5.871330,108630,,,,,,,,,,,,,,,,,5769,98066,69.66,,,,,,,,
+bench_mmul (O0),341921,28811,11.867724,304828,,,,,,,,,,,,,,,,,13891,233204,68.20,,,,,,,,

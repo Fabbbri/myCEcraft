@@ -188,11 +188,20 @@ wave-demo: wave-pipeline
 # =========================
 # Simular un programa y abrir la onda en Surfer
 # =========================
-# Surfer se lanza con entorno limpio (env -i) para evitar el choque de libs del
-# snap de VSCode (libpthread de /snap/core20). Requiere surfer en ~/.local/bin.
-SURFER = env -i HOME="$(HOME)" DISPLAY="$(DISPLAY)" XAUTHORITY="$(XAUTHORITY)" \
+# En Linux, Surfer se lanza con entorno limpio (env -i) para evitar el choque de
+# libs del snap de VSCode (libpthread de /snap/core20); requiere surfer en
+# ~/.local/bin. En macOS ese env -i estorba: borra el PATH donde cargo/brew
+# instalan surfer (~/.cargo/bin, /opt/homebrew/bin), asi que se invoca directo.
+# SURFER_CHECK valida la disponibilidad del binario tal como lo vera el target.
+ifeq ($(UNAME_S),Darwin)
+    SURFER = surfer
+    SURFER_CHECK = command -v surfer
+else
+    SURFER = env -i HOME="$(HOME)" DISPLAY="$(DISPLAY)" XAUTHORITY="$(XAUTHORITY)" \
 	WAYLAND_DISPLAY="$(WAYLAND_DISPLAY)" XDG_RUNTIME_DIR="$(XDG_RUNTIME_DIR)" \
 	PATH="$(HOME)/.local/bin:/usr/bin:/bin" surfer
+    SURFER_CHECK = test -x "$(HOME)/.local/bin/surfer"
+endif
 
 # Compila tb_topG, corre un programa con +VCD y abre la onda en Surfer.
 # HALT_PC se calcula solo: indice de la instruccion freeze (00600000) x4 (hex).
@@ -205,7 +214,13 @@ surf: dirs
 	echo "▶️  $(ROM)  HALT_PC=$$halt  MAX_CYCLES=$(MAX_CYCLES)"; \
 	$(VVP) $(BUILD_DIR)/tb_topG.vvp +VCD +HALT_PC=$$halt +MAX_CYCLES=$(MAX_CYCLES) \
 		+TEST_NAME=$(ROM) +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
-	$(SURFER) -c sim/surfer/topG_overview.surf $(WAVE_DIR)/tb_topG.vcd
+	@if $(SURFER_CHECK) >/dev/null 2>&1; then \
+		$(SURFER) -c sim/surfer/topG_overview.surf $(WAVE_DIR)/tb_topG.vcd; \
+	else \
+		echo "ℹ️  Surfer no encontrado; la simulacion termino OK y la onda quedo en:"; \
+		echo "    $(WAVE_DIR)/tb_topG.vcd"; \
+		echo "   Instalalo con 'cargo install surfer' o abre el VCD con gtkwave/otro visor."; \
+	fi
 
 # iniciar simulacion con waves
 wave:
