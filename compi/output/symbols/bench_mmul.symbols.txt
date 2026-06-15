@@ -40,24 +40,24 @@ Legend:
 
   [scope 1] FUNCTION main (stack_size=796)
     symbols:
-    name             kind      type            decl                   seg    addr              off   size  res
-    ---------------  --------  --------------  ---------------------  -----  ----------------  ----  ----  ---
-    a                VARIABLE  chest[int, 64]  bench_mmul.craft:3:5   STACK  runtime(x17-256)  -256  256   yes
-    b                VARIABLE  chest[int, 64]  bench_mmul.craft:4:5   STACK  runtime(x17-512)  -512  256   yes
-    c                VARIABLE  chest[int, 64]  bench_mmul.craft:5:5   STACK  runtime(x17-768)  -768  256   yes
-    i                VARIABLE  int             bench_mmul.craft:6:5   STACK  runtime(x17-772)  -772  4     yes
-    j                VARIABLE  int             bench_mmul.craft:7:5   STACK  runtime(x17-776)  -776  4     yes
-    k                VARIABLE  int             bench_mmul.craft:8:5   STACK  runtime(x17-780)  -780  4     yes
-    ia               VARIABLE  int             bench_mmul.craft:9:5   STACK  runtime(x17-784)  -784  4     yes
-    kb               VARIABLE  int             bench_mmul.craft:10:5  STACK  runtime(x17-788)  -788  4     yes
-    acc              VARIABLE  int             bench_mmul.craft:11:5  STACK  runtime(x17-792)  -792  4     yes
-    suma             VARIABLE  int             bench_mmul.craft:12:5  STACK  runtime(x17-796)  -796  4     yes
-    .L0_while_start  LABEL     None            bench_mmul.craft:14:5  TEXT   -                 -     0     no 
-    .L1_while_end    LABEL     None            bench_mmul.craft:14:5  TEXT   -                 -     0     no 
-    .L2_while_start  LABEL     None            bench_mmul.craft:22:5  TEXT   -                 -     0     no 
-    .L3_while_end    LABEL     None            bench_mmul.craft:22:5  TEXT   -                 -     0     no 
-    .L8_while_start  LABEL     None            bench_mmul.craft:42:5  TEXT   -                 -     0     no 
-    .L9_while_end    LABEL     None            bench_mmul.craft:42:5  TEXT   -                 -     0     no 
+    name             kind      type            decl                   seg    addr    off   size  res
+    ---------------  --------  --------------  ---------------------  -----  ------  ----  ----  ---
+    a                VARIABLE  chest[int, 64]  bench_mmul.craft:3:5   STACK  0x7EF0  -256  256   yes
+    b                VARIABLE  chest[int, 64]  bench_mmul.craft:4:5   STACK  0x7DF0  -512  256   yes
+    c                VARIABLE  chest[int, 64]  bench_mmul.craft:5:5   STACK  0x7CF0  -768  256   yes
+    i                VARIABLE  int             bench_mmul.craft:6:5   STACK  0x7CEC  -772  4     yes
+    j                VARIABLE  int             bench_mmul.craft:7:5   STACK  0x7CE8  -776  4     yes
+    k                VARIABLE  int             bench_mmul.craft:8:5   STACK  0x7CE4  -780  4     yes
+    ia               VARIABLE  int             bench_mmul.craft:9:5   STACK  0x7CE0  -784  4     yes
+    kb               VARIABLE  int             bench_mmul.craft:10:5  STACK  0x7CDC  -788  4     yes
+    acc              VARIABLE  int             bench_mmul.craft:11:5  STACK  0x7CD8  -792  4     yes
+    suma             VARIABLE  int             bench_mmul.craft:12:5  STACK  0x7CD4  -796  4     yes
+    .L0_while_start  LABEL     None            bench_mmul.craft:14:5  TEXT   -       -     0     no 
+    .L1_while_end    LABEL     None            bench_mmul.craft:14:5  TEXT   -       -     0     no 
+    .L2_while_start  LABEL     None            bench_mmul.craft:22:5  TEXT   -       -     0     no 
+    .L3_while_end    LABEL     None            bench_mmul.craft:22:5  TEXT   -       -     0     no 
+    .L8_while_start  LABEL     None            bench_mmul.craft:42:5  TEXT   -       -     0     no 
+    .L9_while_end    LABEL     None            bench_mmul.craft:42:5  TEXT   -       -     0     no 
 
     [scope 2] LOOP 'while'
       symbols: (none)

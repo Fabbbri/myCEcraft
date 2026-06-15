@@ -15,7 +15,15 @@ module memory(
     output logic [4:0]  instrDOUT, instrMOUT_hz,
     output logic        we_reg_MEM_hz,
     output logic [31:0] ex_mem,
-    output logic        stall_mem
+    output logic        stall_mem,
+
+    // ---- eventos para la PMU (perf_counters, instanciada en top) ----
+    output logic        hit_l1_o,
+    output logic        hit_l2_o,
+    output logic        hit_l2_wb_o,
+    output logic        wb_commit_o,
+    output logic        burst_active_o,
+    output logic        ram_we_o
 );
 
 // ==========================================================
@@ -244,8 +252,16 @@ l2_con L2Con(
     .wb_write_out       (wb_write),
     .wb_addr_out        (wb_addr_mem),
     .wb_data_out        (wb_data_mem),
-    .wb_size_out        (wb_size_mem)
+    .wb_size_out        (wb_size_mem),
+    .wb_commit_out      (wb_commit_o)
 );
+
+// ---- eventos hacia la PMU ----
+assign hit_l1_o       = hit_l1;
+assign hit_l2_o       = hit_l2;
+assign hit_l2_wb_o    = hit_l2_wb;
+assign burst_active_o = burst_active;
+assign ram_we_o       = ram_we;
 
 // ==========================================================
 //  MEM CONTROLLER

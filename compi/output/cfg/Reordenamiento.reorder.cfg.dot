@@ -6,7 +6,7 @@ digraph "Reordenamiento.reorder" {
 
   "B_label_analizar_sensor" [label="B_label_analizar_sensor\lanalizar_sensor:\li = 0\ltotal = 0\l"];
   "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt0 = i < 7\lifFalse t0 goto L_while_end_1\l"];
-  "B_fallthrough_2" [label="B_fallthrough_2\lt1 = datos[i]\lt2 = i * 100\llectura = t1\llog = t2\lt6 = lectura > 50\lifFalse t6 goto L_else_2\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\lt1 = datos[i]\llectura = t1\lt2 = i * 100\llog = t2\lt6 = lectura > 50\lifFalse t6 goto L_else_2\l"];
   "B_fallthrough_3" [label="B_fallthrough_3\lt3 = lectura * 2\lpromedio = t3\lt4 = promedio + 10\lajuste = t4\lt5 = ajuste * 3\lresultado = t5\lt7 = total + resultado\ltotal = t7\lgoto L_end_if_3\l"];
   "B_label_L_else_2" [label="B_label_L_else_2\lL_else_2:\l"];
   "B_label_L_end_if_3" [label="B_label_L_end_if_3\lL_end_if_3:\lt8 = i + 1\li = t8\lgoto L_while_start_0\l"];

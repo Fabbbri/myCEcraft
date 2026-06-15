@@ -6,12 +6,12 @@ analizar_sensor              pc=0x0090
 L_while_start_0              pc=0x00B4
 .L_ir_3_ir_cmp_true          pc=0x00C4
 .L_ir_4_ir_cmp_end           pc=0x00C8
-.L_ir_5_ir_cmp_true          pc=0x011C
-.L_ir_6_ir_cmp_end           pc=0x0120
-L_else_2                     pc=0x016C
-L_end_if_3                   pc=0x016C
-L_while_end_1                pc=0x017C
-.L_ir_2_analizar_sensor_end  pc=0x0184
+.L_ir_5_ir_cmp_true          pc=0x0114
+.L_ir_6_ir_cmp_end           pc=0x0118
+L_else_2                     pc=0x0164
+L_end_if_3                   pc=0x0164
+L_while_end_1                pc=0x0174
+.L_ir_2_analizar_sensor_end  pc=0x017C
 
 SYMBOL TABLE
 ============
@@ -31,31 +31,31 @@ Legend:
 
   [scope 1] FUNCTION analizar_sensor (stack_size=32)
     symbols:
-    name             kind       type           decl                        seg    addr             off  size  res
-    ---------------  ---------  -------------  --------------------------  -----  ---------------  ---  ----  ---
-    datos            PARAMETER  chest[int, 7]  Reordenamiento.craft:12:27  STACK  runtime(x17-4)   -4   4     yes
-    i                VARIABLE   int            Reordenamiento.craft:13:5   STACK  runtime(x17-8)   -8   4     yes
-    total            VARIABLE   int            Reordenamiento.craft:14:5   STACK  runtime(x17-12)  -12  4     yes
-    .L0_while_start  LABEL      None           Reordenamiento.craft:16:5   TEXT   -                -    0     no 
-    .L1_while_end    LABEL      None           Reordenamiento.craft:16:5   TEXT   -                -    0     no 
+    name             kind       type           decl                        seg    addr    off  size  res
+    ---------------  ---------  -------------  --------------------------  -----  ------  ---  ----  ---
+    datos            PARAMETER  chest[int, 7]  Reordenamiento.craft:12:27  STACK  0x7FC4  -4   4     yes
+    i                VARIABLE   int            Reordenamiento.craft:13:5   STACK  0x7FC0  -8   4     yes
+    total            VARIABLE   int            Reordenamiento.craft:14:5   STACK  0x7FBC  -12  4     yes
+    .L0_while_start  LABEL      None           Reordenamiento.craft:16:5   TEXT   -       -    0     no 
+    .L1_while_end    LABEL      None           Reordenamiento.craft:16:5   TEXT   -       -    0     no 
 
     [scope 2] LOOP 'while'
       symbols:
-      name         kind      type  decl                       seg    addr             off  size  res
-      -----------  --------  ----  -------------------------  -----  ---------------  ---  ----  ---
-      lectura      VARIABLE  int   Reordenamiento.craft:17:9  STACK  runtime(x17-16)  -16  4     yes
-      log          VARIABLE  int   Reordenamiento.craft:19:9  STACK  runtime(x17-20)  -20  4     yes
-      promedio     VARIABLE  int   Reordenamiento.craft:21:9  STACK  runtime(x17-24)  -24  4     yes
-      ajuste       VARIABLE  int   Reordenamiento.craft:22:9  STACK  runtime(x17-28)  -28  4     yes
-      resultado    VARIABLE  int   Reordenamiento.craft:23:9  STACK  runtime(x17-32)  -32  4     yes
-      .L2_if_else  LABEL     None  Reordenamiento.craft:25:9  TEXT   -                -    0     no 
-      .L3_if_end   LABEL     None  Reordenamiento.craft:25:9  TEXT   -                -    0     no 
+      name         kind      type  decl                       seg    addr    off  size  res
+      -----------  --------  ----  -------------------------  -----  ------  ---  ----  ---
+      lectura      VARIABLE  int   Reordenamiento.craft:17:9  STACK  0x7FB8  -16  4     yes
+      log          VARIABLE  int   Reordenamiento.craft:19:9  STACK  0x7FB4  -20  4     yes
+      promedio     VARIABLE  int   Reordenamiento.craft:21:9  STACK  0x7FB0  -24  4     yes
+      ajuste       VARIABLE  int   Reordenamiento.craft:22:9  STACK  0x7FAC  -28  4     yes
+      resultado    VARIABLE  int   Reordenamiento.craft:23:9  STACK  0x7FA8  -32  4     yes
+      .L2_if_else  LABEL     None  Reordenamiento.craft:25:9  TEXT   -       -    0     no 
+      .L3_if_end   LABEL     None  Reordenamiento.craft:25:9  TEXT   -       -    0     no 
 
       [scope 3] CONDITIONAL 'if'
         symbols: (none)
 
   [scope 4] FUNCTION main (stack_size=28)
     symbols:
-    name   kind      type           decl                       seg    addr             off  size  res
-    -----  --------  -------------  -------------------------  -----  ---------------  ---  ----  ---
-    datos  VARIABLE  chest[int, 7]  Reordenamiento.craft:36:5  STACK  runtime(x17-28)  -28  28    yes
+    name   kind      type           decl                       seg    addr    off  size  res
+    -----  --------  -------------  -------------------------  -----  ------  ---  ----  ---
+    datos  VARIABLE  chest[int, 7]  Reordenamiento.craft:36:5  STACK  0x7FD4  -28  28    yes

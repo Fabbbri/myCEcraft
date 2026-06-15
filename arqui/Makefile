@@ -109,6 +109,39 @@ run-no-cache: dirs
 	$(IVERILOG) $(IVERILOG_FLAGS) -o $(BUILD_DIR)/tb_top_no_cash.vvp $(SRC) $(TB_DIR)/old/tb_top_no_cash.sv
 	$(VVP) $(BUILD_DIR)/tb_top_no_cash.vvp +FILE_ROM=programs/$(ROM) +FILE_RAM=programs/$(RAM)
 
+# igual que run-no-cache pero recibiendo el .hex como argumento posicional:
+#   make nocache programa.hex                 # valida contra el oraculo del while
+#   make nocache programa.hex X11=7F80        # valida x11 == 0x7F80 (otro programa)
+#   make nocache programa.hex MAX_CYCLES=5000000
+# - busca el .hex en programs/ si no lleva ruta
+# - usa programa.data.hex como RAM si existe, si no programs/data.hex
+# - calcula HALT_PC del freeze (00600000)
+# - MAX_CYCLES default alto (2M) porque sin cache es lento; override-able
+# - SIN X11 el tb valida el resultado del programa por defecto (while x<5:
+#   x11=x3=x5=5). Para CUALQUIER otro programa pasa X11=<hex> con su x11 esperado;
+#   si no, los [FAIL] de registros son del oraculo, no del programa.
+# El 2do goal (programa.hex) se neutraliza con una regla vacia para que make no
+# intente "construirlo".
+ifeq (nocache,$(firstword $(MAKECMDGOALS)))
+  NOCACHE_ARG := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(NOCACHE_ARG):;@:)
+endif
+
+nocache: MAX_CYCLES := 2000000
+nocache: dirs
+	@rom="$(NOCACHE_ARG)"; \
+	if [ -z "$$rom" ]; then echo "Uso: make nocache <programa.hex> [X11=<hex>] [MAX_CYCLES=N]"; exit 1; fi; \
+	case "$$rom" in */*) ;; *) rom="programs/$$rom";; esac; \
+	if [ ! -f "$$rom" ]; then echo "❌ no existe: $$rom"; exit 1; fi; \
+	ram="$${rom%.hex}.data.hex"; [ -f "$$ram" ] || ram="programs/data.hex"; \
+	halt=$$(awk '{gsub(/[ \t\r]/,"")} $$0=="00600000"{printf "%X",(NR-1)*4; exit}' "$$rom"); \
+	if [ -z "$$halt" ]; then echo "⚠️  sin freeze (00600000) en $$rom; HALT_PC=0"; halt=0; fi; \
+	x11arg=""; [ -n "$(X11)" ] && x11arg="+EXPECT_X11=$(X11)"; \
+	echo "▶️  nocache  ROM=$$rom  RAM=$$ram  HALT_PC=$$halt  MAX_CYCLES=$(MAX_CYCLES)  $(if $(X11),EXPECT_X11=$(X11),oraculo=while)"; \
+	$(IVERILOG) $(IVERILOG_FLAGS) -o $(BUILD_DIR)/tb_top_no_cash.vvp $(SRC) $(TB_DIR)/old/tb_top_no_cash.sv && \
+	$(VVP) $(BUILD_DIR)/tb_top_no_cash.vvp +FILE_ROM=$$rom +FILE_RAM=$$ram \
+		+HALT_PC=$$halt +MAX_CYCLES=$(MAX_CYCLES) +TEST_NAME=$$(basename "$$rom") $$x11arg
+
 # =========================
 # Pipeline TEA imagen end-to-end
 # =========================
@@ -197,4 +230,4 @@ print:
 	@echo "TOP: $(TOP)"
 	@echo "TB: $(TB)"
 
-.PHONY: all dirs compile run bench run-no-cache tea wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print
+.PHONY: all dirs compile run bench run-no-cache nocache tea wave wave-vcd wave-pipeline wave-datapath wave-hazard wave-mem wave-demo surf run-all clean print

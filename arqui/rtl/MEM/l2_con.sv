@@ -72,7 +72,10 @@ module l2_con (
     output logic        wb_write_out,
     output logic [31:0] wb_addr_out,
     output logic [31:0] wb_data_out,
-    output logic [1:0]  wb_size_out
+    output logic [1:0]  wb_size_out,
+
+    // PMU: pulso de 1 ciclo por cada store drenado a L2 (WB_COMMIT)
+    output logic        wb_commit_out
 );
 
 // ==========================================================
@@ -112,6 +115,9 @@ logic [6:0] active_set;
 
 logic [31:0] wb_addr;
 wb_state_t   wb_state;
+
+// PMU: 1 mientras la FSM de drenado esta en COMMIT (1 ciclo por store)
+assign wb_commit_out = (wb_state == WB_COMMIT);
 
 always_comb begin
     if (wb_state == WB_COMMIT)

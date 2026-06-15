@@ -90,6 +90,10 @@ logic [4:0] rdWB;
 logic we_reg_wb;
 logic stall_mem;
 
+// PMU (perf_counters): eventos desde Issue y Memory
+logic pmu_pc_en;
+logic pmu_hit_l1, pmu_hit_l2, pmu_hit_l2_wb, pmu_wb_commit, pmu_burst_active, pmu_ram_we;
+
 // ==========================================================
 //                       ISSUE
 // ==========================================================
@@ -103,7 +107,8 @@ issue Issue(
 
     .addr(pcF),
     .pc_plus4F(pc4F),
-    .instr(instrF)
+    .instr(instrF),
+    .pc_en_o(pmu_pc_en)
 );
 
 // ==========================================================
@@ -374,7 +379,14 @@ memory Memory(
     .instrMOUT_hz(rdMEM),
     .we_reg_MEM_hz(we_reg_mem),
     .ex_mem(ex_mem_hz),
-    .stall_mem(stall_mem)
+    .stall_mem(stall_mem),
+
+    .hit_l1_o(pmu_hit_l1),
+    .hit_l2_o(pmu_hit_l2),
+    .hit_l2_wb_o(pmu_hit_l2_wb),
+    .wb_commit_o(pmu_wb_commit),
+    .burst_active_o(pmu_burst_active),
+    .ram_we_o(pmu_ram_we)
 );
 
 // ==========================================================
@@ -496,6 +508,39 @@ hazard_unit HazardUnit(
     .stallE(stallE),
     .stallM(stallM),
     .stallW(stallW)
+);
+
+// ==========================================================
+//                       PMU (perf_counters)
+//  Contadores de rendimiento en hardware. Cuentan desde el reset
+//  hasta el freeze (pc_en==0). El testbench lee dut.Perf.<contador>.
+// ==========================================================
+
+perf_counters Perf(
+    .clk(clk),
+    .reset(reset),
+    .freeze(~pmu_pc_en),
+
+    // pipeline
+    .instrDE(instrDE),
+    .flushE(flushE),
+    .stallE(stallE),
+    .flushD(flushD),
+    .stall_mem(stall_mem),
+
+    // tipo de op en MEM
+    .result_src(result_srcMEM),
+    .we_mem(we_memMEM),
+    .alu_result(alu_resultMEM),
+
+    // eventos de cache / memoria
+    .hit_l1(pmu_hit_l1),
+    .hit_l2(pmu_hit_l2),
+    .hit_l2_wb(pmu_hit_l2_wb),
+    .wb_commit(pmu_wb_commit),
+    .burst_active(pmu_burst_active),
+    .ram_we(pmu_ram_we)
+    // salidas accesibles por jerarquia: dut.Perf.cycles, .instr, .l1_rd_hits, ...
 );
 
 endmodule

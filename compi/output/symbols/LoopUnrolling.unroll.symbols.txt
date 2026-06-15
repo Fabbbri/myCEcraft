@@ -1,17 +1,17 @@
 === Labels resueltas (.text) ===
 .L_ir_0_enderExit            pc=0x0018
 main                         pc=0x0018
-.L_ir_1_main_end             pc=0x014C
-procesar_bloques             pc=0x0158
-L_for_start_0                pc=0x017C
-.L_ir_3_ir_cmp_true          pc=0x0190
-.L_ir_4_ir_cmp_end           pc=0x0194
-L_for_start_2                pc=0x01A8
-.L_ir_5_ir_cmp_true          pc=0x01B8
-.L_ir_6_ir_cmp_end           pc=0x01BC
-L_for_end_3                  pc=0x0310
-L_for_end_1                  pc=0x0324
-.L_ir_2_procesar_bloques_end pc=0x032C
+.L_ir_1_main_end             pc=0x024C
+procesar_bloques             pc=0x0258
+L_for_start_0                pc=0x027C
+.L_ir_3_ir_cmp_true          pc=0x0290
+.L_ir_4_ir_cmp_end           pc=0x0294
+L_for_start_2                pc=0x02A8
+.L_ir_5_ir_cmp_true          pc=0x02B8
+.L_ir_6_ir_cmp_end           pc=0x02BC
+L_for_end_3                  pc=0x0410
+L_for_end_1                  pc=0x0424
+.L_ir_2_procesar_bloques_end pc=0x042C
 
 SYMBOL TABLE
 ============
@@ -26,34 +26,34 @@ Legend:
   symbols:
   name              kind      type  decl                      seg   addr    off  size  res
   ----------------  --------  ----  ------------------------  ----  ------  ---  ----  ---
-  procesar_bloques  FUNCTION  int   LoopUnrolling.craft:11:1  TEXT  0x0158  -    0     yes
+  procesar_bloques  FUNCTION  int   LoopUnrolling.craft:11:1  TEXT  0x0258  -    0     yes
   main              FUNCTION  int   LoopUnrolling.craft:23:1  TEXT  0x0018  -    0     yes
 
   [scope 1] FUNCTION procesar_bloques (stack_size=16)
     symbols:
-    name     kind       type            decl                       seg    addr            off  size  res
-    -------  ---------  --------------  -------------------------  -----  --------------  ---  ----  ---
-    bloques  PARAMETER  chest[int, 32]  LoopUnrolling.craft:11:28  STACK  runtime(x17-4)  -4   4     yes
-    total    VARIABLE   int             LoopUnrolling.craft:12:5   STACK  runtime(x17-8)  -8   4     yes
+    name     kind       type            decl                       seg    addr    off  size  res
+    -------  ---------  --------------  -------------------------  -----  ------  ---  ----  ---
+    bloques  PARAMETER  chest[int, 64]  LoopUnrolling.craft:11:28  STACK  0x7EE0  -4   4     yes
+    total    VARIABLE   int             LoopUnrolling.craft:12:5   STACK  0x7EDC  -8   4     yes
 
     [scope 2] LOOP 'for'
       symbols:
-      name           kind      type  decl                       seg    addr             off  size  res
-      -------------  --------  ----  -------------------------  -----  ---------------  ---  ----  ---
-      .L0_for_start  LABEL     None  LoopUnrolling.craft:14:5   TEXT   -                -    0     no 
-      .L1_for_end    LABEL     None  LoopUnrolling.craft:14:5   TEXT   -                -    0     no 
-      b              VARIABLE  int   LoopUnrolling.craft:14:10  STACK  runtime(x17-12)  -12  4     yes
+      name           kind      type  decl                       seg    addr    off  size  res
+      -------------  --------  ----  -------------------------  -----  ------  ---  ----  ---
+      .L0_for_start  LABEL     None  LoopUnrolling.craft:14:5   TEXT   -       -    0     no 
+      .L1_for_end    LABEL     None  LoopUnrolling.craft:14:5   TEXT   -       -    0     no 
+      b              VARIABLE  int   LoopUnrolling.craft:14:10  STACK  0x7ED8  -12  4     yes
 
       [scope 3] LOOP 'for'
         symbols:
-        name           kind      type  decl                       seg    addr             off  size  res
-        -------------  --------  ----  -------------------------  -----  ---------------  ---  ----  ---
-        .L2_for_start  LABEL     None  LoopUnrolling.craft:15:9   TEXT   -                -    0     no 
-        .L3_for_end    LABEL     None  LoopUnrolling.craft:15:9   TEXT   -                -    0     no 
-        i              VARIABLE  int   LoopUnrolling.craft:15:14  STACK  runtime(x17-16)  -16  4     yes
+        name           kind      type  decl                       seg    addr    off  size  res
+        -------------  --------  ----  -------------------------  -----  ------  ---  ----  ---
+        .L2_for_start  LABEL     None  LoopUnrolling.craft:15:9   TEXT   -       -    0     no 
+        .L3_for_end    LABEL     None  LoopUnrolling.craft:15:9   TEXT   -       -    0     no 
+        i              VARIABLE  int   LoopUnrolling.craft:15:14  STACK  0x7ED4  -16  4     yes
 
-  [scope 4] FUNCTION main (stack_size=128)
+  [scope 4] FUNCTION main (stack_size=256)
     symbols:
-    name   kind      type            decl                      seg    addr              off   size  res
-    -----  --------  --------------  ------------------------  -----  ----------------  ----  ----  ---
-    datos  VARIABLE  chest[int, 32]  LoopUnrolling.craft:24:5  STACK  runtime(x17-128)  -128  128   yes
+    name   kind      type            decl                      seg    addr    off   size  res
+    -----  --------  --------------  ------------------------  -----  ------  ----  ----  ---
+    datos  VARIABLE  chest[int, 64]  LoopUnrolling.craft:24:5  STACK  0x7EF0  -256  256   yes

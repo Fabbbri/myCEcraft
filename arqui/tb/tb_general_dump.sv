@@ -40,85 +40,17 @@ module tb_general_dump;
     //  gating !halt_detected solo se apaga al terminar el programa.
     // ==========================================================
     integer csv_fd;
-    logic   halt_detected = 0;
-
-    always @(posedge clk) begin
-        if (dut.Issue.pc_en === 1'b0) halt_detected <= 1;
-    end
-
-    // op de memoria real en MEM: load = result_src==01, store = we_mem
-    wire mem_rd_op = (dut.Memory.result_src == 2'b01);
-    wire mem_wr_op = (dut.Memory.we_mem === 1'b1);
-    wire mem_op    = mem_rd_op | mem_wr_op;
-
+    // Contadores -> los lleva la PMU en hardware (dut.Perf.*). El testbench
+    // ya no acumula: solo LEE los contadores en print_performance_metrics.
+    // Se conservan estos espejos para no tocar el formato del CSV / [METRICS].
     longint l1_reads,   l1_writes;
     longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
     longint l2_acc,     l2_hits,    l2_miss;
     longint l2_reads,   l2_writes;
     longint mem_acc,    mem_bursts;
-    longint stall_mem_cycles;   // ciclos con pipeline congelado por memoria
-    longint ctrl_stalls;        // ciclos de fetch perdidos por branch tomado
-    longint mem_xfer_cycles;    // ciclos con el bus de RAM ocupado
-
-    // acceso nuevo = cambia direccion o tipo respecto al ciclo anterior
-    // (durante stall el pipeline retiene la misma op en MEM: no recontar)
-    logic        prev_mem_op = 0;
-    logic        prev_wr     = 0;
-    logic [31:0] prev_addr   = '0;
-    logic        prev_burst  = 0;
-
-    wire new_access = mem_op && !(prev_mem_op &&
-                                  prev_addr == dut.Memory.alu_result &&
-                                  prev_wr   == mem_wr_op);
-
-    always @(posedge clk) begin
-        if (!reset && !halt_detected) begin
-            // L1: clasificar en el primer ciclo de cada acceso
-            if (new_access) begin
-                if (mem_wr_op) begin
-                    l1_writes++;
-                    if (dut.Memory.hit_l1) l1_wr_hits++; else l1_wr_miss++;
-                end else begin
-                    l1_reads++;
-                    if (dut.Memory.hit_l1) l1_rd_hits++; else l1_rd_miss++;
-                    // L2 read: cada load miss de L1 baja a L2
-                    if (!dut.Memory.hit_l1) begin
-                        l2_acc++;  l2_reads++;
-                        if (dut.Memory.hit_l2) begin
-                            l2_hits++;
-                        end else begin
-                            l2_miss++;
-                            mem_acc++;   // load miss en L2 -> burst a RAM
-                        end
-                    end
-                end
-            end
-
-            // L2 writes: un WB_COMMIT (1 ciclo) por store drenado
-            if (dut.Memory.L2Con.wb_state == 2'b10) begin
-                l2_acc++;  l2_writes++;
-                if (dut.Memory.hit_l2_wb) l2_hits++; else l2_miss++;
-                mem_acc++;       // write-through: todo store drenado va a RAM
-            end
-
-            // diagnostico: bursts reales en el bus
-            if (dut.Memory.burst_active && !prev_burst)
-                mem_bursts++;
-
-            // metricas de procesador / memoria
-            if (dut.stall_mem)
-                stall_mem_cycles++;
-            if (dut.flushD)
-                ctrl_stalls++;
-            if (dut.Memory.burst_active || dut.Memory.ram_we)
-                mem_xfer_cycles++;
-        end
-
-        prev_mem_op  <= mem_op && !reset;
-        prev_wr      <= mem_wr_op;
-        prev_addr    <= dut.Memory.alu_result;
-        prev_burst   <= dut.Memory.burst_active;
-    end
+    longint stall_mem_cycles;
+    longint ctrl_stalls;
+    longint mem_xfer_cycles;
 
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
@@ -172,14 +104,8 @@ module tb_general_dump;
         forever begin
             @(posedge clk);
             cycles++;
-            metric_cycles++;
-
-            if (dut.instrDE !== NOP &&
-                dut.instrDE !== 32'hxxxxxxxx &&
-                !dut.flushE &&
-                !dut.stallE) begin
-                metric_instructions++;
-            end
+            // metric_cycles / metric_instructions ahora salen de la PMU
+            // (se leen en print_performance_metrics); aqui solo control de loop.
 
             if (cycles >= next_progress) begin
                 $display("[INFO]  Ejecutando... ciclo=%0d/%0d PC=%h",
@@ -208,6 +134,22 @@ module tb_general_dump;
         string  test_name;
 
         test_name = out_prefix;
+
+        // Leer los contadores de la PMU (hardware). La PMU cuenta libre desde
+        // el reset; el conteo historico del TB arrancaba 1 ciclo despues (dentro
+        // de wait_for_finish), de ahi el -1 (igual que eff_cycles en tb_topG).
+        metric_cycles       = (dut.Perf.cycles > 0) ? dut.Perf.cycles - 1 : 0;
+        metric_instructions = dut.Perf.instr;
+        stall_mem_cycles    = dut.Perf.stall_mem_cyc;
+        ctrl_stalls         = dut.Perf.ctrl_stalls;
+        l1_reads   = dut.Perf.l1_reads;    l1_writes  = dut.Perf.l1_writes;
+        l1_rd_hits = dut.Perf.l1_rd_hits;  l1_rd_miss = dut.Perf.l1_rd_miss;
+        l1_wr_hits = dut.Perf.l1_wr_hits;  l1_wr_miss = dut.Perf.l1_wr_miss;
+        l2_acc     = dut.Perf.l2_acc;      l2_reads   = dut.Perf.l2_reads;
+        l2_writes  = dut.Perf.l2_writes;
+        l2_hits    = dut.Perf.l2_hits;     l2_miss    = dut.Perf.l2_miss;
+        mem_acc    = dut.Perf.mem_acc;     mem_bursts = dut.Perf.mem_bursts;
+        mem_xfer_cycles = dut.Perf.mem_xfer_cyc;
 
         cpi = (metric_instructions != 0)
             ? (1.0 * metric_cycles) / metric_instructions

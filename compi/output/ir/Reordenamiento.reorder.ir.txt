@@ -5,8 +5,8 @@ L_while_start_0:
   t0 = i < 7
   ifFalse t0 goto L_while_end_1
   t1 = datos[i]
-  t2 = i * 100
   lectura = t1
+  t2 = i * 100
   log = t2
   t6 = lectura > 50
   ifFalse t6 goto L_else_2
@@ -48,8 +48,8 @@ main:
 [B_fallthrough_2]
   -> Sucesores: B_label_L_else_2, B_fallthrough_3
     t1 = datos[i]
-    t2 = i * 100
     lectura = t1
+    t2 = i * 100
     log = t2
     t6 = lectura > 50
     ifFalse t6 goto L_else_2
