@@ -7,7 +7,6 @@ from lexer import Lexer, LexerError
 from parser import ParseError, Parser
 from semantic import SemanticAnalyzer, SemanticError
 from codegen.binary import BinaryEncoder, EncodingError
-from codegen.generator import AssemblyGenerator
 from codegen.ir_assembly_generator import IRAssemblyGenerator
 from codegen.errors import CodegenError
 from codegen.resolver import LabelResolver, ResolutionError
@@ -23,6 +22,7 @@ from Optimizations import (
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 DEFAULT_IR_DIR = DEFAULT_OUTPUT_DIR / "ir"
+DEFAULT_CFG_DIR = DEFAULT_OUTPUT_DIR / "cfg"
 DEFAULT_ASM_DIR = DEFAULT_OUTPUT_DIR / "asm_unresolved"
 DEFAULT_ASM_RESOLVED_DIR = DEFAULT_OUTPUT_DIR / "asm_resolved"
 DEFAULT_BIN_HEX_DIR = DEFAULT_OUTPUT_DIR / "bin_output"
@@ -178,6 +178,7 @@ def main() -> int:
     show_tokens = False
     show_ast = False
     show_ir = False
+    show_cfg = False
     show_symbols = False
     show_asm = False
     show_resolved = False
@@ -190,6 +191,7 @@ def main() -> int:
     unroll_factor = 1
     input_file = None
     output_file = None
+    artifact_tag = None
     
     index = 0
     while index < len(args):
@@ -201,6 +203,8 @@ def main() -> int:
             show_ast = True
         elif arg in {"--ir", "-i"}:
             show_ir = True
+        elif arg in {"--cfg", "-g"}:
+            show_cfg = True
         elif arg in {"--asm", "-s"}:
             show_asm = True
         elif arg in {"--resolve", "-r"}:
@@ -213,6 +217,18 @@ def main() -> int:
                 return 2
             output_file = args[index + 1]
             show_binary = True
+            index += 1
+        elif arg == "--artifact-tag":
+            if index + 1 >= len(args):
+                print("Error: --artifact-tag requiere un identificador")
+                return 2
+            artifact_tag = args[index + 1].strip()
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", artifact_tag):
+                print(
+                    "Error: --artifact-tag solo permite letras, numeros, "
+                    "guion y guion bajo"
+                )
+                return 2
             index += 1
         elif arg in {"--symbols", "-m"}:
             show_symbols = True
@@ -245,6 +261,10 @@ def main() -> int:
                 unroll_factor = AUTO_UNROLL_FACTOR
         elif arg == "--rename-registers":
             rename_static_registers = True
+            optimization_level = max(optimization_level, 1)
+        elif arg == "--unroll":
+            optimize = True
+            unroll_factor = AUTO_UNROLL_FACTOR
             optimization_level = max(optimization_level, 1)
         elif arg == "--dce":
             optimize = True
@@ -283,11 +303,22 @@ def main() -> int:
 
         index += 1
 
+    if (
+        unroll_factor != 1
+        and rename_static_registers
+        and eliminate_dead_code
+        and reorder_instructions
+    ):
+        optimization_level = max(optimization_level, 3)
+
     if input_file is None:
         print(
             "Uso: python main.py [--tokens] [-t|--ast] [-i|--ir] [-m|--symbols] "
+            "[-g|--cfg] "
             "[-s|--asm] [-r|--resolve] [-b|--binary] [-o archivo.bin] "
-            "[-O0|-O1|-O2|-O3] [--unroll-factor N] [--rename-registers] [--dce] [--reorder] <archivo.craft>"
+            "[-O0|-O1|-O2|-O3] [--unroll|--unroll-factor N] "
+            "[--rename-registers] [--dce] [--reorder] "
+            "[--artifact-tag ID] <archivo.craft>"
         )
         return 2
 
@@ -346,21 +377,35 @@ def main() -> int:
         )
         codegen_requested = show_asm or show_resolved or show_binary
         ir_instructions = None
-        if show_ir or optimization_requested or codegen_requested:
+        if show_ir or show_cfg or optimization_requested or codegen_requested:
             ir_gen = IRGenerator()
             ir_instructions = ir_gen.generate(ast)
             if optimization_requested:
+                from symbol_table import SymbolKind as _SymbolKind
+                global_names = {
+                    name
+                    for name, sym in symbol_table.global_scope.symbols.items()
+                    if sym.kind == _SymbolKind.VARIABLE
+                }
                 ir_instructions, optimization_stats = optimize_ir(
                     ir_instructions,
                     unroll_factor=unroll_factor,
                     rename_static_registers=rename_static_registers,
                     eliminate_dead_code=eliminate_dead_code,
                     reorder_instructions=reorder_instructions,
+                    global_names=global_names,
                 )
-                print(f"-O{optimization_level}: {optimization_stats.summary()}")
+                optimization_name = (
+                    f"[{artifact_tag}]"
+                    if artifact_tag and not re.fullmatch(r"O[123]", artifact_tag)
+                    else f"-O{optimization_level}"
+                )
+                print(f"{optimization_name}: {optimization_stats.summary()}")
 
         artifact_stem = input_path.stem
-        if optimization_requested:
+        if artifact_tag:
+            artifact_stem = f"{input_path.stem}.{artifact_tag}"
+        elif optimization_requested:
             artifact_stem = f"{input_path.stem}.O{optimization_level}"
 
         if show_ir:
@@ -411,6 +456,17 @@ def main() -> int:
             ir_path = _write_text_artifact(ir_path, "\n".join(lines) + "\n")
             print(f"Representación Intermedia (IR) generada: {ir_path}")
 
+        if show_cfg:
+            assert ir_instructions is not None
+            cfg = ControlFlowGraph()
+            cfg.build_from_ir(ir_instructions)
+            dot_path = DEFAULT_CFG_DIR / f"{artifact_stem}.cfg.dot"
+            dot_path = _write_text_artifact(
+                dot_path,
+                cfg.to_dot(artifact_stem) + "\n",
+            )
+            print(f"CFG Graphviz generado: {dot_path}")
+
         if show_asm or show_resolved or show_binary:
             asm_dir = DEFAULT_ASM_DIR
             asm_resolved_dir = DEFAULT_ASM_RESOLVED_DIR
@@ -420,13 +476,9 @@ def main() -> int:
             asm_resolved_dir.mkdir(parents=True, exist_ok=True)
             bin_hex_dir.mkdir(parents=True, exist_ok=True)
 
-            if optimization_requested:
-                assert ir_instructions is not None
-                generator = IRAssemblyGenerator(symbol_table)
-                assembly_code = generator.generate(ir_instructions)
-            else:
-                generator = AssemblyGenerator(symbol_table)
-                assembly_code = generator.generate(ast)
+            assert ir_instructions is not None
+            generator = IRAssemblyGenerator(symbol_table)
+            assembly_code = generator.generate(ir_instructions)
 
             asm_path = asm_dir / f"{artifact_stem}.asm"
             if show_asm or show_resolved:
@@ -489,6 +541,7 @@ def main() -> int:
             not show_tokens
             and not show_ast
             and not show_ir
+            and not show_cfg
             and not show_asm
             and not show_resolved
             and not show_binary

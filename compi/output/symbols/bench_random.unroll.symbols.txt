@@ -1,0 +1,57 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+L_while_start_0              pc=0x0050
+.L_ir_2_ir_cmp_true          pc=0x0060
+.L_ir_3_ir_cmp_end           pc=0x0064
+L_while_end_1                pc=0x0190
+L_while_start_2              pc=0x01A0
+.L_ir_4_ir_cmp_true          pc=0x01B0
+.L_ir_5_ir_cmp_end           pc=0x01B4
+.L_ir_6_ir_cmp_true          pc=0x0204
+.L_ir_7_ir_cmp_end           pc=0x0208
+L_else_4                     pc=0x0224
+L_end_if_5                   pc=0x0224
+L_while_end_3                pc=0x0234
+.L_ir_1_main_end             pc=0x0240
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                    seg   addr    off  size  res
+  ----  --------  ----  ----------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   bench_random.craft:2:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=1932)
+    symbols:
+    name             kind      type             decl                     seg    addr               off    size  res
+    ---------------  --------  ---------------  -----------------------  -----  -----------------  -----  ----  ---
+    arr              VARIABLE  chest[int, 480]  bench_random.craft:3:5   STACK  runtime(x17-1920)  -1920  1920  yes
+    i                VARIABLE  int              bench_random.craft:4:5   STACK  runtime(x17-1924)  -1924  4     yes
+    idx              VARIABLE  int              bench_random.craft:5:5   STACK  runtime(x17-1928)  -1928  4     yes
+    suma             VARIABLE  int              bench_random.craft:6:5   STACK  runtime(x17-1932)  -1932  4     yes
+    .L0_while_start  LABEL     None             bench_random.craft:8:5   TEXT   -                  -      0     no 
+    .L1_while_end    LABEL     None             bench_random.craft:8:5   TEXT   -                  -      0     no 
+    .L2_while_start  LABEL     None             bench_random.craft:15:5  TEXT   -                  -      0     no 
+    .L3_while_end    LABEL     None             bench_random.craft:15:5  TEXT   -                  -      0     no 
+
+    [scope 2] LOOP 'while'
+      symbols: (none)
+
+    [scope 3] LOOP 'while'
+      symbols:
+      name         kind   type  decl                     seg   addr  off  size  res
+      -----------  -----  ----  -----------------------  ----  ----  ---  ----  ---
+      .L4_if_else  LABEL  None  bench_random.craft:18:9  TEXT  -     -    0     no 
+      .L5_if_end   LABEL  None  bench_random.craft:18:9  TEXT  -     -    0     no 
+
+      [scope 4] CONDITIONAL 'if'
+        symbols: (none)

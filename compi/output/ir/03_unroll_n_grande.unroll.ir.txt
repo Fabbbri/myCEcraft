@@ -1,0 +1,67 @@
+main:
+  i = 0
+  suma = 0
+L_while_start_0:
+  t3 = i < 32
+  ifFalse t3 goto L_while_end_1
+  t4 = suma + i
+  suma = t4
+  t5 = suma + (i + 1)
+  suma = t5
+  t6 = suma + (i + 2)
+  suma = t6
+  t7 = suma + (i + 3)
+  suma = t7
+  t8 = suma + (i + 4)
+  suma = t8
+  t9 = suma + (i + 5)
+  suma = t9
+  t10 = suma + (i + 6)
+  suma = t10
+  t11 = suma + (i + 7)
+  suma = t11
+  t12 = i + 8
+  i = t12
+  goto L_while_start_0
+L_while_end_1:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    i = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t3 = i < 32
+    ifFalse t3 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    t4 = suma + i
+    suma = t4
+    t5 = suma + (i + 1)
+    suma = t5
+    t6 = suma + (i + 2)
+    suma = t6
+    t7 = suma + (i + 3)
+    suma = t7
+    t8 = suma + (i + 4)
+    suma = t8
+    t9 = suma + (i + 5)
+    suma = t9
+    t10 = suma + (i + 6)
+    suma = t10
+    t11 = suma + (i + 7)
+    suma = t11
+    t12 = i + 8
+    i = t12
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+    L_while_end_1:
+    return suma

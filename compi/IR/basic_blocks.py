@@ -1,6 +1,17 @@
-from typing import List, Dict
+from typing import Any, Dict, List
 from IR.instructions import (
-    IRInstruction, IRLabel, IRJump, IRJumpIfFalse, IRReturn
+    IRAssign,
+    IRArrayAssign,
+    IRBinOp,
+    IRCall,
+    IRCommit,
+    IRInstruction,
+    IRJump,
+    IRJumpIfFalse,
+    IRLabel,
+    IRReturn,
+    IRUnaryOp,
+    IRVaultInstruction,
 )
 
 class BasicBlock:
@@ -131,30 +142,133 @@ class ControlFlowGraph:
             if succs:
                 lines.append(f"  -> Sucesores: {', '.join(succs)}")
             for instr in block.instructions:
-                # Reutilizar el formato crudo para print
-                name = type(instr).__name__
-                if name == "IRLabel":
-                    lines.append(f"  {instr.name}:")
-                elif name == "IRJump":
-                    lines.append(f"    goto {instr.label}")
-                elif name == "IRJumpIfFalse":
-                    lines.append(f"    ifFalse {instr.condition} goto {instr.label}")
-                elif name == "IRBinOp":
-                    lines.append(f"    {instr.result} = {instr.left} {instr.op} {instr.right}")
-                elif name == "IRUnaryOp":
-                    lines.append(f"    {instr.result} = {instr.op}{instr.operand}")
-                elif name == "IRAssign":
-                    lines.append(f"    {instr.result} = {instr.source}")
-                elif name == "IRCommit":
-                    lines.append(f"    commit {instr.result} = {instr.source}")
-                elif name == "IRReturn":
-                    lines.append(f"    return {instr.value}")
-                elif name == "IRCall":
-                    lines.append(f"    call {instr.func_name}")
-                elif name == "IRVaultInstruction":
-                    operands = ", ".join(instr.operands)
-                    suffix = f" {operands}" if operands else ""
-                    lines.append(f"    vault {instr.keyword}{suffix}")
-                else:
-                    lines.append(f"    {instr}")
+                lines.append(f"    {self.format_instruction(instr)}")
         return "\n".join(lines)
+
+    @staticmethod
+    def format_instruction(instr: IRInstruction) -> str:
+        if isinstance(instr, IRLabel):
+            return f"{instr.name}:"
+        if isinstance(instr, IRJump):
+            return f"goto {instr.label}"
+        if isinstance(instr, IRJumpIfFalse):
+            return f"ifFalse {instr.condition} goto {instr.label}"
+        if isinstance(instr, IRBinOp):
+            return f"{instr.result} = {instr.left} {instr.op} {instr.right}"
+        if isinstance(instr, IRUnaryOp):
+            return f"{instr.result} = {instr.op}{instr.operand}"
+        if isinstance(instr, IRAssign):
+            return f"{instr.result} = {instr.source}"
+        if isinstance(instr, IRCommit):
+            return f"commit {instr.result} = {instr.source}"
+        if isinstance(instr, IRArrayAssign):
+            elements = ", ".join(str(element) for element in instr.elements)
+            return f"{instr.result} = [{elements}]"
+        if isinstance(instr, IRCall):
+            arguments = ", ".join(str(argument) for argument in instr.args)
+            call = f"call {instr.func_name}({arguments})"
+            return f"{instr.result} = {call}" if instr.result else call
+        if isinstance(instr, IRVaultInstruction):
+            operands = ", ".join(str(operand) for operand in instr.operands)
+            suffix = f" {operands}" if operands else ""
+            return f"vault {instr.keyword}{suffix}"
+        if isinstance(instr, IRReturn):
+            return f"return {instr.value}"
+        return str(instr)
+
+    def to_dot(self, graph_name: str = "CFG") -> str:
+        """Genera un grafo DOT listo para Graphviz."""
+        lines = [
+            f'digraph "{self._dot_escape(graph_name)}" {{',
+            "  rankdir=TB;",
+            '  graph [fontname="Helvetica", labelloc="t"];',
+            '  node [shape=box, fontname="Courier", style="rounded"];',
+            '  edge [fontname="Helvetica"];',
+            "",
+        ]
+
+        for block in self.blocks:
+            instructions = [
+                self.format_instruction(instruction)
+                for instruction in block.instructions
+            ]
+            label_lines = [block.name, *instructions]
+            label = r"\l".join(
+                self._dot_escape(line)
+                for line in label_lines
+            ) + r"\l"
+            lines.append(
+                f'  "{self._dot_escape(block.name)}" [label="{label}"];'
+            )
+
+        lines.append("")
+        for edge in self._edges():
+            color = {
+                "branch_true": "#2E8B57",
+                "branch_false": "#B22222",
+                "jump": "#4169E1",
+                "fallthrough": "#555555",
+            }.get(edge["type"], "#555555")
+            lines.append(
+                f'  "{self._dot_escape(edge["source"])}" -> '
+                f'"{self._dot_escape(edge["target"])}" '
+                f'[label="{self._dot_escape(edge["label"])}", color="{color}"];'
+            )
+
+        lines.append("}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _dot_escape(value: Any) -> str:
+        return (
+            str(value)
+            .replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\r", "")
+            .replace("\n", r"\n")
+        )
+
+    def _edges(self) -> list[dict[str, str]]:
+        edges: list[dict[str, str]] = []
+        for block_index, block in enumerate(self.blocks):
+            if not block.instructions:
+                continue
+            last = block.instructions[-1]
+            for successor_index, successor in enumerate(block.successors):
+                edge_type, label = self._edge_kind(
+                    block_index,
+                    successor_index,
+                    last,
+                    successor,
+                )
+                edges.append(
+                    {
+                        "id": f"e{len(edges)}",
+                        "source": block.name,
+                        "target": successor.name,
+                        "type": edge_type,
+                        "label": label,
+                    }
+                )
+        return edges
+
+    def _edge_kind(
+        self,
+        block_index: int,
+        successor_index: int,
+        last: IRInstruction,
+        successor: BasicBlock,
+    ) -> tuple[str, str]:
+        if isinstance(last, IRJump):
+            return "jump", "jump"
+        if isinstance(last, IRJumpIfFalse):
+            if successor.name == getattr(
+                self.label_to_block.get(last.label),
+                "name",
+                None,
+            ):
+                return "branch_false", "false"
+            return "branch_true", "true"
+        if block_index + 1 < len(self.blocks):
+            return "fallthrough", "fallthrough"
+        return f"successor_{successor_index}", ""

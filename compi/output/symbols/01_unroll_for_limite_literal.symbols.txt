@@ -1,0 +1,38 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+L_for_start_0                pc=0x0048
+.L_ir_2_ir_cmp_true          pc=0x0058
+.L_ir_3_ir_cmp_end           pc=0x005C
+L_for_end_1                  pc=0x0094
+.L_ir_1_main_end             pc=0x00A8
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name  kind      type  decl                                    seg   addr    off  size  res
+  ----  --------  ----  --------------------------------------  ----  ------  ---  ----  ---
+  main  FUNCTION  int   01_unroll_for_limite_literal.craft:7:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION main (stack_size=12)
+    symbols:
+    name    kind      type  decl                                    seg    addr    off  size  res
+    ------  --------  ----  --------------------------------------  -----  ------  ---  ----  ---
+    suma_a  VARIABLE  int   01_unroll_for_limite_literal.craft:8:5  STACK  0x7FEC  -4   4     yes
+    suma_b  VARIABLE  int   01_unroll_for_limite_literal.craft:9:5  STACK  0x7FE8  -8   4     yes
+
+    [scope 2] LOOP 'for'
+      symbols:
+      name           kind      type  decl                                      seg    addr    off  size  res
+      -------------  --------  ----  ----------------------------------------  -----  ------  ---  ----  ---
+      .L0_for_start  LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -       -    0     no 
+      .L1_for_end    LABEL     None  01_unroll_for_limite_literal.craft:11:5   TEXT   -       -    0     no 
+      i              VARIABLE  int   01_unroll_for_limite_literal.craft:11:10  STACK  0x7FE4  -12  4     yes

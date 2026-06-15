@@ -78,10 +78,19 @@ class IRLoopUnroller:
             not isinstance(condition, IRBinOp)
             or condition.op not in {"<", "<="}
             or not isinstance(condition.left, str)
-            or not isinstance(condition.right, int)
             or not isinstance(branch, IRJumpIfFalse)
             or branch.condition != condition.result
         ):
+            return None
+
+        # El limite puede ser un literal entero o una variable con valor conocido
+        if isinstance(condition.right, int):
+            limit_value: int | None = condition.right
+        elif isinstance(condition.right, str):
+            limit_value = constants.get(condition.right)
+        else:
+            limit_value = None
+        if limit_value is None:
             return None
 
         variable = condition.left
@@ -106,7 +115,7 @@ class IRLoopUnroller:
         if step <= 0 or self._has_unroll_barrier(body_without_increment):
             return None
 
-        limit = condition.right + (1 if condition.op == "<=" else 0)
+        limit = limit_value + (1 if condition.op == "<=" else 0)
         iterations = max(0, (limit - start_value + step - 1) // step)
         if iterations <= 0:
             return None
@@ -210,6 +219,13 @@ class IRLoopUnroller:
         condition_temp = result[-1].result
         result.append(IRJumpIfFalse(condition_temp, match.end_label.name))
 
+        # Instrucciones del cuerpo cuyo valor no depende de la variable de
+        # induccion producen el mismo resultado en cada copia desenrollada.
+        # Se calculan una sola vez (en la primera copia) y se reutilizan en las
+        # demas, evitando duplicar aritmetica de direcciones invariante.
+        invariant_flags = self._classify_invariants(match.body, match.variable)
+        shared_temp_map: dict[str, str] = {}
+
         for copy_index in range(factor):
             result.extend(
                 self._clone_body(
@@ -217,6 +233,9 @@ class IRLoopUnroller:
                     variable=match.variable,
                     offset=copy_index * match.step,
                     constant=None,
+                    invariant_flags=invariant_flags,
+                    shared_temp_map=shared_temp_map,
+                    emit_invariants=(copy_index == 0),
                 )
             )
 
@@ -263,12 +282,96 @@ class IRLoopUnroller:
         variable: str,
         offset: int,
         constant: int | None,
+        invariant_flags: list[bool] | None = None,
+        shared_temp_map: dict[str, str] | None = None,
+        emit_invariants: bool = True,
     ) -> list[IRInstruction]:
         temp_map: dict[str, str] = {}
-        return [
-            self._clone_instruction(instr, variable, offset, constant, temp_map)
+        # Sembrar el mapa con los temporales invariantes ya calculados por la
+        # primera copia, para que las copias siguientes los reutilicen.
+        if shared_temp_map is not None:
+            temp_map.update(shared_temp_map)
+
+        cloned: list[IRInstruction] = []
+        for position, instr in enumerate(body):
+            is_invariant = bool(invariant_flags[position]) if invariant_flags else False
+
+            # En copias posteriores las invariantes ya estan emitidas: se omiten
+            # y sus usos se resuelven via temp_map sembrado.
+            if is_invariant and not emit_invariants:
+                continue
+
+            new_instr = self._clone_instruction(
+                instr, variable, offset, constant, temp_map
+            )
+            cloned.append(new_instr)
+
+            # La primera copia registra el resultado de cada invariante para que
+            # las copias siguientes la compartan en lugar de recalcularla.
+            if is_invariant and shared_temp_map is not None and emit_invariants:
+                original = getattr(instr, "result", None)
+                if isinstance(original, str) and original in temp_map:
+                    shared_temp_map[original] = temp_map[original]
+
+        return cloned
+
+    def _classify_invariants(
+        self, body: list[IRInstruction], variable: str
+    ) -> list[bool]:
+        """Marca las instrucciones del cuerpo invariantes respecto a `variable`.
+
+        Una instruccion es invariante si produce un temporal y todos sus
+        operandos son constantes, nombres definidos fuera del cuerpo, o
+        temporales que a su vez son invariantes (cierre transitivo). La variable
+        de induccion y cualquier nombre reasignado dentro del cuerpo la hacen
+        variante.
+        """
+
+        defined_in_body = {
+            instr.result
             for instr in body
-        ]
+            if isinstance(getattr(instr, "result", None), str)
+        }
+
+        flags: list[bool] = []
+        invariant_results: set[str] = set()
+        for instr in body:
+            result = getattr(instr, "result", None)
+            shareable = isinstance(instr, (IRBinOp, IRUnaryOp, IRAssign)) and (
+                isinstance(result, str) and self._is_temp(result)
+            )
+
+            is_invariant = shareable
+            if is_invariant:
+                for name in self._operand_names(instr):
+                    if name == variable:
+                        is_invariant = False
+                        break
+                    if name in defined_in_body and name not in invariant_results:
+                        is_invariant = False
+                        break
+
+            flags.append(is_invariant)
+            if is_invariant and isinstance(result, str):
+                invariant_results.add(result)
+
+        return flags
+
+    def _operand_names(self, instr: IRInstruction) -> set[str]:
+        if isinstance(instr, IRBinOp):
+            raw: list[Any] = [instr.left, instr.right]
+        elif isinstance(instr, IRUnaryOp):
+            raw = [instr.operand]
+        elif isinstance(instr, IRAssign):
+            raw = [instr.source]
+        else:
+            return set()
+
+        names: set[str] = set()
+        for operand in raw:
+            if isinstance(operand, str):
+                names.update(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", operand))
+        return names
 
     def _clone_instruction(
         self,
@@ -324,15 +427,23 @@ class IRLoopUnroller:
             if offset == 0:
                 return variable
             return f"({variable} + {offset})"
+
+        # Operando compuesto (p.ej. "bloques[t3]" o "arr[i + 1]"): hay que
+        # reescribir los temporales renombrados del cuerpo clonado y la
+        # variable de induccion que aparezcan embebidos en la cadena, no solo
+        # cuando el operando coincide exacto.
+        result = operand
+        for old_temp, new_temp in temp_map.items():
+            result = re.sub(rf"\b{re.escape(old_temp)}\b", new_temp, result)
         if constant is not None:
-            return re.sub(rf"\b{re.escape(variable)}\b", str(constant), operand)
+            return re.sub(rf"\b{re.escape(variable)}\b", str(constant), result)
         if offset != 0:
             return re.sub(
                 rf"\b{re.escape(variable)}\b",
                 f"({variable} + {offset})",
-                operand,
+                result,
             )
-        return operand
+        return result
 
     def _increment(self, variable: str, step: int) -> list[IRInstruction]:
         temp = self._fresh_temp()

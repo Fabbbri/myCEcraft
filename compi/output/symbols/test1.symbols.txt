@@ -1,0 +1,93 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_1_main_end             pc=0x009C
+es_primo                     pc=0x00A8
+.L_ir_3_ir_cmp_true          pc=0x00D0
+.L_ir_4_ir_cmp_end           pc=0x00D4
+L_else_0                     pc=0x00F0
+L_end_if_1                   pc=0x00F0
+.L_ir_5_ir_cmp_true          pc=0x0108
+.L_ir_6_ir_cmp_end           pc=0x010C
+L_else_2                     pc=0x0128
+L_end_if_3                   pc=0x0128
+.L_ir_7_ir_cmp_true          pc=0x0144
+.L_ir_8_ir_cmp_end           pc=0x0148
+L_else_4                     pc=0x0164
+L_end_if_5                   pc=0x0164
+.L_ir_2_es_primo_end         pc=0x01A4
+sume                         pc=0x01B4
+L_for_start_6                pc=0x01D8
+.L_ir_10_ir_cmp_true         pc=0x01E8
+.L_ir_11_ir_cmp_end          pc=0x01EC
+L_else_8                     pc=0x026C
+L_end_if_9                   pc=0x026C
+L_for_end_7                  pc=0x027C
+.L_ir_9_sume_end             pc=0x0284
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name      kind      type  decl              seg   addr    off  size  res
+  --------  --------  ----  ----------------  ----  ------  ---  ----  ---
+  es_primo  FUNCTION  int   test1.craft:3:1   TEXT  0x00A8  -    0     yes
+  sume      FUNCTION  int   test1.craft:22:1  TEXT  0x01B4  -    0     yes
+  main      FUNCTION  int   test1.craft:34:1  TEXT  0x0018  -    0     yes
+
+  [scope 1] FUNCTION es_primo (stack_size=16)
+    symbols:
+    name         kind       type  decl              seg    addr    off  size  res
+    -----------  ---------  ----  ----------------  -----  ------  ---  ----  ---
+    n            PARAMETER  int   test1.craft:3:20  STACK  0x7F8C  -4   4     yes
+    divisor      PARAMETER  int   test1.craft:3:27  STACK  0x7F88  -8   4     yes
+    .L0_if_else  LABEL      None  test1.craft:4:5   TEXT   -       -    0     no 
+    .L1_if_end   LABEL      None  test1.craft:4:5   TEXT   -       -    0     no 
+    .L2_if_else  LABEL      None  test1.craft:8:5   TEXT   -       -    0     no 
+    .L3_if_end   LABEL      None  test1.craft:8:5   TEXT   -       -    0     no 
+    cociente     VARIABLE   int   test1.craft:12:5  STACK  0x7F84  -12  4     yes
+    producto     VARIABLE   int   test1.craft:13:5  STACK  0x7F80  -16  4     yes
+    .L4_if_else  LABEL      None  test1.craft:15:5  TEXT   -       -    0     no 
+    .L5_if_end   LABEL      None  test1.craft:15:5  TEXT   -       -    0     no 
+
+    [scope 2] CONDITIONAL 'if'
+      symbols: (none)
+
+    [scope 3] CONDITIONAL 'if'
+      symbols: (none)
+
+    [scope 4] CONDITIONAL 'if'
+      symbols: (none)
+
+  [scope 5] FUNCTION sume (stack_size=12)
+    symbols:
+    name   kind       type            decl               seg    addr    off  size  res
+    -----  ---------  --------------  -----------------  -----  ------  ---  ----  ---
+    lista  PARAMETER  chest[int, 10]  test1.craft:22:16  STACK  0x7FB8  -4   4     yes
+    suma   VARIABLE   int             test1.craft:23:5   STACK  0x7FB4  -8   4     yes
+
+    [scope 6] LOOP 'for'
+      symbols:
+      name           kind      type  decl               seg    addr    off  size  res
+      -------------  --------  ----  -----------------  -----  ------  ---  ----  ---
+      .L6_for_start  LABEL     None  test1.craft:25:5   TEXT   -       -    0     no 
+      .L7_for_end    LABEL     None  test1.craft:25:5   TEXT   -       -    0     no 
+      i              VARIABLE  int   test1.craft:25:10  STACK  0x7FB0  -12  4     yes
+      .L8_if_else    LABEL     None  test1.craft:26:9   TEXT   -       -    0     no 
+      .L9_if_end     LABEL     None  test1.craft:26:9   TEXT   -       -    0     no 
+
+      [scope 7] CONDITIONAL 'if'
+        symbols: (none)
+
+  [scope 8] FUNCTION main (stack_size=40)
+    symbols:
+    name   kind      type            decl              seg    addr    off  size  res
+    -----  --------  --------------  ----------------  -----  ------  ---  ----  ---
+    lista  VARIABLE  chest[int, 10]  test1.craft:35:5  STACK  0x7FC8  -40  40    yes

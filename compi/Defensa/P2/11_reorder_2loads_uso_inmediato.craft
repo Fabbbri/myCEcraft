@@ -1,0 +1,29 @@
+@EnterCraftWorld
+
+// Dos loads con uso inmediato; el scheduler mueve trabajo independiente
+// para cubrir la latencia de cada load.
+// Sin reorder: lw a -> 3 stalls -> usa a; lw b -> 3 stalls -> usa b
+// Con reorder: lw a -> w1,w2 -> usa a; lw b -> w3,w4 -> usa b
+// El bloque de calculos w1..w4 rellena los stalls de ambos loads.
+// Resultado: a=10, parta=11, b=30, partb=31, w1=5, w2=9, w3=14, w4=23
+//   total = parta + partb + w4 = 11 + 31 + 23 = 65 = 0x41.
+
+ga:int = 10;
+gb:int = 30;
+
+craft:int main() {
+    a:int = ga;
+    parta:int = a + 1;
+
+    w1:int = 2 + 3;
+    w2:int = 4 + 5;
+
+    b:int = gb;
+    partb:int = b + 1;
+
+    w3:int = w1 + w2;
+    w4:int = w3 + w2;
+
+    total:int = parta + partb + w4;
+    return total;
+}

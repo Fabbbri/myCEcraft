@@ -11,7 +11,9 @@
 
 module tb_teaimg_loader;
 
-    parameter int MAX_CYCLES = 500000 + (`TEAIMG_IMAGE_WORDS * 12000);
+    // Presupuesto para el camino SIN cache (top_no_cash): cada acceso es un
+    // burst multi-ciclo sobre el clk dividido, ~38k ciclos por palabra de imagen.
+    parameter int MAX_CYCLES = 500000 + (`TEAIMG_IMAGE_WORDS * 50000);
     parameter int ROM_DEPTH  = 4096;
     parameter int RAM_DEPTH  = 65536;
 
@@ -41,7 +43,7 @@ module tb_teaimg_loader;
     int loader_data_size = 0;
     int loader_data_base = 0;
 
-    top dut (.clk(clk), .reset(reset));
+    top_no_cash dut (.clk(clk), .reset(reset));
     defparam dut.Issue.ROM.DEPTH = ROM_DEPTH;
 
     always #5 clk = ~clk;
@@ -50,8 +52,8 @@ module tb_teaimg_loader;
     `define VREGS dut.Decode.RegVBank.regs
     `define PC    dut.Issue.addr_aux
     `define ROM   dut.Issue.ROM.memory
-    `define NRAM  dut.mem.VaultRam.mem
-    `define DRAM  dut.mem.NormalRam.mem
+    `define NRAM  dut.Memory.VaultRam.mem
+    `define DRAM  dut.Memory.NormalRam.mem
 
     function automatic logic [15:0] read_be16(input int address);
         read_be16 = {loader_mem[address], loader_mem[address + 1]};
@@ -75,6 +77,7 @@ module tb_teaimg_loader;
 
     task automatic wait_for_finish(output bit timed_out);
         int cycles;
+        int quiet;
         timed_out = 0;
         cycles = 0;
 
@@ -84,7 +87,16 @@ module tb_teaimg_loader;
 
             if (dut.Issue.pc_en === 1'b0) begin
                 $display("[INFO]  FREEZE detectado en PC=%h (ciclo %0d)", `PC, cycles);
-                repeat (5) @(posedge clk);
+                // Drenar pipeline/memoria: la pared de memoria sin cache puede dejar
+                // escrituras pendientes y el writeback del epilogo (restauro de sp)
+                // en vuelo. Esperar a que stall_mem quede quieto antes de chequear.
+                quiet = 0;
+                while (quiet < 16) begin
+                    @(posedge clk);
+                    if (!dut.stall_mem) quiet++;
+                    else quiet = 0;
+                end
+                repeat (4) @(posedge clk);
                 return;
             end
 

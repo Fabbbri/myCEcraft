@@ -1,4 +1,5 @@
 import sys
+import re
 from pathlib import Path
 
 from PySide6.QtCore import QRegularExpression, QRect, Qt, QSize, Signal, QTimer
@@ -6,6 +7,7 @@ from PySide6.QtGui import (
     QColor,
     QFont,
     QIcon,
+    QIntValidator,
     QPainter,
     QPen,
     QPixmap,
@@ -14,19 +16,24 @@ from PySide6.QtGui import (
     QTextCursor,
 )
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QFileDialog,
     QFrame,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QPushButton,
     QSplitter,
     QTabBar,
     QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QTextEdit,
     QToolButton,
     QPlainTextEdit,
@@ -34,118 +41,35 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from cfg_viewer import CFGViewer
 from compiler_runner import CompilerRunner
-from ll1_syntax import Diagnostic, LL1SyntaxService
+from ll1_syntax import Diagnostic, EPSILON, LL1SyntaxService
+from simulation_runner import SimulationRunner
 from theme import APP_QSS
+from tokens import TokenType
 from workspace import Workspace
 
 
 APP_TITLE = "Craft Studio"
 IDE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = IDE_DIR.parent.parent
-LOGO_PATH = IDE_DIR / "CS.png"
+LOGO_PATH = IDE_DIR / "CS_transparente_blanco.png"
 READY_OUTPUT_TEXT = "Listo para compilar."
 NO_PROBLEMS_TEXT = "No hay errores ni advertencias."
 PROBLEM_OUTPUT_MARKER = "Revise la pestana Problemas."
-ERROR_DEMO_FILE = "ide_error_demo.craft"
-ERROR_DEMO_CASES = [
-    (
-        "Numero invalido",
-        """@EnterCraftWorld
-craft:int main(){
-    x:int = 0;
+WINDOWS_APP_ID = "CraftStudio.IDE"
 
-    while (x < 5awd){
-        x = x + 1;
-    }
 
-    return x;
-}
-""",
-    ),
-    (
-        "Falta punto y coma y llave",
-        """@EnterCraftWorld
-craft:int main(){
-    x:int = 0;
+def configure_windows_app_id() -> None:
+    if sys.platform != "win32":
+        return
 
-    while (x < 5){
-        x = x + 1;
-    }
+    try:
+        import ctypes
 
-    return x
-""",
-    ),
-    (
-        "Tipo desconocido y llave faltante",
-        """@EnterCraftWorld
-craft:int main(){
-    x:intadaw = 0;
-
-    while (x < 5){
-        x = x + 1;
-    }
-
-    return x;
-""",
-    ),
-    (
-        "Return incompleto",
-        """@EnterCraftWorld
-craft:int main(){
-    return
-}
-""",
-    ),
-    (
-        "Parentesis faltante",
-        """@EnterCraftWorld
-craft:int main(){
-    x:int = 0;
-
-    while (x < 5{
-        x = x + 1;
-    }
-
-    return x;
-}
-""",
-    ),
-    (
-        "Variable no declarada",
-        """@EnterCraftWorld
-craft:int main(){
-    return y;
-}
-""",
-    ),
-    (
-        "Aridad incorrecta",
-        """@EnterCraftWorld
-craft:int suma(a:int, b:int){
-    return a + b;
-}
-
-craft:int main(){
-    return summon:suma(1);
-}
-""",
-    ),
-    (
-        "Programa valido",
-        """@EnterCraftWorld
-craft:int main(){
-    x:int = 0;
-
-    while (x < 5){
-        x = x + 1;
-    }
-
-    return x;
-}
-""",
-    ),
-]
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(WINDOWS_APP_ID)
+    except (AttributeError, OSError):
+        pass
 
 
 def make_close_icon(color: str) -> QIcon:
@@ -469,26 +393,431 @@ class NewFileNameEdit(QLineEdit):
         super().keyPressEvent(event)
 
 
+class LL1TableView(QWidget):
+    def __init__(self, syntax_service: LL1SyntaxService) -> None:
+        super().__init__()
+        self.setObjectName("LL1TableView")
+        self.syntax_service = syntax_service
+        self._build_ui()
+        self._populate_table()
+
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(12)
+
+        title = QLabel("Tabla predictiva LL(1)")
+        title.setObjectName("LL1Title")
+        layout.addWidget(title)
+
+        description = QLabel(
+            "<b>Como se lee:</b> busca el no terminal <i>A</i> en la fila y "
+            "el terminal de entrada <i>a</i> en la columna. La celda "
+            "<b>M[A, a]</b> contiene la produccion que debe aplicar el parser."
+        )
+        description.setObjectName("LL1Description")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        guide = QLabel(
+            "<b>Construccion:</b>&nbsp;&nbsp;"
+            "1. Para A -> alpha, se coloca la produccion en cada terminal de "
+            "PRIMERO(alpha).&nbsp;&nbsp;"
+            "2. Si epsilon pertenece a PRIMERO(alpha), se usa SIGUIENTE(A)."
+            "<br><b>Celda vacia:</b> esa combinacion no es valida y produce "
+            "un error sintactico."
+        )
+        guide.setObjectName("LL1Guide")
+        guide.setWordWrap(True)
+        layout.addWidget(guide)
+
+        summary = QHBoxLayout()
+        summary.setSpacing(10)
+        self.nonterminal_count = self._build_stat_label(
+            "NO TERMINALES",
+            str(len(self.syntax_service.nonterminals)),
+        )
+        self.terminal_count = self._build_stat_label(
+            "TERMINALES",
+            str(len(self._table_terminals())),
+        )
+        self.entry_count = self._build_stat_label(
+            "ENTRADAS",
+            str(len(self.syntax_service.table)),
+        )
+        summary.addWidget(self.nonterminal_count)
+        summary.addWidget(self.terminal_count)
+        summary.addWidget(self.entry_count)
+        summary.addStretch(1)
+        layout.addLayout(summary)
+
+        search_row = QHBoxLayout()
+        search_row.setSpacing(10)
+        search_label = QLabel("Buscar")
+        search_label.setObjectName("LL1SearchLabel")
+        search_row.addWidget(search_label)
+
+        self.search_input = QLineEdit()
+        self.search_input.setObjectName("LL1SearchInput")
+        self.search_input.setPlaceholderText(
+            "Filtrar no terminal, terminal o produccion..."
+        )
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.textChanged.connect(self._filter_matrix)
+        search_row.addWidget(self.search_input, 1)
+
+        self.visible_count_label = QLabel()
+        self.visible_count_label.setObjectName("LL1VisibleCount")
+        search_row.addWidget(self.visible_count_label)
+        layout.addLayout(search_row)
+
+        self.table = QTableWidget()
+        self.table.setObjectName("LL1ParseTable")
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(True)
+        self.table.setWordWrap(True)
+        self.table.verticalHeader().setVisible(True)
+        self.table.verticalHeader().setDefaultSectionSize(44)
+        self.table.verticalHeader().setMinimumWidth(150)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.table.horizontalHeader().setHighlightSections(False)
+        self.table.horizontalHeader().setDefaultSectionSize(130)
+        self.table.horizontalHeader().setMinimumSectionSize(82)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.currentCellChanged.connect(self._show_selected_entry)
+        layout.addWidget(self.table, 1)
+
+        self.selected_entry_label = QLabel(
+            "Selecciona una celda para ver la regla completa M[A, a]."
+        )
+        self.selected_entry_label.setObjectName("LL1SelectedEntry")
+        self.selected_entry_label.setWordWrap(True)
+        layout.addWidget(self.selected_entry_label)
+
+        legend = QLabel(
+            "Ejemplo: si la fila es Expr y la columna es identificador, "
+            "la celda muestra la parte derecha de Expr -> Prefix ExprTail. "
+            "ε significa que no se consume ningun token."
+        )
+        legend.setObjectName("LL1Legend")
+        legend.setWordWrap(True)
+        layout.addWidget(legend)
+
+    def _build_stat_label(self, title: str, value: str) -> QLabel:
+        label = QLabel(f"{title}\n{value}")
+        label.setObjectName("LL1Stat")
+        label.setAlignment(Qt.AlignCenter)
+        label.setMinimumWidth(112)
+        return label
+
+    def _table_terminals(self) -> set[str]:
+        return {
+            terminal
+            for _nonterminal, terminal in self.syntax_service.table
+        }
+
+    def _populate_table(self) -> None:
+        self.nonterminals = list(self.syntax_service.grammar)
+        token_order = {
+            token_type.name: index
+            for index, token_type in enumerate(TokenType)
+        }
+        self.terminals = sorted(
+            self._table_terminals(),
+            key=lambda terminal: token_order.get(terminal, len(token_order)),
+        )
+
+        self.table.setRowCount(len(self.nonterminals))
+        self.table.setColumnCount(len(self.terminals))
+        self.table.setVerticalHeaderLabels(self.nonterminals)
+        self.table.setHorizontalHeaderLabels(
+            [self._terminal_display(terminal) for terminal in self.terminals]
+        )
+
+        for column, terminal in enumerate(self.terminals):
+            header = self.table.horizontalHeaderItem(column)
+            header.setToolTip(f"Token: {terminal}")
+            header.setForeground(QColor("#CE9178"))
+
+        for row, nonterminal in enumerate(self.nonterminals):
+            header = self.table.verticalHeaderItem(row)
+            header.setToolTip(f"No terminal: {nonterminal}")
+            header.setForeground(QColor("#4FC1FF"))
+
+            for column, terminal in enumerate(self.terminals):
+                production = self.syntax_service.table.get((nonterminal, terminal))
+                item = QTableWidgetItem()
+                item.setTextAlignment(Qt.AlignCenter)
+                if production is None:
+                    item.setText("")
+                    item.setToolTip(
+                        f"M[{nonterminal}, {terminal}] esta vacia: "
+                        "la combinacion produce error sintactico."
+                    )
+                    item.setBackground(QColor("#1E1E1E"))
+                else:
+                    item.setText(self._production_display(production))
+                    item.setToolTip(
+                        self._cell_tooltip(nonterminal, terminal, production)
+                    )
+                    item.setBackground(QColor("#252526"))
+                    if EPSILON in production:
+                        item.setForeground(QColor("#B5CEA8"))
+                    else:
+                        item.setForeground(QColor("#DCDCAA"))
+                self.table.setItem(row, column, item)
+
+        self._update_visible_count()
+
+    def _terminal_display(self, terminal: str) -> str:
+        if terminal == "EOF":
+            return "fin de archivo"
+        return self.syntax_service._label_for(terminal)
+
+    def _production_display(self, production: tuple[str, ...]) -> str:
+        if not production or production == (EPSILON,):
+            return "ε"
+        return " ".join(
+            self._terminal_display(symbol)
+            if symbol not in self.syntax_service.nonterminals
+            else symbol
+            for symbol in production
+        )
+
+    def _cell_tooltip(
+        self,
+        nonterminal: str,
+        terminal: str,
+        production: tuple[str, ...],
+    ) -> str:
+        return (
+            f"M[{nonterminal}, {terminal}] = "
+            f"{nonterminal} -> {self._production_display(production)}"
+        )
+
+    def _filter_matrix(self, text: str) -> None:
+        query = text.strip().lower()
+        visible_rows = []
+        for row, nonterminal in enumerate(self.nonterminals):
+            matches = not query or query in nonterminal.lower() or any(
+                query in self.table.item(row, column).text().lower()
+                for column in range(len(self.terminals))
+            )
+            self.table.setRowHidden(row, not matches)
+            if matches:
+                visible_rows.append(row)
+
+        for column, terminal in enumerate(self.terminals):
+            terminal_matches = (
+                not query
+                or query in terminal.lower()
+                or query in self._terminal_display(terminal).lower()
+            )
+            has_visible_match = any(
+                query in self.table.item(row, column).text().lower()
+                for row in visible_rows
+            )
+            self.table.setColumnHidden(
+                column,
+                bool(query) and not terminal_matches and not has_visible_match,
+            )
+        self._update_visible_count()
+
+    def _show_selected_entry(
+        self,
+        row: int,
+        column: int,
+        _previous_row: int,
+        _previous_column: int,
+    ) -> None:
+        if not 0 <= row < len(self.nonterminals):
+            return
+        if not 0 <= column < len(self.terminals):
+            return
+
+        nonterminal = self.nonterminals[row]
+        terminal = self.terminals[column]
+        production = self.syntax_service.table.get((nonterminal, terminal))
+        terminal_display = self._terminal_display(terminal)
+        if production is None:
+            self.selected_entry_label.setText(
+                f"M[{nonterminal}, {terminal_display}] esta vacia. "
+                "El parser reporta un error sintactico para esta combinacion."
+            )
+            return
+
+        self.selected_entry_label.setText(
+            f"M[{nonterminal}, {terminal_display}] = "
+            f"{nonterminal} -> {self._production_display(production)}"
+        )
+
+    def _update_visible_count(self) -> None:
+        visible_rows = sum(
+            not self.table.isRowHidden(row)
+            for row in range(self.table.rowCount())
+        )
+        visible_columns = sum(
+            not self.table.isColumnHidden(column)
+            for column in range(self.table.columnCount())
+        )
+        self.visible_count_label.setText(
+            f"{visible_rows} filas x {visible_columns} columnas"
+        )
+
+
+class Minimap(QWidget):
+    """Minimap estilo VS Code: renderiza el texto del editor a escala muy pequeña."""
+
+    WIDTH = 90
+    CHAR_H = 2
+    CHAR_W = 1
+    LINE_SPACING = 3
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._lines: list[str] = []
+        self._scroll_fraction: float = 0.0
+        self._visible_fraction: float = 1.0
+        self.setFixedWidth(self.WIDTH)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+    def set_document(self, editor: "CodeEditor") -> None:
+        editor.document().contentsChanged.connect(lambda e=editor: self._sync(e))
+        editor.verticalScrollBar().valueChanged.connect(lambda _v, e=editor: self._sync(e))
+        self._sync(editor)
+
+    def _sync(self, editor: "CodeEditor") -> None:
+        self._lines = editor.toPlainText().splitlines()
+        sb = editor.verticalScrollBar()
+        max_val = sb.maximum()
+        if max_val > 0:
+            self._scroll_fraction = sb.value() / max_val
+        else:
+            self._scroll_fraction = 0.0
+        page = sb.pageStep()
+        total = max_val + page
+        self._visible_fraction = page / total if total > 0 else 1.0
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, False)
+
+        # fondo
+        painter.fillRect(self.rect(), QColor("#1A1A1A"))
+
+        total_lines = len(self._lines)
+        if total_lines == 0:
+            painter.end()
+            return
+
+        h = self.height()
+        w = self.WIDTH
+        total_height = total_lines * self.LINE_SPACING
+
+        # viewport highlight (banda que indica la zona visible del editor)
+        if total_height > h:
+            band_h = max(20, int(self._visible_fraction * h))
+            band_y = int(self._scroll_fraction * (h - band_h))
+        else:
+            band_h = h
+            band_y = 0
+
+        painter.fillRect(0, band_y, w, band_h, QColor("#2A2D2E"))
+
+        # lineas de codigo
+        max_visible = h // self.LINE_SPACING + 1
+        start_line = 0
+        if total_height > h:
+            start_line = int(self._scroll_fraction * max(0, total_lines - max_visible))
+        start_line = max(0, min(start_line, total_lines - 1))
+
+        for i, line in enumerate(self._lines[start_line:start_line + max_visible + 1]):
+            y = i * self.LINE_SPACING + 1
+            if y >= h:
+                break
+            indent = len(line) - len(line.lstrip())
+            content = line.strip()
+            if not content:
+                continue
+
+            x = 4 + indent * self.CHAR_W
+            # color según tipo de token (muy simplificado)
+            if content.startswith("//") or content.startswith("/*") or content.startswith("*"):
+                color = QColor("#4A6741")
+            elif any(content.startswith(kw) for kw in ("craft", "return", "if", "for", "while", "else")):
+                color = QColor("#7B5EA7")
+            elif content.startswith("@"):
+                color = QColor("#8B7340")
+            else:
+                color = QColor("#4A5568")
+
+            painter.fillRect(x, y, min(len(content) * self.CHAR_W, w - x - 2), self.CHAR_H, color)
+
+        # borde izquierdo sutil
+        painter.setPen(QColor("#3C3C3C"))
+        painter.drawLine(0, 0, 0, h)
+
+        painter.end()
+
+    def mousePressEvent(self, event) -> None:
+        self._seek(event.position().y())
+
+    def mouseMoveEvent(self, event) -> None:
+        if event.buttons() & Qt.LeftButton:
+            self._seek(event.position().y())
+
+    def _seek(self, y: float) -> None:
+        fraction = max(0.0, min(1.0, y / self.height()))
+        self._scroll_fraction = fraction
+        # propagar al editor padre buscando en la jerarquía
+        p = self.parent()
+        while p is not None:
+            if isinstance(p, QWidget) and hasattr(p, "_minimap_editor"):
+                editor: CodeEditor = p._minimap_editor
+                sb = editor.verticalScrollBar()
+                sb.setValue(int(fraction * sb.maximum()))
+                break
+            p = p.parent()
+        self.update()
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.workspace = Workspace(REPO_ROOT)
         self.compiler = CompilerRunner(REPO_ROOT)
+        self.simulator = SimulationRunner(REPO_ROOT)
         self.syntax_service = LL1SyntaxService()
         self.open_editors: dict[Path, CodeEditor] = {}
         self.editor_paths: dict[CodeEditor, Path] = {}
         self.editor_diagnostics: dict[CodeEditor, list[Diagnostic]] = {}
-        self.error_demo_timer = QTimer(self)
-        self.error_demo_timer.setInterval(2600)
-        self.error_demo_timer.timeout.connect(self._advance_error_demo)
-        self.error_demo_index = 0
-        self.error_demo_path: Path | None = None
+        self.editor_minimaps: dict[CodeEditor, Minimap] = {}
+        self.ll1_table_view: LL1TableView | None = None
+        self.cfg_viewer_tab: CFGViewer | None = None
         self._loading_editor = False
+        self.current_optimization_label = "Sin optimizaciones"
+        self.current_unroll_label = "Automatico"
+        self.current_compile_options = {
+            "loop_unrolling": False,
+            "rename_registers": False,
+            "eliminate_dead_code": False,
+            "reorder_instructions": False,
+        }
+        self.current_artifact_tag: str | None = None
+        self.pending_run = False
+        self.active_compile_path: Path | None = None
 
         self.setWindowTitle(APP_TITLE)
+        self.setWindowIcon(QIcon(str(LOGO_PATH)))
         self.setMinimumSize(QSize(1100, 720))
         self._build_ui()
         self._connect_compiler()
+        self._connect_simulator()
         self._populate_file_list()
         self._open_initial_file()
         self.showMaximized()
@@ -497,8 +826,8 @@ class MainWindow(QMainWindow):
         root = QWidget()
         root.setObjectName("AppRoot")
         root_layout = QVBoxLayout(root)
-        root_layout.setContentsMargins(12, 12, 12, 10)
-        root_layout.setSpacing(10)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
         root_layout.addWidget(self._build_top_bar())
         root_layout.addWidget(self._build_body())
@@ -520,7 +849,7 @@ class MainWindow(QMainWindow):
         bar = QFrame()
         bar.setObjectName("TopBar")
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(12, 7, 10, 7)
+        layout.setContentsMargins(14, 0, 10, 0)
         layout.setSpacing(10)
 
         mark = QLabel()
@@ -547,6 +876,7 @@ class MainWindow(QMainWindow):
         title = QLabel(APP_TITLE)
         title.setObjectName("AppTitle")
         title_layout.addWidget(title)
+
         layout.addWidget(title_group)
 
         layout.addStretch(1)
@@ -555,8 +885,9 @@ class MainWindow(QMainWindow):
             ("Abrir carpeta", self.open_folder_dialog),
             ("Abrir archivo", self.open_file_dialog),
             ("Guardar", self.save_current_file),
-            ("Demo errores", self.toggle_error_demo),
+            ("Tabla LL(1)", self.show_ll1_table),
             ("Artefactos", self.show_artifacts_tab),
+            ("Ver CFGs", self.show_cfg_viewer),
         ]
 
         for label, handler in actions:
@@ -567,14 +898,81 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(handler)
             layout.addWidget(button)
-            if label == "Demo errores":
-                self.error_demo_button = button
+
+        unroll_label = QLabel("Loop unrolling")
+        unroll_label.setObjectName("TopControlLabel")
+        layout.addWidget(unroll_label)
+        self.unroll_factor_input = QLineEdit()
+        self.unroll_factor_input.setObjectName("TopNumberInput")
+        self.unroll_factor_input.setPlaceholderText("Auto")
+        self.unroll_factor_input.setValidator(QIntValidator(1, 64, self))
+        self.unroll_factor_input.setToolTip(
+            "Factor entre 1 y 64. Vacio usa seleccion automatica."
+        )
+        self.unroll_factor_input.setMaximumWidth(72)
+        layout.addWidget(self.unroll_factor_input)
 
         self.compile_button = QPushButton("Compilar")
         self.compile_button.setObjectName("PrimaryButton")
         self.compile_button.setCursor(Qt.PointingHandCursor)
-        self.compile_button.clicked.connect(self.compile_current_file)
+        compile_menu = QMenu(self.compile_button)
+        for label, tag, options in (
+            ("Sin optimizaciones", None, {}),
+            (
+                "O1",
+                "O1",
+                {
+                    "loop_unrolling": True,
+                    "rename_registers": True,
+                },
+            ),
+            (
+                "O2",
+                "O2",
+                {
+                    "eliminate_dead_code": True,
+                    "reorder_instructions": True,
+                },
+            ),
+            (
+                "O3",
+                "O3",
+                {
+                    "loop_unrolling": True,
+                    "rename_registers": True,
+                    "eliminate_dead_code": True,
+                    "reorder_instructions": True,
+                },
+            ),
+        ):
+            action = compile_menu.addAction(label)
+            action.triggered.connect(
+                lambda _checked=False, name=label, artifact=tag, selected=options:
+                    self.compile_with_options(name, artifact, selected)
+            )
+        compile_menu.addSeparator()
+        for label, tag, options in (
+            ("Solo Loop unrolling", "unroll", {"loop_unrolling": True}),
+            ("Solo Renombramiento", "rename", {"rename_registers": True}),
+            ("Solo DCE", "dce", {"eliminate_dead_code": True}),
+            ("Solo Reordenamiento", "reorder", {"reorder_instructions": True}),
+        ):
+            action = compile_menu.addAction(label)
+            action.triggered.connect(
+                lambda _checked=False, name=label, artifact=tag, selected=options:
+                    self.compile_with_options(name, artifact, selected)
+            )
+        self.compile_button.setMenu(compile_menu)
         layout.addWidget(self.compile_button)
+
+        self.run_button = QPushButton("Ejecutar O0")
+        self.run_button.setObjectName("RunButton")
+        self.run_button.setToolTip(
+            "Compila el archivo activo y lo ejecuta en tb_general_dump"
+        )
+        self.run_button.setCursor(Qt.PointingHandCursor)
+        self.run_button.clicked.connect(self.run_current_file)
+        layout.addWidget(self.run_button)
 
         bar.setFixedHeight(52)
         return bar
@@ -592,7 +990,7 @@ class MainWindow(QMainWindow):
 
         container = QWidget()
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(8, 8, 8, 8)
         layout.addWidget(splitter)
         return container
 
@@ -704,6 +1102,19 @@ class MainWindow(QMainWindow):
         )
         return editor
 
+    def _wrap_editor_with_minimap(self, editor: CodeEditor) -> QWidget:
+        wrapper = QWidget()
+        wrapper._minimap_editor = editor
+        layout = QHBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        minimap = Minimap(wrapper)
+        minimap.set_document(editor)
+        layout.addWidget(editor, 1)
+        layout.addWidget(minimap)
+        self.editor_minimaps[editor] = minimap
+        return wrapper
+
     def _build_output_panel(self, placeholder: str) -> QTextEdit:
         output = QTextEdit()
         output.setObjectName("OutputPanel")
@@ -717,6 +1128,11 @@ class MainWindow(QMainWindow):
         self.compiler.output_ready.connect(self._append_compiler_output)
         self.compiler.error_ready.connect(self._append_compiler_error)
         self.compiler.finished.connect(self._handle_compile_finished)
+
+    def _connect_simulator(self) -> None:
+        self.simulator.started.connect(self._handle_simulation_started)
+        self.simulator.output_ready.connect(self._append_simulation_output)
+        self.simulator.finished.connect(self._handle_simulation_finished)
 
     def _populate_file_list(self) -> None:
         self.file_list.clear()
@@ -804,7 +1220,9 @@ class MainWindow(QMainWindow):
     def open_file(self, path: Path) -> None:
         path = path.resolve()
         if path in self.open_editors:
-            self.editor_tabs.setCurrentWidget(self.open_editors[path])
+            index = self._tab_index_for_editor(self.open_editors[path])
+            if index != -1:
+                self.editor_tabs.setCurrentIndex(index)
             self._select_file_in_sidebar(path)
             return
 
@@ -824,7 +1242,8 @@ class MainWindow(QMainWindow):
 
         self.open_editors[path] = editor
         self.editor_paths[editor] = path
-        index = self.editor_tabs.addTab(editor, path.name)
+        wrapper = self._wrap_editor_with_minimap(editor)
+        index = self.editor_tabs.addTab(wrapper, path.name)
         self.editor_tabs.tabBar().setTabButton(
             index,
             QTabBar.RightSide,
@@ -835,11 +1254,11 @@ class MainWindow(QMainWindow):
         self._set_state(f"Abierto {path.name}")
         self._validate_editor(editor)
 
-    def save_current_file(self) -> None:
+    def save_current_file(self) -> bool:
         editor = self.current_editor()
         if editor is None:
             self._set_state("No hay archivo activo")
-            return
+            return False
 
         path = self.editor_paths[editor]
         try:
@@ -847,24 +1266,46 @@ class MainWindow(QMainWindow):
         except OSError as error:
             self._set_problem_text(f"No se pudo guardar {path}:\n{error}")
             self._set_state("Error al guardar")
-            return
+            return False
 
         editor.document().setModified(False)
         self._update_tab_title(editor)
         self._set_state(f"Guardado {path.name}")
+        return True
 
-    def compile_current_file(self) -> None:
+    def compile_with_options(
+        self,
+        optimization_label: str,
+        artifact_tag: str | None,
+        options: dict[str, bool],
+    ) -> None:
+        self.current_compile_options = {
+            "loop_unrolling": False,
+            "rename_registers": False,
+            "eliminate_dead_code": False,
+            "reorder_instructions": False,
+        }
+        self.current_compile_options.update(options)
+        self.current_artifact_tag = artifact_tag
+        self.current_optimization_label = optimization_label
+        run_label = "O0" if optimization_label == "Sin optimizaciones" else optimization_label
+        self.run_button.setText(f"Ejecutar {run_label}")
+        self.compile_current_file()
+
+    def compile_current_file(
+        self,
+    ) -> bool:
         editor = self.current_editor()
         if editor is None:
             self._set_state("No hay archivo activo")
-            return
+            return False
 
-        if self.compiler.is_running():
-            self._set_state("Compilacion en curso")
-            return
+        if self.compiler.is_running() or self.simulator.is_running():
+            self._set_state("Compilacion o simulacion en curso")
+            return False
 
-        if editor.document().isModified():
-            self.save_current_file()
+        if editor.document().isModified() and not self.save_current_file():
+            return False
 
         path = self.editor_paths[editor]
         self.output_panel.clear()
@@ -872,23 +1313,68 @@ class MainWindow(QMainWindow):
         self._set_problem_count(0)
         self.artifacts_panel.setPlainText("Compilando...")
         self.output_tabs.setCurrentWidget(self.output_panel)
-        self.compiler.compile(path)
+        options = self.current_compile_options
+        unroll_text = self.unroll_factor_input.text().strip()
+        unroll_factor = int(unroll_text) if unroll_text else None
+        if unroll_factor is not None and not 1 <= unroll_factor <= 64:
+            self._set_state("El factor de loop unrolling debe estar entre 1 y 64")
+            self.unroll_factor_input.setFocus()
+            self.unroll_factor_input.selectAll()
+            return False
+        if options["loop_unrolling"]:
+            self.current_unroll_label = (
+                "Automatico" if unroll_factor is None else str(unroll_factor)
+            )
+        else:
+            self.current_unroll_label = "Desactivado"
+        self.active_compile_path = path
+        self.compiler.compile(
+            path,
+            loop_unrolling=options["loop_unrolling"],
+            unroll_factor=unroll_factor,
+            rename_registers=options["rename_registers"],
+            eliminate_dead_code=options["eliminate_dead_code"],
+            reorder_instructions=options["reorder_instructions"],
+            artifact_tag=self.current_artifact_tag,
+        )
+        return True
+
+    def run_current_file(self) -> None:
+        self.pending_run = True
+        started = self.compile_current_file()
+        if not started:
+            self.pending_run = False
+
+    def _tab_index_for_editor(self, editor: CodeEditor) -> int:
+        for i in range(self.editor_tabs.count()):
+            w = self.editor_tabs.widget(i)
+            if w is editor:
+                return i
+            if hasattr(w, "_minimap_editor") and w._minimap_editor is editor:
+                return i
+        return -1
 
     def close_editor(self, editor: CodeEditor) -> None:
-        index = self.editor_tabs.indexOf(editor)
+        index = self._tab_index_for_editor(editor)
         if index == -1:
             return
         self.close_editor_at_index(index)
 
     def close_editor_at_index(self, index: int) -> None:
         widget = self.editor_tabs.widget(index)
-        if not isinstance(widget, CodeEditor):
+        # obtener el editor real ya sea directo o desde wrapper
+        if isinstance(widget, CodeEditor):
+            editor = widget
+        elif hasattr(widget, "_minimap_editor"):
+            editor = widget._minimap_editor
+        else:
             return
 
-        path = self.editor_paths.pop(widget, None)
+        path = self.editor_paths.pop(editor, None)
         if path is not None:
             self.open_editors.pop(path, None)
-        self.editor_diagnostics.pop(widget, None)
+        self.editor_diagnostics.pop(editor, None)
+        self.editor_minimaps.pop(editor, None)
 
         self.editor_tabs.removeTab(index)
         widget.deleteLater()
@@ -917,67 +1403,97 @@ class MainWindow(QMainWindow):
         widget = self.editor_tabs.currentWidget()
         if isinstance(widget, CodeEditor):
             return widget
+        # el tab puede ser un wrapper (editor + minimap)
+        if widget is not None and hasattr(widget, "_minimap_editor"):
+            return widget._minimap_editor
         return None
 
     def show_artifacts_tab(self) -> None:
         self.output_tabs.setCurrentWidget(self.artifacts_panel)
 
-    def toggle_error_demo(self) -> None:
-        if self.error_demo_timer.isActive():
-            self.error_demo_timer.stop()
-            self.error_demo_button.setText("Demo errores")
-            self.error_demo_button.setToolTip("Demo errores")
-            self._set_state("Demo de errores detenido")
-            return
-
-        try:
-            self._open_error_demo_file()
-        except OSError as error:
-            self._set_problem_text(f"No se pudo preparar la demo de errores:\n{error}")
-            return
-
-        self.error_demo_index = 0
-        self.error_demo_button.setText("Detener demo")
-        self.error_demo_button.setToolTip("Detener demo de errores")
-        self._apply_error_demo_case()
-        self.error_demo_timer.start()
-
-    def _open_error_demo_file(self) -> None:
-        path = (self.workspace.source_root / ERROR_DEMO_FILE).resolve()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if not path.exists():
-            path.write_text(ERROR_DEMO_CASES[0][1], encoding="utf-8")
-
-        self.error_demo_path = path
-        self._populate_file_list()
-        self.open_file(path)
-        self._select_file_in_sidebar(path)
-
-    def _advance_error_demo(self) -> None:
-        self.error_demo_index = (self.error_demo_index + 1) % len(ERROR_DEMO_CASES)
-        self._apply_error_demo_case()
-
-    def _apply_error_demo_case(self) -> None:
-        if self.error_demo_path is None:
-            return
-
-        editor = self.open_editors.get(self.error_demo_path)
-        if editor is None:
-            self.open_file(self.error_demo_path)
-            editor = self.open_editors.get(self.error_demo_path)
-            if editor is None:
+    def show_cfg_viewer(self) -> None:
+        if self.cfg_viewer_tab is not None:
+            index = self.editor_tabs.indexOf(self.cfg_viewer_tab)
+            if index != -1:
+                self.editor_tabs.setCurrentIndex(index)
+                self._load_cfg_paths()
+                self._set_state("Visor CFG")
                 return
 
-        title, source = ERROR_DEMO_CASES[self.error_demo_index]
-        self._loading_editor = True
-        editor.setPlainText(source)
-        editor.document().setModified(False)
-        self._loading_editor = False
-        self._validate_editor(editor)
-        self._update_tab_title(editor)
-        self.editor_tabs.setCurrentWidget(editor)
-        self.output_tabs.setCurrentWidget(self.problems_panel)
-        self._set_state(f"Demo errores: {title}")
+        self.cfg_viewer_tab = CFGViewer()
+        index = self.editor_tabs.addTab(self.cfg_viewer_tab, "CFG")
+        self.editor_tabs.tabBar().setTabButton(
+            index,
+            QTabBar.RightSide,
+            self._build_auxiliary_tab_close_button(self.cfg_viewer_tab),
+        )
+        self.editor_tabs.setCurrentIndex(index)
+        self._load_cfg_paths()
+        self._set_state("Visor CFG")
+
+    def _load_cfg_for_active_file(self) -> None:
+        self._load_cfg_paths()
+
+    def _load_cfg_paths(self) -> None:
+        if self.cfg_viewer_tab is None:
+            return
+        self.cfg_viewer_tab.load_paths(self.workspace.cfg_dot_paths())
+
+    def show_ll1_table(self) -> None:
+        if self.ll1_table_view is not None:
+            index = self.editor_tabs.indexOf(self.ll1_table_view)
+            if index != -1:
+                self.editor_tabs.setCurrentIndex(index)
+                self.ll1_table_view.search_input.setFocus()
+                self._set_state("Tabla predictiva LL(1)")
+                return
+
+        self.ll1_table_view = LL1TableView(self.syntax_service)
+        index = self.editor_tabs.addTab(self.ll1_table_view, "Tabla LL(1)")
+        self.editor_tabs.tabBar().setTabButton(
+            index,
+            QTabBar.RightSide,
+            self._build_auxiliary_tab_close_button(self.ll1_table_view),
+        )
+        self.editor_tabs.setCurrentIndex(index)
+        self.ll1_table_view.search_input.setFocus()
+        self._set_state(
+            f"Tabla LL(1): {len(self.syntax_service.table)} entradas predictivas"
+        )
+
+    def _build_auxiliary_tab_close_button(self, widget: QWidget) -> QWidget:
+        container = QWidget()
+        container.setObjectName("TabCloseContainer")
+        container.setFixedSize(28, 22)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 2, 10, 2)
+        layout.setSpacing(0)
+
+        button = QToolButton()
+        button.setObjectName("TabCloseButton")
+        button.setIcon(make_close_icon("#AFAFAF"))
+        button.setIconSize(QSize(12, 12))
+        button.setFixedSize(16, 16)
+        button.setToolTip("")
+        button.setCursor(Qt.PointingHandCursor)
+        button.clicked.connect(
+            lambda _checked=False, current=widget:
+                self._close_auxiliary_tab(current)
+        )
+        layout.addWidget(button, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        return container
+
+    def _close_auxiliary_tab(self, widget: QWidget) -> None:
+        index = self.editor_tabs.indexOf(widget)
+        if index == -1:
+            return
+        self.editor_tabs.removeTab(index)
+        if widget is self.ll1_table_view:
+            self.ll1_table_view = None
+        if widget is self.cfg_viewer_tab:
+            self.cfg_viewer_tab = None
+        widget.deleteLater()
+        self._handle_current_tab_changed(self.editor_tabs.currentIndex())
 
     def show_completion_popup(self, editor: CodeEditor) -> None:
         cursor = editor.textCursor()
@@ -1045,6 +1561,8 @@ class MainWindow(QMainWindow):
         return index
 
     def _auto_fix_on_enter(self, editor: CodeEditor) -> bool:
+        if self._auto_open_required_block(editor):
+            return True
         if self._auto_indent_after_opening_brace(editor):
             return True
 
@@ -1078,6 +1596,76 @@ class MainWindow(QMainWindow):
         self._set_state(f"Correccion automatica: {fix}")
         return True
 
+    def _auto_open_required_block(self, editor: CodeEditor) -> bool:
+        cursor = editor.textCursor()
+        if cursor.hasSelection():
+            return False
+
+        block_text = cursor.block().text()
+        position_in_block = cursor.positionInBlock()
+        before_cursor = block_text[:position_in_block]
+        after_cursor = block_text[position_in_block:]
+        stripped_before = before_cursor.rstrip()
+        if after_cursor.strip():
+            return False
+        if not (stripped_before.endswith(")") or stripped_before == "else"):
+            return False
+
+        suggestions = self.syntax_service.complete(
+            editor.toPlainText(),
+            cursor.position(),
+        )
+        if not any(suggestion.insert_text == "{" for suggestion in suggestions):
+            return False
+
+        trailing_spaces = len(before_cursor) - len(stripped_before)
+        if trailing_spaces:
+            cursor.movePosition(
+                QTextCursor.Left,
+                QTextCursor.KeepAnchor,
+                trailing_spaces,
+            )
+
+        current_indent = before_cursor[: len(before_cursor) - len(before_cursor.lstrip())]
+        inner_indent = current_indent + CodeEditor.INDENT
+        if self._has_reusable_closing_brace(cursor.block(), current_indent):
+            cursor.insertText(" {")
+            cursor.movePosition(QTextCursor.NextBlock)
+            cursor.movePosition(QTextCursor.StartOfBlock)
+            next_line = cursor.block().text()
+            existing_indent = len(next_line) - len(next_line.lstrip())
+            cursor.movePosition(
+                QTextCursor.Right,
+                QTextCursor.MoveAnchor,
+                existing_indent,
+            )
+        else:
+            cursor.insertText(f" {{\n{inner_indent}\n{current_indent}}}")
+            cursor.movePosition(QTextCursor.Up)
+            cursor.movePosition(QTextCursor.EndOfLine)
+
+        editor.setTextCursor(cursor)
+        self._set_state("Bloque insertado automaticamente")
+        return True
+
+    def _has_reusable_closing_brace(self, header_block, header_indent: str) -> bool:
+        block = header_block.next()
+        while block.isValid():
+            text = block.text()
+            stripped = text.strip()
+            if not stripped:
+                block = block.next()
+                continue
+
+            indent = text[: len(text) - len(text.lstrip())]
+            if len(indent) < len(header_indent):
+                return False
+            if len(indent) == len(header_indent):
+                return stripped.startswith("}")
+
+            block = block.next()
+        return False
+
     def _auto_indent_after_opening_brace(self, editor: CodeEditor) -> bool:
         cursor = editor.textCursor()
         if cursor.hasSelection():
@@ -1104,16 +1692,10 @@ class MainWindow(QMainWindow):
 
     def _structural_suggestions_at_cursor(self, editor: CodeEditor):
         cursor_position = editor.textCursor().position()
-        source_before_cursor = editor.toPlainText()[:cursor_position]
-        diagnostics, suggestions = self.syntax_service.analyze(
-            source_before_cursor,
-            include_semantic=False,
+        return self.syntax_service.complete(
+            editor.toPlainText(),
+            cursor_position,
         )
-        if self._cursor_at_document_end(editor) and not self._line_needs_semicolon_first(editor, suggestions):
-            for diagnostic in reversed(diagnostics):
-                if set(diagnostic.expected) & {"}", ")", "]"}:
-                    return diagnostic.suggestions
-        return suggestions
 
     def _first_structural_fix(self, suggestions) -> str | None:
         allowed = {";", "}", ")", "]", ":"}
@@ -1226,9 +1808,20 @@ class MainWindow(QMainWindow):
     def _handle_current_tab_changed(self, _index: int) -> None:
         editor = self.current_editor()
         if editor is None:
-            self.status_position.setText("Ln 1, Col 1")
+            if self.editor_tabs.currentWidget() is self.ll1_table_view:
+                self.status_language.setText("LL(1)")
+                self.status_encoding.setText("Predictiva")
+                self.status_position.setText(
+                    f"{len(self.syntax_service.table)} entradas"
+                )
+            else:
+                self.status_language.setText("Craft")
+                self.status_encoding.setText("UTF-8")
+                self.status_position.setText("Ln 1, Col 1")
             return
 
+        self.status_language.setText("Craft")
+        self.status_encoding.setText("UTF-8")
         path = self.editor_paths.get(editor)
         if path is not None:
             self._select_file_in_sidebar(path)
@@ -1468,7 +2061,7 @@ class MainWindow(QMainWindow):
         if path is None:
             return
 
-        index = self.editor_tabs.indexOf(editor)
+        index = self._tab_index_for_editor(editor)
         if index == -1:
             return
 
@@ -1486,9 +2079,13 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_compile_started(self) -> None:
-        self.compile_button.setEnabled(False)
-        self._set_state("Compilando...")
-        self.sidebar_status.setText("Compilando...")
+        self._set_execution_controls_enabled(False)
+        status = (
+            f"Compilando: {self.current_optimization_label}, "
+            f"unroll {self.current_unroll_label}"
+        )
+        self._set_state(status)
+        self.sidebar_status.setText(status)
 
     def _append_compiler_output(self, text: str) -> None:
         self.output_panel.moveCursor(QTextCursor.End)
@@ -1503,15 +2100,49 @@ class MainWindow(QMainWindow):
         self.output_tabs.setCurrentWidget(self.problems_panel)
 
     def _handle_compile_finished(self, exit_code: int) -> None:
-        self.compile_button.setEnabled(True)
-        editor = self.current_editor()
-        path = self.editor_paths.get(editor) if editor is not None else None
+        path = self.active_compile_path
 
         if exit_code == 0:
             self._set_problem_count(0)
-            self.sidebar_status.setText("Compilado correctamente")
-            self._set_state("Compilado correctamente")
+            status = (
+                f"Compilado correctamente: {self.current_optimization_label}, "
+                f"unroll {self.current_unroll_label}"
+            )
+            self.sidebar_status.setText(status)
+            self._set_state(status)
+
+            if self.pending_run:
+                hex_path = self.compiler.generated_hex_path
+                data_hex_path = self.compiler.generated_data_hex_path
+                if hex_path is None:
+                    self.pending_run = False
+                    self._set_problem_text(
+                        "La compilacion termino correctamente, pero no se pudo "
+                        "determinar la ruta del archivo .hex generado."
+                    )
+                    self.sidebar_status.setText("No se pudo iniciar la simulacion")
+                    self._set_state("No se pudo iniciar la simulacion")
+                    self._set_execution_controls_enabled(True)
+                else:
+                    self.output_panel.moveCursor(QTextCursor.End)
+                    self.output_panel.insertPlainText(
+                        (
+                            "\n"
+                            "============================================================\n"
+                            f"  EJECUTANDO EN RTL: {hex_path.name}\n"
+                        )
+                        + (
+                            f"  DATOS INICIALES: {data_hex_path.name}\n"
+                            if data_hex_path is not None
+                            else ""
+                        )
+                        + "============================================================\n"
+                    )
+                    self.simulator.run(hex_path, data_hex_path)
+            else:
+                self._set_execution_controls_enabled(True)
         else:
+            self.pending_run = False
             if self.problems_panel.toPlainText() == NO_PROBLEMS_TEXT:
                 details = self.output_panel.toPlainText().strip()
                 self.problems_panel.setPlainText(details or "El compilador termino con errores.")
@@ -1519,9 +2150,60 @@ class MainWindow(QMainWindow):
             self.sidebar_status.setText("Error de compilacion")
             self._set_state("Error de compilacion")
             self.output_tabs.setCurrentWidget(self.problems_panel)
+            self._set_execution_controls_enabled(True)
 
         if path is not None:
             self._refresh_artifacts(path)
+            self._load_cfg_paths()
+        self.active_compile_path = None
+
+    def _handle_simulation_started(self) -> None:
+        self._set_execution_controls_enabled(False)
+        self.output_tabs.setCurrentWidget(self.output_panel)
+        status = f"Ejecutando: {self.current_optimization_label}"
+        self.sidebar_status.setText(status)
+        self._set_state(status)
+
+    def _append_simulation_output(self, text: str) -> None:
+        self.output_panel.moveCursor(QTextCursor.End)
+        self.output_panel.insertPlainText(text)
+
+    def _handle_simulation_finished(self, exit_code: int) -> None:
+        self.pending_run = False
+        self._set_execution_controls_enabled(True)
+
+        failed = (
+            exit_code != 0
+            or "[ERROR] Test abortado" in self.simulator.output_text
+        )
+        if failed:
+            status = f"Simulacion terminada con error ({exit_code})"
+            self._set_problem_text(
+                "La simulacion no termino correctamente. "
+                "Revise la pestana Salida para ver el diagnostico del testbench."
+            )
+            self.output_tabs.setCurrentWidget(self.output_panel)
+        else:
+            match = re.search(
+                r"\[METRICS\]\s+cycles=(\d+)\|instr=(\d+)\|cpi=([0-9.]+)",
+                self.simulator.output_text,
+            )
+            if match:
+                status = (
+                    f"Simulacion finalizada: ciclos={match.group(1)}, "
+                    f"instr={match.group(2)}, CPI={match.group(3)}"
+                )
+            else:
+                status = "Simulacion finalizada correctamente"
+            self._set_problem_count(0)
+
+        self.sidebar_status.setText(status)
+        self._set_state(status)
+
+    def _set_execution_controls_enabled(self, enabled: bool) -> None:
+        self.compile_button.setEnabled(enabled)
+        self.run_button.setEnabled(enabled)
+        self.unroll_factor_input.setEnabled(enabled)
 
     def _refresh_artifacts(self, source_path: Path) -> None:
         artifacts = self.workspace.artifact_paths_for(source_path)
@@ -1539,6 +2221,21 @@ class MainWindow(QMainWindow):
 
     def _set_state(self, text: str) -> None:
         self.status_state.setText(text)
+
+    def _read_git_branch(self) -> str:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+                timeout=2,
+            )
+            branch = result.stdout.strip()
+            return branch if branch else "main"
+        except Exception:
+            return "main"
 
     def _build_status_bar(self) -> QWidget:
         bar = QFrame()
@@ -1567,7 +2264,8 @@ class MainWindow(QMainWindow):
 
         layout.addStretch(1)
 
-        branch = QLabel("main")
+        branch_name = self._read_git_branch()
+        branch = QLabel(f"⎇ {branch_name}")
         branch.setObjectName("StatusItem")
         layout.addWidget(branch)
 
@@ -1576,7 +2274,11 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
+    configure_windows_app_id()
     app = QApplication(sys.argv)
+    app.setApplicationName(APP_TITLE)
+    app.setDesktopFileName(WINDOWS_APP_ID)
+    app.setWindowIcon(QIcon(str(LOGO_PATH)))
     app.setStyleSheet(APP_QSS)
     window = MainWindow()
     window.show()

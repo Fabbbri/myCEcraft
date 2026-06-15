@@ -1,0 +1,94 @@
+maximo_lista:
+  t0__x3 = lista[0]
+  limite__v1__x5 = largo
+  maximo__v1__x4 = t0__x3
+  i__v1__x6 = 0
+  commit maximo = maximo__v1__x4
+  commit limite = limite__v1__x5
+  commit i = i__v1__x6
+L_for_start_0:
+  t1__x7 = limite + 0
+  t2__x8 = i < t1__x7
+  ifFalse t2__x8 goto L_for_end_1
+  t3__x9 = lista[i]
+  num__v1__x10 = t3__x9
+  t4__x3 = num__v1__x10 > maximo
+  esMayor__v1__x4 = t4__x3
+  t5__x5 = esMayor__v1__x4 + 0
+  commit num = num__v1__x10
+  commit esMayor = esMayor__v1__x4
+  ifFalse t5__x5 goto L_else_2
+  maximo__v2__x6 = num
+  commit maximo = maximo__v2__x6
+  goto L_end_if_3
+L_else_2:
+L_end_if_3:
+  t6__x7 = i + 1
+  i__v2__x8 = t6__x7
+  commit i = i__v2__x8
+  goto L_for_start_0
+L_for_end_1:
+  return maximo
+main:
+  lista = [3, 4, 5, 24, 5, 65, 46]
+  t7__x9 = call maximo_lista(lista, 7)
+  return t7__x9
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_maximo_lista]
+  -> Sucesores: B_label_L_for_start_0
+  maximo_lista:
+    t0__x3 = lista[0]
+    limite__v1__x5 = largo
+    maximo__v1__x4 = t0__x3
+    i__v1__x6 = 0
+    commit maximo = maximo__v1__x4
+    commit limite = limite__v1__x5
+    commit i = i__v1__x6
+
+[B_label_L_for_start_0]
+  -> Sucesores: B_label_L_for_end_1, B_fallthrough_2
+  L_for_start_0:
+    t1__x7 = limite + 0
+    t2__x8 = i < t1__x7
+    ifFalse t2__x8 goto L_for_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_3
+    t3__x9 = lista[i]
+    num__v1__x10 = t3__x9
+    t4__x3 = num__v1__x10 > maximo
+    esMayor__v1__x4 = t4__x3
+    t5__x5 = esMayor__v1__x4 + 0
+    commit num = num__v1__x10
+    commit esMayor = esMayor__v1__x4
+    ifFalse t5__x5 goto L_else_2
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_end_if_3
+    maximo__v2__x6 = num
+    commit maximo = maximo__v2__x6
+    goto L_end_if_3
+
+[B_label_L_else_2]
+  -> Sucesores: B_label_L_end_if_3
+  L_else_2:
+
+[B_label_L_end_if_3]
+  -> Sucesores: B_label_L_for_start_0
+  L_end_if_3:
+    t6__x7 = i + 1
+    i__v2__x8 = t6__x7
+    commit i = i__v2__x8
+    goto L_for_start_0
+
+[B_label_L_for_end_1]
+  L_for_end_1:
+    return maximo
+
+[B_label_main]
+  main:
+    IRArrayAssign(elements=[3, 4, 5, 24, 5, 65, 46], result='lista')
+    call maximo_lista
+    return t7__x9

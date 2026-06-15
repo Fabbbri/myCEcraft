@@ -1,0 +1,33 @@
+[*]
+[*] Demo tb_topG / bench_stride: la jerarquia de cache trabajando.
+[*] Cada acceso toca una linea nueva -> falla L1 -> (a veces) falla L2 -> burst a RAM.
+[*] Generar y abrir con:  make wave-demo
+[*] En GTKWave: Ctrl+Shift+F para ajustar el zoom a toda la corrida.
+[*]
+[dumpfile] "sim/waves/tb_topG.vcd"
+[savefile] "sim/gtkwave/tb_topG_demo.gtkw"
+[timestart] 0
+[size] 1600 900
+[pos] -1 -1
+*-15.0 0 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_topG.
+[treeopen] tb_topG.dut.
+[treeopen] tb_topG.dut.Memory.
+@28
+tb_topG.dut.Issue.addr_aux[31:0]
+@28
+tb_topG.dut.Memory.alu_result[31:0]
+@22
+tb_topG.dut.stall_mem
+@22
+tb_topG.dut.Memory.hit_l1
+@22
+tb_topG.dut.Memory.miss_l1
+@22
+tb_topG.dut.Memory.hit_l2
+@22
+tb_topG.dut.Memory.miss_l2
+@22
+tb_topG.dut.Memory.burst_active
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,6 +1,6 @@
 @EnterCraftWorld
-// --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\mod_a.craft ---
-// --- import: C:\Users\snipe\Desktop\myCEcraft\compi\ejemplos\mod_b.craft ---
+// --- import: /home/fabbbri/Escritorio/myCEcraft/compi/ejemplos/mod_a.craft ---
+// --- import: /home/fabbbri/Escritorio/myCEcraft/compi/ejemplos/mod_b.craft ---
 craft:int suma1(x:int) {
     return x + 1;
 }

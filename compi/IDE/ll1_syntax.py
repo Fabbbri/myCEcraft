@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import sys
 
 
@@ -71,7 +72,7 @@ class LL1SyntaxService:
         try:
             tokens = Lexer(source, filename="<editor>").tokenize()
         except LexerError as error:
-            return [self._diagnostic_from_lexer_error(error)], []
+            return [self._diagnostic_from_lexer_error(error, source)], []
 
         diagnostic = self._parse(tokens)
         if diagnostic is not None:
@@ -99,18 +100,31 @@ class LL1SyntaxService:
         return [], self._top_level_suggestions()
 
     def complete(self, source: str, cursor_position: int) -> list[Suggestion]:
+        diagnostic_suggestions = self._diagnostic_suggestions_at_cursor(
+            source,
+            cursor_position,
+        )
+        if diagnostic_suggestions:
+            return diagnostic_suggestions
+
         prefix_start = self._completion_prefix_start(source, cursor_position)
         prefix = source[prefix_start:cursor_position]
         context_source = source[:prefix_start]
 
-        diagnostics_at_cursor, structural_suggestions = self.analyze(
+        diagnostics_at_cursor, structural_suggestions = self._predictive_completion_state(
+            source[:cursor_position]
+        )
+        structural_suggestions = self._with_semantic_suggestions(
+            source,
             source[:cursor_position],
-            include_semantic=False,
+            structural_suggestions,
+        )
+        structural_suggestions = self._rank_completion_suggestions(
+            structural_suggestions
         )
 
-        _diagnostics, suggestions = self.analyze(
-            context_source,
-            include_semantic=False,
+        context_diagnostics, suggestions = self._predictive_completion_state(
+            context_source
         )
         suggestions = self._with_semantic_suggestions(source, context_source, suggestions)
         suggestions = self._rank_completion_suggestions(suggestions)
@@ -120,6 +134,7 @@ class LL1SyntaxService:
             structural_suggestions,
             suggestions,
             prefix,
+            context_diagnostics,
         )
         if structural_suggestions:
             return structural_suggestions
@@ -135,17 +150,57 @@ class LL1SyntaxService:
 
         return suggestions
 
+    def _diagnostic_suggestions_at_cursor(
+        self,
+        source: str,
+        cursor_position: int,
+    ) -> list[Suggestion]:
+        if not source[cursor_position:].strip():
+            return []
+
+        diagnostics, _suggestions = self.analyze(
+            source,
+            include_semantic=False,
+        )
+        allowed = {";", ")", "]", "}", ":", ",", "="}
+
+        for diagnostic in diagnostics:
+            if self._source_offset(
+                source,
+                diagnostic.line,
+                diagnostic.column,
+            ) != cursor_position:
+                continue
+
+            fixes = [
+                suggestion
+                for suggestion in diagnostic.suggestions
+                if suggestion.insert_text in allowed
+            ]
+            if fixes:
+                return fixes
+
+        return []
+
     def _rank_structural_completion_suggestions(
         self,
         diagnostics: list[Diagnostic],
         structural_suggestions: list[Suggestion],
         context_suggestions: list[Suggestion],
         prefix: str,
+        context_diagnostics: list[Diagnostic],
     ) -> list[Suggestion]:
         if not diagnostics:
             return []
 
-        allowed = {";", ")", "]", "}", ":"}
+        if prefix and self._prefix_matches_context(
+            prefix,
+            context_suggestions,
+            context_diagnostics,
+        ):
+            return structural_suggestions
+
+        allowed = {";", ")", "]", "}", ":", ",", "=", "(", "["}
         fixes = [
             suggestion
             for suggestion in structural_suggestions
@@ -154,20 +209,65 @@ class LL1SyntaxService:
         if not fixes:
             return []
 
-        if not prefix:
-            return fixes
+        expected = set(diagnostics[0].expected)
+        if expected - allowed:
+            return []
 
+        return fixes if not prefix else []
+
+    def _prefix_matches_context(
+        self,
+        prefix: str,
+        context_suggestions: list[Suggestion],
+        context_diagnostics: list[Diagnostic],
+    ) -> bool:
         prefix_lower = prefix.lower()
-        has_exact_context_match = any(
+        if any(
             suggestion.insert_text.lower() == prefix_lower
             or suggestion.label.lower() == prefix_lower
             or suggestion.label.lower().split()[0] == prefix_lower
             for suggestion in context_suggestions
-        )
-        if has_exact_context_match:
-            return fixes
+        ):
+            return True
 
-        return []
+        has_partial_concrete_match = any(
+            suggestion.label != "identificador"
+            and (
+                suggestion.insert_text.lower().startswith(prefix_lower)
+                or suggestion.label.lower().startswith(prefix_lower)
+            )
+            for suggestion in context_suggestions
+        )
+        if has_partial_concrete_match:
+            return False
+
+        expects_identifier = any(
+            suggestion.label == "identificador"
+            for suggestion in context_suggestions
+        ) or any(
+            "identificador" in diagnostic.expected
+            for diagnostic in context_diagnostics
+        )
+        if not expects_identifier:
+            return False
+
+        tokens = self._safe_tokenize(prefix)
+        significant = self._significant_tokens(tokens) if tokens is not None else []
+        return len(significant) == 1 and significant[0].type == TokenType.IDENT
+
+    def _predictive_completion_state(
+        self,
+        source: str,
+    ) -> tuple[list[Diagnostic], list[Suggestion]]:
+        try:
+            tokens = Lexer(source, filename="<completion>").tokenize()
+        except LexerError:
+            return [], []
+
+        diagnostic = self._parse(tokens, prefer_missing_semicolon=False)
+        if diagnostic is None:
+            return [], self._top_level_suggestions()
+        return [diagnostic], list(diagnostic.suggestions)
 
     def _with_semantic_suggestions(
         self,
@@ -181,13 +281,14 @@ class LL1SyntaxService:
 
         enriched = list(suggestions)
         expected_labels = {suggestion.label for suggestion in suggestions}
+        expects_identifier = "identificador" in expected_labels
 
-        if self._is_summon_target_context(tokens):
+        if expects_identifier and self._is_summon_target_context(tokens):
             enriched.extend(self._function_completion_suggestions(full_source))
             enriched.extend(self._module_alias_completion_suggestions(full_source))
             return enriched
 
-        if self._is_value_identifier_context(tokens):
+        if expects_identifier and self._is_value_identifier_context(tokens):
             enriched.extend(self._variable_completion_suggestions(tokens))
 
         return enriched
@@ -545,7 +646,11 @@ class LL1SyntaxService:
         ]
         return concrete or suggestions
 
-    def _parse(self, tokens: list[Token]) -> Diagnostic | None:
+    def _parse(
+        self,
+        tokens: list[Token],
+        prefer_missing_semicolon: bool = True,
+    ) -> Diagnostic | None:
         stack = [EOF, self.START_SYMBOL]
         index = 0
 
@@ -561,14 +666,25 @@ class LL1SyntaxService:
                 if top == current_symbol:
                     index += 1
                     continue
-                return self._diagnostic(current, [top])
+                return self._diagnostic(
+                    current,
+                    [top],
+                    prefer_missing_semicolon=prefer_missing_semicolon,
+                )
 
             production = self.table.get((top, current_symbol))
             if production is None:
                 if EPSILON in self.first[top] and current_symbol in self.follow[top]:
                     continue
-                expected = sorted(self._expected_terminals(top))
-                return self._diagnostic(current, expected)
+                if current_symbol == EOF:
+                    expected = sorted(self._expected_terminals_for_stack(stack, top))
+                else:
+                    expected = sorted(self._expected_terminals(top))
+                return self._diagnostic(
+                    current,
+                    expected,
+                    prefer_missing_semicolon=prefer_missing_semicolon,
+                )
 
             for symbol in reversed(production):
                 if symbol != EPSILON:
@@ -576,8 +692,17 @@ class LL1SyntaxService:
 
         return None
 
-    def _diagnostic(self, token: Token, expected: list[str]) -> Diagnostic:
-        if "SEMICOLON" in expected and token.type in {TokenType.RBRACE, TokenType.EOF}:
+    def _diagnostic(
+        self,
+        token: Token,
+        expected: list[str],
+        prefer_missing_semicolon: bool = True,
+    ) -> Diagnostic:
+        if (
+            prefer_missing_semicolon
+            and "SEMICOLON" in expected
+            and token.type in {TokenType.RBRACE, TokenType.EOF}
+        ):
             expected = ["SEMICOLON"]
 
         labels = tuple(self._label_for(symbol) for symbol in expected)
@@ -604,11 +729,24 @@ class LL1SyntaxService:
             suggestions=tuple(self._suggestions_for(expected)),
         )
 
-    def _diagnostic_from_lexer_error(self, error: LexerError) -> Diagnostic:
+    def _diagnostic_from_lexer_error(
+        self,
+        error: LexerError,
+        source: str,
+    ) -> Diagnostic:
+        line_text = self._source_line(source, error.line)
+        start = max(0, error.column - 1)
+        length = 1
+        message = str(error)
+        if "cadena sin cerrar" in message:
+            length = max(1, len(line_text) - start)
+        elif "comentario" in message and "sin cerrar" in message:
+            length = 2
+
         return Diagnostic(
             line=error.line,
             column=error.column,
-            length=1,
+            length=length,
             message=self._phase_message(error, "Lexico"),
             expected=(),
             suggestions=(),
@@ -625,15 +763,62 @@ class LL1SyntaxService:
             suggestions=(),
         )
 
-    def _diagnostic_from_semantic_error(self, error: SemanticError) -> Diagnostic:
+    def _diagnostic_from_semantic_error(
+        self,
+        error: SemanticError,
+        tokens: list[Token],
+    ) -> Diagnostic:
         node = error.node
+        token = self._semantic_error_token(error, tokens)
         return Diagnostic(
-            line=node.line,
-            column=node.column,
-            length=1,
+            line=token.line if token is not None else node.line,
+            column=token.column if token is not None else node.column,
+            length=max(1, len(token.lexeme)) if token is not None else 1,
             message=self._phase_message(error, "Semantico"),
             expected=(),
             suggestions=(),
+        )
+
+    def _semantic_error_token(
+        self,
+        error: SemanticError,
+        tokens: list[Token],
+    ) -> Token | None:
+        node = error.node
+        line_tokens = [
+            token
+            for token in tokens
+            if token.type != TokenType.EOF
+            and token.line == node.line
+            and token.column >= node.column
+        ]
+        quoted_lexemes = re.findall(r"'([^']+)'", str(error))
+        for lexeme in quoted_lexemes:
+            for token in line_tokens:
+                if token.lexeme == lexeme:
+                    return token
+
+        return next(
+            (
+                token
+                for token in line_tokens
+                if token.column == node.column
+            ),
+            None,
+        )
+
+    def _source_line(self, source: str, line: int) -> str:
+        lines = source.splitlines()
+        if 1 <= line <= len(lines):
+            return lines[line - 1]
+        return ""
+
+    def _source_offset(self, source: str, line: int, column: int) -> int:
+        lines = source.splitlines(keepends=True)
+        line_index = max(0, line - 1)
+        return min(
+            len(source),
+            sum(len(text) for text in lines[:line_index]) + max(0, column - 1),
         )
 
     def _analyze_compiler_phases(self, tokens: list[Token]) -> Diagnostic | None:
@@ -643,7 +828,7 @@ class LL1SyntaxService:
         except ParseError as error:
             return self._diagnostic_from_parse_error(error)
         except SemanticError as error:
-            return self._diagnostic_from_semantic_error(error)
+            return self._diagnostic_from_semantic_error(error, tokens)
         return None
 
     def _structural_diagnostics(self, tokens: list[Token]) -> list[Diagnostic]:
@@ -975,6 +1160,7 @@ class LL1SyntaxService:
     def _top_level_suggestions(self) -> list[Suggestion]:
         return [
             TERMINAL_SUGGESTIONS["PRAGMA_ENTER_CRAFT_WORLD"],
+            TERMINAL_SUGGESTIONS["PRAGMA_INLINE"],
             TERMINAL_SUGGESTIONS["KW_INVOKE"],
             *self._suggestions_for_terminal("KW_CRAFT"),
         ]
@@ -994,6 +1180,44 @@ class LL1SyntaxService:
             terminals.update(self.follow[nonterminal])
         terminals.discard(EOF)
         return terminals
+
+    def _expected_terminals_for_stack(
+        self,
+        remaining_stack: list[str],
+        current_top: str,
+    ) -> set[str]:
+        candidates = {
+            symbol
+            for productions in self.grammar.values()
+            for production in productions
+            for symbol in production
+            if symbol not in self.nonterminals and symbol not in {EPSILON, EOF}
+        }
+        expected = set()
+
+        for candidate in candidates:
+            stack = [*remaining_stack, current_top]
+            while stack:
+                top = stack.pop()
+                if top == EPSILON:
+                    continue
+
+                if top not in self.nonterminals:
+                    if top == candidate:
+                        expected.add(candidate)
+                    break
+
+                production = self.table.get((top, candidate))
+                if production is None:
+                    if EPSILON in self.first[top] and candidate in self.follow[top]:
+                        continue
+                    break
+
+                for symbol in reversed(production):
+                    if symbol != EPSILON:
+                        stack.append(symbol)
+
+        return expected
 
     def _first_of_sequence(self, sequence: tuple[str, ...]) -> set[str]:
         if not sequence:
@@ -1091,7 +1315,7 @@ class LL1SyntaxService:
             "KW_ENDERKEY",
             "KW_ENDERLOW",
             "KW_ENDERHIGH",
-            "KW_CHANGEPASSWORD",
+            "KW_CLOSE",
         )
 
         grammar: dict[str, list[tuple[str, ...]]] = {
@@ -1128,7 +1352,7 @@ class LL1SyntaxService:
                 ("TYPE_CHEST", "LBRACKET", "ChestTypeInner", "COMMA", "Expr", "RBRACKET"),
             ],
             "PointerTypeTail": [("LBRACKET", "Type", "RBRACKET"), (EPSILON,)],
-            "ChestTypeInner": [("Type",), ("TYPE_ENDER",)],
+            "ChestTypeInner": [("Type",)],
             "Block": [("LBRACE", "Statements", "RBRACE")],
             "Statements": [("Statement", "Statements"), (EPSILON,)],
             "Statement": [
@@ -1138,6 +1362,7 @@ class LL1SyntaxService:
                 ("ForStmt",),
                 ("ReturnStmt",),
                 ("EnderPortalStmt",),
+                ("ChangePasswordStmt",),
                 ("IdentStmt",),
                 ("SummonStmt",),
                 ("VaultStmt",),
@@ -1171,33 +1396,52 @@ class LL1SyntaxService:
                     "LPAREN",
                     "Expr",
                     "RPAREN",
-                    "COLON",
-                    "PortalStatements",
-                    "KW_ENDCHANGE",
+                    "EnderPortalTail",
                 )
+            ],
+            "EnderPortalTail": [
+                ("COLON", "PortalStatements", "KW_ENDCHANGE", "SemiOpt"),
+                ("SEMICOLON",),
             ],
             "PortalStatements": [("PortalStatement", "PortalStatements"), (EPSILON,)],
             "PortalStatement": [
                 ("IdentStmt",),
                 ("VaultStmt",),
-                ("KW_ENDERCHANGE", "LPAREN", "Expr", "RPAREN"),
-                ("KW_ENDERCLOSE", "SemiOpt"),
-                ("KW_CLOSE", "SemiOpt"),
+                ("ChangePasswordStmt",),
             ],
             "SemiOpt": [("SEMICOLON",), (EPSILON,)],
             "IdentStmt": [("IdentStmtNoSemi", "SEMICOLON")],
             "IdentStmtNoSemi": [("IDENT", "IdentTail")],
             "IdentTail": [
-                ("COLON", "Type", "ASSIGN", "Expr"),
+                ("COLON", "Type", "VarInitOpt"),
                 ("ASSIGN", "Expr"),
                 ("LBRACKET", "Expr", "RBRACKET", "ASSIGN", "Expr"),
-                ("LPAREN", "ArgsOpt", "RPAREN"),
             ],
+            "VarInitOpt": [("ASSIGN", "Expr"), (EPSILON,)],
             "SummonStmt": [("CallExpr", "SEMICOLON")],
-            "VaultStmt": [("VaultKeyword", "VaultArgsOpt", "SEMICOLON")],
-            "VaultKeyword": [(token,) for token in vault_keywords],
-            "VaultArgsOpt": [("Expr", "VaultArgsTail"), (EPSILON,)],
-            "VaultArgsTail": [("COMMA", "Expr", "VaultArgsTail"), (EPSILON,)],
+            "ChangePasswordStmt": [
+                ("KW_ENDERCHANGE", "LPAREN", "Expr", "RPAREN", "SemiOpt")
+            ],
+            "VaultStmt": [
+                ("VaultCloseKeyword", "SemiOpt"),
+                ("VaultArgKeyword", "VaultArgsOpt", "SEMICOLON"),
+            ],
+            "VaultCloseKeyword": [("KW_ENDERCLOSE",), ("KW_CLOSE",)],
+            "VaultArgKeyword": [
+                (token,)
+                for token in vault_keywords
+                if token not in {"KW_ENDERCLOSE", "KW_CLOSE"}
+            ],
+            "VaultArgsOpt": [("VaultOperand", "VaultArgsTail"), (EPSILON,)],
+            "VaultArgsTail": [
+                ("COMMA", "VaultOperand", "VaultArgsTail"),
+                (EPSILON,),
+            ],
+            "VaultOperand": [("Expr", "VaultAddressOpt")],
+            "VaultAddressOpt": [
+                ("LPAREN", "Expr", "RPAREN"),
+                (EPSILON,),
+            ],
             "ExprOpt": [("Expr",), (EPSILON,)],
             "Expr": [("Prefix", "ExprTail")],
             "ExprTail": [("BinaryOp", "Prefix", "ExprTail"), (EPSILON,)],
@@ -1216,7 +1460,6 @@ class LL1SyntaxService:
             ],
             "Postfixes": [("Postfix", "Postfixes"), (EPSILON,)],
             "Postfix": [
-                ("LPAREN", "ArgsOpt", "RPAREN"),
                 ("LBRACKET", "Expr", "RBRACKET"),
                 ("DOT", "IDENT"),
             ],
@@ -1337,17 +1580,37 @@ TERMINAL_SUGGESTIONS = {
     "KW_FOR": Suggestion("for loop", "for (; ; ) {\n    \n}", "ciclo for"),
     "KW_RETURN": Suggestion("return", "return ;", "retorna desde la funcion actual"),
     "KW_SUMMON": Suggestion("summon", "summon:", "llamada a funcion"),
+    "KW_ELSE": Suggestion("else block", "else {\n    \n}", "rama alternativa"),
+    "KW_AS": Suggestion("as", "as ", "alias del modulo importado"),
+    "KW_ENDEROPEN": Suggestion("enderopen", "enderopen ", "abre la boveda"),
+    "KW_ENDERCLOSE": Suggestion("enderclose", "enderclose", "cierra la boveda"),
+    "KW_ENDERLOAD": Suggestion("enderload", "enderload ", "carga desde la boveda"),
+    "KW_ENDERSTORE": Suggestion("enderstore", "enderstore ", "guarda en la boveda"),
+    "KW_ENDERKEY": Suggestion("enderkey", "enderkey ", "configura una llave"),
+    "KW_ENDERLOW": Suggestion("enderlow", "enderlow ", "selecciona la mitad baja"),
+    "KW_ENDERHIGH": Suggestion("enderhigh", "enderhigh ", "selecciona la mitad alta"),
+    "KW_ENDERCHANGE": Suggestion(
+        "enderchange",
+        "enderchange()",
+        "cambia la clave de la boveda",
+    ),
+    "KW_CLOSE": Suggestion("close", "close", "cierra la boveda"),
+    "KW_ENDCHANGE": Suggestion("endchange", "endchange", "cierra enderPortal"),
     "KW_ENDERPORTAL": Suggestion(
         "enderPortal block",
         "enderPortal():\n    \nendchange",
         "bloque de operaciones de boveda",
     ),
     "IDENT": Suggestion("identificador", "nombre"),
+    "STRING_LITERAL": Suggestion("cadena", '"texto"', "literal de texto"),
+    "INT_LITERAL": Suggestion("entero", "0", "literal entero"),
+    "HEX_LITERAL": Suggestion("hexadecimal", "0x0", "literal hexadecimal"),
     "TYPE_INT": Suggestion("int", "int", "entero con signo"),
     "TYPE_UINT32": Suggestion("uint32", "uint32", "entero sin signo de 32 bits"),
     "TYPE_UINT16": Suggestion("uint16", "uint16", "entero sin signo de 16 bits"),
     "TYPE_CHAR": Suggestion("char", "char", "caracter / byte"),
     "TYPE_VOID": Suggestion("void", "void", "sin valor de retorno"),
+    "TYPE_ENDER": Suggestion("ender", "ender", "elemento de boveda"),
     "TYPE_POINTER": (
         Suggestion("pointer", "pointer", "puntero sin tipo base"),
         Suggestion("pointer[int]", "pointer[int]", "puntero tipado"),
@@ -1359,8 +1622,31 @@ TERMINAL_SUGGESTIONS = {
     ),
     "SEMICOLON": Suggestion("Insertar ;", ";"),
     "COLON": Suggestion("Insertar :", ":"),
+    "COMMA": Suggestion("Insertar ,", ","),
+    "DOT": Suggestion("Insertar .", "."),
+    "LPAREN": Suggestion("Insertar (", "("),
     "RPAREN": Suggestion("Cerrar )", ")"),
+    "LBRACE": Suggestion("Insertar {", "{"),
     "RBRACE": Suggestion("Cerrar }", "}"),
+    "LBRACKET": Suggestion("Insertar [", "["),
     "RBRACKET": Suggestion("Cerrar ]", "]"),
     "ASSIGN": Suggestion("=", "="),
+    "PLUS": Suggestion("+", "+"),
+    "MINUS": Suggestion("-", "-"),
+    "STAR": Suggestion("*", "*"),
+    "SLASH": Suggestion("/", "/"),
+    "EQ": Suggestion("==", "=="),
+    "NEQ": Suggestion("!=", "!="),
+    "LT": Suggestion("<", "<"),
+    "GT": Suggestion(">", ">"),
+    "LE": Suggestion("<=", "<="),
+    "GE": Suggestion(">=", ">="),
+    "SHIFT_LEFT": Suggestion("<<", "<<"),
+    "SHIFT_RIGHT": Suggestion(">>", ">>"),
+    "BIT_XOR": Suggestion("^", "^"),
+    "BIT_AND": Suggestion("&", "&"),
+    "BIT_OR": Suggestion("|", "|"),
+    "BIT_NOT": Suggestion("~", "~"),
+    "SPECIAL_LPLUS4": Suggestion("<+4", "<+4"),
+    "SPECIAL_RPLUS5": Suggestion(">+5", ">+5"),
 }

@@ -1,0 +1,23 @@
+digraph "bench_seq.O2" {
+  rankdir=TB;
+  graph [fontname="Helvetica", labelloc="t"];
+  node [shape=box, fontname="Courier", style="rounded"];
+  edge [fontname="Helvetica"];
+
+  "B_label_main" [label="B_label_main\lmain:\larr = 0\li = 0\lsuma = 0\l"];
+  "B_label_L_while_start_0" [label="B_label_L_while_start_0\lL_while_start_0:\lt0 = i < 256\lifFalse t0 goto L_while_end_1\l"];
+  "B_fallthrough_2" [label="B_fallthrough_2\larr[i] = i\lt1 = i + 1\li = t1\lgoto L_while_start_0\l"];
+  "B_label_L_while_end_1" [label="B_label_L_while_end_1\lL_while_end_1:\li = 0\l"];
+  "B_label_L_while_start_2" [label="B_label_L_while_start_2\lL_while_start_2:\lt2 = i < 256\lifFalse t2 goto L_while_end_3\l"];
+  "B_fallthrough_5" [label="B_fallthrough_5\lt3 = arr[i]\lt5 = i + 1\lt4 = suma + t3\lsuma = t4\li = t5\lgoto L_while_start_2\l"];
+  "B_label_L_while_end_3" [label="B_label_L_while_end_3\lL_while_end_3:\lreturn suma\l"];
+
+  "B_label_main" -> "B_label_L_while_start_0" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_0" -> "B_label_L_while_end_1" [label="false", color="#B22222"];
+  "B_label_L_while_start_0" -> "B_fallthrough_2" [label="true", color="#2E8B57"];
+  "B_fallthrough_2" -> "B_label_L_while_start_0" [label="jump", color="#4169E1"];
+  "B_label_L_while_end_1" -> "B_label_L_while_start_2" [label="fallthrough", color="#555555"];
+  "B_label_L_while_start_2" -> "B_label_L_while_end_3" [label="false", color="#B22222"];
+  "B_label_L_while_start_2" -> "B_fallthrough_5" [label="true", color="#2E8B57"];
+  "B_fallthrough_5" -> "B_label_L_while_start_2" [label="jump", color="#4169E1"];
+}

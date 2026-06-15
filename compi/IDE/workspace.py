@@ -5,7 +5,7 @@ class Workspace:
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
         self.compi_root = repo_root / "compi"
-        self.source_root = (self.compi_root / "ejemplos").resolve()
+        self.source_root = (self.compi_root / "Defensa/P2").resolve()
         self.output_root = self.compi_root / "output"
 
     def open_folder(self, folder: Path) -> None:
@@ -66,6 +66,12 @@ class Workspace:
         )
         return target
 
+    def cfg_dot_paths(self) -> list[Path]:
+        cfg_dir = self.output_root / "cfg"
+        if not cfg_dir.is_dir():
+            return []
+        return sorted(cfg_dir.glob("*.cfg.dot"))
+
     def artifact_paths_for(self, source_path: Path) -> list[Path]:
         stem = source_path.stem
         candidates = [
@@ -74,6 +80,7 @@ class Workspace:
             self.output_root / "asm_resolved" / f"{stem}.resolved.asm",
             self.output_root / "bin_output" / f"{stem}.bin",
             self.output_root / "bin_output" / f"{stem}.hex",
+            self.output_root / "bin_output" / f"{stem}.data.hex",
             self.output_root / "bin_output" / f"{stem}.lst",
         ]
         expanded_stem = f"{stem}.expanded"
@@ -83,6 +90,7 @@ class Workspace:
                 self.output_root / "asm_resolved" / f"{expanded_stem}.resolved.asm",
                 self.output_root / "bin_output" / f"{expanded_stem}.bin",
                 self.output_root / "bin_output" / f"{expanded_stem}.hex",
+                self.output_root / "bin_output" / f"{expanded_stem}.data.hex",
                 self.output_root / "bin_output" / f"{expanded_stem}.lst",
             ]
         )
@@ -99,6 +107,21 @@ class Workspace:
                         self.output_root / "bin_output" / f"{optimized_stem}.data.hex",
                         self.output_root / "bin_output" / f"{optimized_stem}.lst",
                         self.output_root / "symbols" / f"{optimized_stem}.symbols.txt",
+                    ]
+                )
+            for tag in ("unroll", "rename", "dce", "reorder"):
+                tagged_stem = f"{base_stem}.{tag}"
+                candidates.extend(
+                    [
+                        self.output_root / "ir" / f"{tagged_stem}.ir.txt",
+                        self.output_root / "cfg" / f"{tagged_stem}.cfg.dot",
+                        self.output_root / "asm_unresolved" / f"{tagged_stem}.asm",
+                        self.output_root / "asm_resolved" / f"{tagged_stem}.resolved.asm",
+                        self.output_root / "bin_output" / f"{tagged_stem}.bin",
+                        self.output_root / "bin_output" / f"{tagged_stem}.hex",
+                        self.output_root / "bin_output" / f"{tagged_stem}.data.hex",
+                        self.output_root / "bin_output" / f"{tagged_stem}.lst",
+                        self.output_root / "symbols" / f"{tagged_stem}.symbols.txt",
                     ]
                 )
         return [path for path in candidates if path.exists()]

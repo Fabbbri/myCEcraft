@@ -24,6 +24,7 @@ Jian Zheng Wu
    - [Manejo de stalls de pipeline por misses](#manejo-de-stalls-de-pipeline-por-misses)
 7. [Ordenamiento y coherencia](#ordenamiento-y-coherencia)
 8. [Limitaciones conocidas](#limitaciones-conocidas)
+9. [Apéndice: extensión para métricas](#apéndice-extensión-para-métricas)
 
 ---
 
@@ -577,3 +578,15 @@ las escrituras siempre llegan a RAM antes que la lectura que las sigue.
   recomienda un sincronizador 2-FF).
 - Los contadores de metricas viven en el testbench (medicion no invasiva),
   no en RTL.
+
+## Apéndice: extensión para métricas
+
+Para medir el impacto de la jerarquía de caché se añadió un módulo de contadores de rendimiento (`perf_counters.sv`), para ello fue necesario incluir señales de salida extra en la jerarquía para su integración en el top.
+
+A continuación se muestra el diagrama general:
+
+![img:GENERAL_DIAG_EXP](gen_diag_metrics.png)
+
+y el de la jerarquía con las nuevas señales de salida: 
+
+![img:HIERARCHY](hierarchy_metrics.png)

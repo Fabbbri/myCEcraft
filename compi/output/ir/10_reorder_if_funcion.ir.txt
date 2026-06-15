@@ -1,0 +1,59 @@
+  base = 9
+main:
+  a = base
+  t0 = 2 + 3
+  t1 = t0 + 5
+  b = t1
+  t2 = b + b
+  c = t2
+  t3 = c + b
+  d = t3
+  t4 = d > 20
+  ifFalse t4 goto L_else_0
+  t5 = a + b
+  t6 = t5 + c
+  t7 = t6 + d
+  return t7
+  goto L_end_if_1
+L_else_0:
+  t8 = a + d
+  return t8
+L_end_if_1:
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_main
+    base = 9
+
+[B_label_main]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_2
+    main:
+    a = base
+    t0 = 2 + 3
+    t1 = t0 + 5
+    b = t1
+    t2 = b + b
+    c = t2
+    t3 = c + b
+    d = t3
+    t4 = d > 20
+    ifFalse t4 goto L_else_0
+
+[B_fallthrough_2]
+    t5 = a + b
+    t6 = t5 + c
+    t7 = t6 + d
+    return t7
+
+[B_fallthrough_3]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+    L_else_0:
+    t8 = a + d
+    return t8
+
+[B_label_L_end_if_1]
+    L_end_if_1:

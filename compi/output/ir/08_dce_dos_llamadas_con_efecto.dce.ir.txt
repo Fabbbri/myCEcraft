@@ -1,0 +1,27 @@
+  acumulado = 1
+acumular:
+  t0 = acumulado + valor
+  acumulado = t0
+  return acumulado
+main:
+  t3 = call acumular(2)
+  t5 = call acumular(4)
+  return acumulado
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_acumular
+    acumulado = 1
+
+[B_label_acumular]
+    acumular:
+    t0 = acumulado + valor
+    acumulado = t0
+    return acumulado
+
+[B_label_main]
+    main:
+    t3 = call acumular(2)
+    t5 = call acumular(4)
+    return acumulado

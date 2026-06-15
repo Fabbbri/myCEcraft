@@ -1,0 +1,36 @@
+=== Labels resueltas (.text) ===
+.L_ir_0_enderExit            pc=0x0018
+main                         pc=0x0018
+.L_ir_1_main_end             pc=0x0058
+registrar                    pc=0x0064
+.L_ir_2_registrar_end        pc=0x00A8
+
+SYMBOL TABLE
+============
+Legend:
+  TEXT  addr is a program counter / code address.
+  DATA  addr is an absolute DRAM address.
+  VAULT addr is an absolute Vault memory address.
+  STACK addr is runtime(fp + off); exact only while that frame is active.
+  res=yes means the compiler resolved the storage/address metadata.
+
+[scope 0] GLOBAL
+  symbols:
+  name       kind      type  decl                                        seg   addr    off  size  res
+  ---------  --------  ----  ------------------------------------------  ----  ------  ---  ----  ---
+  registrar  FUNCTION  int   09_dce_resultado_llamada_muerto.craft:6:1   TEXT  0x0064  -    0     yes
+  main       FUNCTION  int   09_dce_resultado_llamada_muerto.craft:12:1  TEXT  0x0018  -    0     yes
+  contador   VARIABLE  int   09_dce_resultado_llamada_muerto.craft:4:1   DATA  0x8000  -    4     yes
+
+  [scope 1] FUNCTION registrar (stack_size=4)
+    symbols:
+    name   kind       type  decl                                        seg    addr            off  size  res
+    -----  ---------  ----  ------------------------------------------  -----  --------------  ---  ----  ---
+    valor  PARAMETER  int   09_dce_resultado_llamada_muerto.craft:6:21  STACK  runtime(x17-4)  -4   4     yes
+
+  [scope 2] FUNCTION main (stack_size=8)
+    symbols:
+    name            kind      type  decl                                        seg    addr            off  size  res
+    --------------  --------  ----  ------------------------------------------  -----  --------------  ---  ----  ---
+    local_muerto    VARIABLE  int   09_dce_resultado_llamada_muerto.craft:13:5  STACK  runtime(x17-4)  -4   4     yes
+    retorno_muerto  VARIABLE  int   09_dce_resultado_llamada_muerto.craft:16:5  STACK  runtime(x17-8)  -8   4     yes

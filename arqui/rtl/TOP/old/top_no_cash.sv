@@ -346,7 +346,7 @@ ex_mem_pipe ex_mem(
 //                       MEM
 // ==========================================================
 
-memory Memory(
+memory_no_cash Memory(
     .clk(clk),
     .reset(reset),
     .w_memv(w_memvMEM), 

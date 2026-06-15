@@ -1,0 +1,731 @@
+; ==================================================
+; Fase 5 - saltos y referencias resueltas
+; Convencion: offset relativo en bytes = target_pc - current_pc
+; ==================================================
+
+; Tabla de etiquetas
+;   .L_ir_0_enderExit = 0x0018
+;   main = 0x0018
+;   .L_ir_2_ir_cmp_true = 0x01B8
+;   .L_ir_3_ir_cmp_end = 0x01BC
+;   .L_ir_4_ir_cmp_true = 0x0218
+;   .L_ir_5_ir_cmp_end = 0x021C
+;   L_else_6 = 0x0238
+;   L_end_if_7 = 0x0238
+;   L_else_4 = 0x023C
+;   L_end_if_5 = 0x023C
+;   .L_ir_1_main_end = 0x0248
+;   tea_encrypt = 0x0254
+;   L_for_start_0 = 0x02C4
+;   .L_ir_7_ir_cmp_true = 0x02D8
+;   .L_ir_8_ir_cmp_end = 0x02DC
+;   L_for_end_1 = 0x05AC
+;   .L_ir_6_tea_encrypt_end = 0x05DC
+;   tea_decrypt = 0x05EC
+;   L_for_start_2 = 0x0664
+;   .L_ir_10_ir_cmp_true = 0x0678
+;   .L_ir_11_ir_cmp_end = 0x067C
+;   L_for_end_3 = 0x094C
+;   .L_ir_9_tea_decrypt_end = 0x097C
+
+; Referencias resueltas
+;   pc=0x0000 portalv -> .L_ir_0_enderExit (addr=0x0018, offset=24)
+;   pc=0x00C8 jal -> tea_encrypt (addr=0x0254, offset=396)
+;   pc=0x0164 jal -> tea_decrypt (addr=0x05EC, offset=1160)
+;   pc=0x01B0 beq -> .L_ir_2_ir_cmp_true (addr=0x01B8, offset=8)
+;   pc=0x01B4 jal -> .L_ir_3_ir_cmp_end (addr=0x01BC, offset=8)
+;   pc=0x01C4 beq -> L_else_4 (addr=0x023C, offset=120)
+;   pc=0x0210 beq -> .L_ir_4_ir_cmp_true (addr=0x0218, offset=8)
+;   pc=0x0214 jal -> .L_ir_5_ir_cmp_end (addr=0x021C, offset=8)
+;   pc=0x0224 beq -> L_else_6 (addr=0x0238, offset=20)
+;   pc=0x0230 jal -> .L_ir_1_main_end (addr=0x0248, offset=24)
+;   pc=0x0234 jal -> L_end_if_7 (addr=0x0238, offset=4)
+;   pc=0x0238 jal -> L_end_if_5 (addr=0x023C, offset=4)
+;   pc=0x0244 jal -> .L_ir_1_main_end (addr=0x0248, offset=4)
+;   pc=0x02D0 blt -> .L_ir_7_ir_cmp_true (addr=0x02D8, offset=8)
+;   pc=0x02D4 jal -> .L_ir_8_ir_cmp_end (addr=0x02DC, offset=8)
+;   pc=0x02E4 beq -> L_for_end_1 (addr=0x05AC, offset=712)
+;   pc=0x05A8 jal -> L_for_start_0 (addr=0x02C4, offset=-740)
+;   pc=0x0670 blt -> .L_ir_10_ir_cmp_true (addr=0x0678, offset=8)
+;   pc=0x0674 jal -> .L_ir_11_ir_cmp_end (addr=0x067C, offset=8)
+;   pc=0x0684 beq -> L_for_end_3 (addr=0x094C, offset=712)
+;   pc=0x0948 jal -> L_for_start_2 (addr=0x0664, offset=-740)
+
+; ==================================================
+; Ensamblador generado directamente desde IR
+; Las optimizaciones IR son la fuente del ejecutable
+; ==================================================
+
+.data
+key: ; addr=0x8000
+    .word 0
+    .word 1
+    .word 2
+    .word 3
+plain: ; addr=0x8010
+    .word 0
+    .word 0
+cipher: ; addr=0x8018
+    .word 0
+    .word 0
+roundtrip: ; addr=0x8020
+    .word 0
+    .word 0
+DELTA: ; addr=0x8028
+    .word 0x9E3779B9
+SUM_INIT: ; addr=0x802C
+    .word 0xC6EF3720
+
+.text
+
+    ; @EnterCraftWorld
+    portalv x0, x0, 24                                  ; pc=0x0000 ; target=.L_ir_0_enderExit ; addr=0x0018
+    lwv v0, 0(v0)                                       ; pc=0x0004
+    sleep ; stall RAW                                   ; pc=0x0008
+    sleep ; stall RAW                                   ; pc=0x000C
+    sleep ; stall RAW                                   ; pc=0x0010
+    closev ; cerrar Secure Mode despues del bootstrap   ; pc=0x0014
+.L_ir_0_enderExit:
+
+main:
+    ; inicializar stack pointer
+    addiHIGH x2, x0, 0                                  ; pc=0x0018
+    addi x2, x2, 0x7FF0                                 ; pc=0x001C
+
+    ; prologue
+    addiSigned x2, x2, -56                              ; pc=0x0020
+    sw x1, 0(x2)                                        ; pc=0x0024
+    sw x17, 4(x2)                                       ; pc=0x0028
+    addi x17, x2, 56                                    ; pc=0x002C
+
+    addi x5, x0, 0                                      ; pc=0x0030
+    add x6, x5, x5                                      ; pc=0x0034
+    add x6, x6, x6                                      ; pc=0x0038
+    addiHIGH x7, x0, 0                                  ; pc=0x003C
+    addi x7, x7, 32784                                  ; pc=0x0040
+    add x7, x7, x6                                      ; pc=0x0044
+    lw x8, 0(x7)                                        ; pc=0x0048
+    sw x8, -4(x17) ; t42__x7                            ; pc=0x004C
+    lw x7, -4(x17) ; t42__x7                            ; pc=0x0050
+    addi x9, x0, 0                                      ; pc=0x0054
+    add x10, x9, x9                                     ; pc=0x0058
+    add x10, x10, x10                                   ; pc=0x005C
+    addiHIGH x6, x0, 0                                  ; pc=0x0060
+    addi x6, x6, 32792                                  ; pc=0x0064
+    add x6, x6, x10                                     ; pc=0x0068
+    sw x7, 0(x6)                                        ; pc=0x006C
+    addi x5, x0, 1                                      ; pc=0x0070
+    add x8, x5, x5                                      ; pc=0x0074
+    add x8, x8, x8                                      ; pc=0x0078
+    addiHIGH x10, x0, 0                                 ; pc=0x007C
+    addi x10, x10, 32784                                ; pc=0x0080
+    add x10, x10, x8                                    ; pc=0x0084
+    lw x9, 0(x10)                                       ; pc=0x0088
+    sw x9, -8(x17) ; t43__x8                            ; pc=0x008C
+    lw x8, -8(x17) ; t43__x8                            ; pc=0x0090
+    addi x6, x0, 1                                      ; pc=0x0094
+    add x7, x6, x6                                      ; pc=0x0098
+    add x7, x7, x7                                      ; pc=0x009C
+    addiHIGH x5, x0, 0                                  ; pc=0x00A0
+    addi x5, x5, 32792                                  ; pc=0x00A4
+    add x5, x5, x7                                      ; pc=0x00A8
+    sw x8, 0(x5)                                        ; pc=0x00AC
+    addiHIGH x10, x0, 0                                 ; pc=0x00B0
+    addi x10, x10, 32792                                ; pc=0x00B4
+    add x11, x10, x0                                    ; pc=0x00B8
+    addiHIGH x9, x0, 0                                  ; pc=0x00BC
+    addi x9, x9, 32768                                  ; pc=0x00C0
+    add x12, x9, x0                                     ; pc=0x00C4
+    jal x1, 396                                         ; pc=0x00C8 ; target=tea_encrypt ; addr=0x0254
+    addi x7, x0, 0                                      ; pc=0x00CC
+    add x6, x7, x7                                      ; pc=0x00D0
+    add x6, x6, x6                                      ; pc=0x00D4
+    addiHIGH x5, x0, 0                                  ; pc=0x00D8
+    addi x5, x5, 32792                                  ; pc=0x00DC
+    add x5, x5, x6                                      ; pc=0x00E0
+    lw x8, 0(x5)                                        ; pc=0x00E4
+    sw x8, -16(x17) ; t45__x10                          ; pc=0x00E8
+    lw x10, -16(x17) ; t45__x10                         ; pc=0x00EC
+    addi x9, x0, 0                                      ; pc=0x00F0
+    add x6, x9, x9                                      ; pc=0x00F4
+    add x6, x6, x6                                      ; pc=0x00F8
+    addiHIGH x7, x0, 0                                  ; pc=0x00FC
+    addi x7, x7, 32800                                  ; pc=0x0100
+    add x7, x7, x6                                      ; pc=0x0104
+    sw x10, 0(x7)                                       ; pc=0x0108
+    addi x5, x0, 1                                      ; pc=0x010C
+    add x8, x5, x5                                      ; pc=0x0110
+    add x8, x8, x8                                      ; pc=0x0114
+    addiHIGH x6, x0, 0                                  ; pc=0x0118
+    addi x6, x6, 32792                                  ; pc=0x011C
+    add x6, x6, x8                                      ; pc=0x0120
+    lw x9, 0(x6)                                        ; pc=0x0124
+    sw x9, -20(x17) ; t46__x3                           ; pc=0x0128
+    lw x7, -20(x17) ; t46__x3                           ; pc=0x012C
+    addi x10, x0, 1                                     ; pc=0x0130
+    add x8, x10, x10                                    ; pc=0x0134
+    add x8, x8, x8                                      ; pc=0x0138
+    addiHIGH x5, x0, 0                                  ; pc=0x013C
+    addi x5, x5, 32800                                  ; pc=0x0140
+    add x5, x5, x8                                      ; pc=0x0144
+    sw x7, 0(x5)                                        ; pc=0x0148
+    addiHIGH x6, x0, 0                                  ; pc=0x014C
+    addi x6, x6, 32800                                  ; pc=0x0150
+    add x11, x6, x0                                     ; pc=0x0154
+    addiHIGH x9, x0, 0                                  ; pc=0x0158
+    addi x9, x9, 32768                                  ; pc=0x015C
+    add x12, x9, x0                                     ; pc=0x0160
+    jal x1, 1160                                        ; pc=0x0164 ; target=tea_decrypt ; addr=0x05EC
+    addi x8, x0, 0                                      ; pc=0x0168
+    add x10, x8, x8                                     ; pc=0x016C
+    add x10, x10, x10                                   ; pc=0x0170
+    addiHIGH x5, x0, 0                                  ; pc=0x0174
+    addi x5, x5, 32800                                  ; pc=0x0178
+    add x5, x5, x10                                     ; pc=0x017C
+    lw x7, 0(x5)                                        ; pc=0x0180
+    add x3, x7, x0 ; promote t48__x5                    ; pc=0x0184
+    addi x6, x0, 0                                      ; pc=0x0188
+    add x9, x6, x6                                      ; pc=0x018C
+    add x9, x9, x9                                      ; pc=0x0190
+    addiHIGH x10, x0, 0                                 ; pc=0x0194
+    addi x10, x10, 32784                                ; pc=0x0198
+    add x10, x10, x9                                    ; pc=0x019C
+    lw x8, 0(x10)                                       ; pc=0x01A0
+    sw x8, -32(x17) ; t49__x6                           ; pc=0x01A4
+    lw x6, -32(x17) ; t49__x6                           ; pc=0x01A8
+    addi x7, x0, 0                                      ; pc=0x01AC
+    beq x3, x6, 8                                       ; pc=0x01B0 ; target=.L_ir_2_ir_cmp_true ; addr=0x01B8
+    jal x0, 8                                           ; pc=0x01B4 ; target=.L_ir_3_ir_cmp_end ; addr=0x01BC
+.L_ir_2_ir_cmp_true:
+    addi x7, x0, 1                                      ; pc=0x01B8
+.L_ir_3_ir_cmp_end:
+    sw x7, -36(x17) ; t50__x7                           ; pc=0x01BC
+    lw x7, -36(x17) ; t50__x7                           ; pc=0x01C0
+    beq x7, x0, 120                                     ; pc=0x01C4 ; target=L_else_4 ; addr=0x023C
+    addi x5, x0, 1                                      ; pc=0x01C8
+    add x9, x5, x5                                      ; pc=0x01CC
+    add x9, x9, x9                                      ; pc=0x01D0
+    addiHIGH x10, x0, 0                                 ; pc=0x01D4
+    addi x10, x10, 32800                                ; pc=0x01D8
+    add x10, x10, x9                                    ; pc=0x01DC
+    lw x8, 0(x10)                                       ; pc=0x01E0
+    add x4, x8, x0 ; promote t51__x8                    ; pc=0x01E4
+    addi x6, x0, 1                                      ; pc=0x01E8
+    add x7, x6, x6                                      ; pc=0x01EC
+    add x7, x7, x7                                      ; pc=0x01F0
+    addiHIGH x9, x0, 0                                  ; pc=0x01F4
+    addi x9, x9, 32784                                  ; pc=0x01F8
+    add x9, x9, x7                                      ; pc=0x01FC
+    lw x5, 0(x9)                                        ; pc=0x0200
+    sw x5, -44(x17) ; t52__x9                           ; pc=0x0204
+    lw x9, -44(x17) ; t52__x9                           ; pc=0x0208
+    addi x10, x0, 0                                     ; pc=0x020C
+    beq x4, x9, 8                                       ; pc=0x0210 ; target=.L_ir_4_ir_cmp_true ; addr=0x0218
+    jal x0, 8                                           ; pc=0x0214 ; target=.L_ir_5_ir_cmp_end ; addr=0x021C
+.L_ir_4_ir_cmp_true:
+    addi x10, x0, 1                                     ; pc=0x0218
+.L_ir_5_ir_cmp_end:
+    sw x10, -48(x17) ; t53__x10                         ; pc=0x021C
+    lw x10, -48(x17) ; t53__x10                         ; pc=0x0220
+    beq x10, x0, 20                                     ; pc=0x0224 ; target=L_else_6 ; addr=0x0238
+    addi x8, x0, 0                                      ; pc=0x0228
+    add x11, x8, x0                                     ; pc=0x022C
+    jal x0, 24                                          ; pc=0x0230 ; target=.L_ir_1_main_end ; addr=0x0248
+    jal x0, 4                                           ; pc=0x0234 ; target=L_end_if_7 ; addr=0x0238
+L_else_6:
+L_end_if_7:
+    jal x0, 4                                           ; pc=0x0238 ; target=L_end_if_5 ; addr=0x023C
+L_else_4:
+L_end_if_5:
+    addi x7, x0, 1                                      ; pc=0x023C
+    add x11, x7, x0                                     ; pc=0x0240
+    jal x0, 4                                           ; pc=0x0244 ; target=.L_ir_1_main_end ; addr=0x0248
+.L_ir_1_main_end:
+    ; epilogue
+    lw x17, 4(x2)                                       ; pc=0x0248
+    addi x2, x2, 56                                     ; pc=0x024C
+    freeze                                              ; pc=0x0250
+
+tea_encrypt:
+    ; prologue
+    addiSigned x2, x2, -208                             ; pc=0x0254
+    sw x1, 0(x2)                                        ; pc=0x0258
+    sw x17, 4(x2)                                       ; pc=0x025C
+    addi x17, x2, 208                                   ; pc=0x0260
+
+    sw x11, -4(x17) ; parametro v                       ; pc=0x0264
+    sw x12, -8(x17) ; parametro tea_key                 ; pc=0x0268
+
+    addi x5, x0, 0                                      ; pc=0x026C
+    add x6, x5, x5                                      ; pc=0x0270
+    add x6, x6, x6                                      ; pc=0x0274
+    lw x7, -4(x17) ; base ref v                         ; pc=0x0278
+    add x7, x7, x6                                      ; pc=0x027C
+    lw x8, 0(x7)                                        ; pc=0x0280
+    sw x8, -52(x17) ; t0__x3                            ; pc=0x0284
+    addi x9, x0, 1                                      ; pc=0x0288
+    add x10, x9, x9                                     ; pc=0x028C
+    add x10, x10, x10                                   ; pc=0x0290
+    lw x6, -4(x17) ; base ref v                         ; pc=0x0294
+    add x6, x6, x10                                     ; pc=0x0298
+    lw x5, 0(x6)                                        ; pc=0x029C
+    sw x5, -56(x17) ; t1__x4                            ; pc=0x02A0
+    lw x7, -52(x17) ; t0__x3                            ; pc=0x02A4
+    add x3, x7, x0 ; promote v0                         ; pc=0x02A8
+    lw x8, -56(x17) ; t1__x4                            ; pc=0x02AC
+    add x4, x8, x0 ; promote v1                         ; pc=0x02B0
+    addi x10, x0, 0                                     ; pc=0x02B4
+    sw x10, -20(x17) ; sum                              ; pc=0x02B8
+    addi x9, x0, 0                                      ; pc=0x02BC
+    sw x9, -24(x17) ; i                                 ; pc=0x02C0
+L_for_start_0:
+    lw x6, -24(x17) ; i                                 ; pc=0x02C4
+    addi x5, x0, 32                                     ; pc=0x02C8
+    addi x7, x0, 0                                      ; pc=0x02CC
+    blt x6, x5, 8                                       ; pc=0x02D0 ; target=.L_ir_7_ir_cmp_true ; addr=0x02D8
+    jal x0, 8                                           ; pc=0x02D4 ; target=.L_ir_8_ir_cmp_end ; addr=0x02DC
+.L_ir_7_ir_cmp_true:
+    addi x7, x0, 1                                      ; pc=0x02D8
+.L_ir_8_ir_cmp_end:
+    sw x7, -60(x17) ; t54__x5                           ; pc=0x02DC
+    lw x5, -60(x17) ; t54__x5                           ; pc=0x02E0
+    beq x5, x0, 712                                     ; pc=0x02E4 ; target=L_for_end_1 ; addr=0x05AC
+    lw x8, -20(x17) ; sum                               ; pc=0x02E8
+    addiHIGH x9, x0, 0                                  ; pc=0x02EC
+    addi x9, x9, 32808                                  ; pc=0x02F0
+    lw x10, 0(x9) ; DELTA                               ; pc=0x02F4
+    add x7, x8, x10                                     ; pc=0x02F8
+    sw x7, -20(x17) ; sum                               ; pc=0x02FC
+    addi x6, x0, 0                                      ; pc=0x0300
+    add x5, x6, x6                                      ; pc=0x0304
+    add x5, x5, x5                                      ; pc=0x0308
+    lw x9, -8(x17) ; base ref tea_key                   ; pc=0x030C
+    add x9, x9, x5                                      ; pc=0x0310
+    lw x7, 0(x9)                                        ; pc=0x0314
+    sw x7, -68(x17) ; t56__x7                           ; pc=0x0318
+    lw x10, -20(x17) ; sum                              ; pc=0x031C
+    add x9, x4, x10                                     ; pc=0x0320
+    sw x9, -72(x17) ; t58__x9                           ; pc=0x0324
+    lw x7, -68(x17) ; t56__x7                           ; pc=0x0328
+    addi x5, x0, 4                                      ; pc=0x032C
+    sll x8, x4, x5                                      ; pc=0x0330
+    add x8, x8, x7                                      ; pc=0x0334
+    sw x8, -28(x17) ; left0                             ; pc=0x0338
+    lw x9, -72(x17) ; t58__x9                           ; pc=0x033C
+    sw x9, -32(x17) ; mid0                              ; pc=0x0340
+    addi x6, x0, 1                                      ; pc=0x0344
+    add x10, x6, x6                                     ; pc=0x0348
+    add x10, x10, x10                                   ; pc=0x034C
+    lw x5, -8(x17) ; base ref tea_key                   ; pc=0x0350
+    add x5, x5, x10                                     ; pc=0x0354
+    lw x8, 0(x5)                                        ; pc=0x0358
+    sw x8, -80(x17) ; t59__x10                          ; pc=0x035C
+    lw x7, -28(x17) ; left0                             ; pc=0x0360
+    lw x9, -32(x17) ; mid0                              ; pc=0x0364
+    xor x10, x7, x9                                     ; pc=0x0368
+    sw x10, -84(x17) ; t61__x4                          ; pc=0x036C
+    lw x10, -80(x17) ; t59__x10                         ; pc=0x0370
+    addi x5, x0, 5                                      ; pc=0x0374
+    srl x6, x4, x5                                      ; pc=0x0378
+    add x6, x6, x10                                     ; pc=0x037C
+    sw x6, -36(x17) ; right0                            ; pc=0x0380
+    lw x8, -84(x17) ; t61__x4                           ; pc=0x0384
+    lw x9, -36(x17) ; right0                            ; pc=0x0388
+    xor x5, x8, x9                                      ; pc=0x038C
+    sw x5, -92(x17) ; t62__x5                           ; pc=0x0390
+    lw x5, -92(x17) ; t62__x5                           ; pc=0x0394
+    add x7, x3, x5                                      ; pc=0x0398
+    add x3, x7, x0 ; promote v0                         ; pc=0x039C
+    addi x6, x0, 2                                      ; pc=0x03A0
+    add x10, x6, x6                                     ; pc=0x03A4
+    add x10, x10, x10                                   ; pc=0x03A8
+    lw x9, -8(x17) ; base ref tea_key                   ; pc=0x03AC
+    add x9, x9, x10                                     ; pc=0x03B0
+    lw x8, 0(x9)                                        ; pc=0x03B4
+    sw x8, -100(x17) ; t64__x7                          ; pc=0x03B8
+    lw x7, -20(x17) ; sum                               ; pc=0x03BC
+    add x9, x3, x7                                      ; pc=0x03C0
+    sw x9, -104(x17) ; t66__x9                          ; pc=0x03C4
+    lw x7, -100(x17) ; t64__x7                          ; pc=0x03C8
+    addi x10, x0, 4                                     ; pc=0x03CC
+    sll x5, x3, x10                                     ; pc=0x03D0
+    add x5, x5, x7                                      ; pc=0x03D4
+    sw x5, -40(x17) ; left1                             ; pc=0x03D8
+    lw x9, -104(x17) ; t66__x9                          ; pc=0x03DC
+    sw x9, -44(x17) ; mid1                              ; pc=0x03E0
+    addi x6, x0, 3                                      ; pc=0x03E4
+    add x8, x6, x6                                      ; pc=0x03E8
+    add x8, x8, x8                                      ; pc=0x03EC
+    lw x10, -8(x17) ; base ref tea_key                  ; pc=0x03F0
+    add x10, x10, x8                                    ; pc=0x03F4
+    lw x5, 0(x10)                                       ; pc=0x03F8
+    sw x5, -112(x17) ; t67__x10                         ; pc=0x03FC
+    lw x7, -40(x17) ; left1                             ; pc=0x0400
+    lw x9, -44(x17) ; mid1                              ; pc=0x0404
+    xor x8, x7, x9                                      ; pc=0x0408
+    sw x8, -116(x17) ; t69__x4                          ; pc=0x040C
+    lw x10, -112(x17) ; t67__x10                        ; pc=0x0410
+    addi x5, x0, 5                                      ; pc=0x0414
+    srl x6, x3, x5                                      ; pc=0x0418
+    add x6, x6, x10                                     ; pc=0x041C
+    sw x6, -48(x17) ; right1                            ; pc=0x0420
+    lw x8, -116(x17) ; t69__x4                          ; pc=0x0424
+    lw x9, -48(x17) ; right1                            ; pc=0x0428
+    xor x5, x8, x9                                      ; pc=0x042C
+    sw x5, -124(x17) ; t70__x5                          ; pc=0x0430
+    lw x5, -124(x17) ; t70__x5                          ; pc=0x0434
+    add x7, x4, x5                                      ; pc=0x0438
+    add x4, x7, x0 ; promote v1                         ; pc=0x043C
+    lw x6, -20(x17) ; sum                               ; pc=0x0440
+    addiHIGH x9, x0, 0                                  ; pc=0x0444
+    addi x9, x9, 32808                                  ; pc=0x0448
+    lw x10, 0(x9) ; DELTA                               ; pc=0x044C
+    add x8, x6, x10                                     ; pc=0x0450
+    sw x8, -20(x17) ; sum                               ; pc=0x0454
+    addi x7, x0, 0                                      ; pc=0x0458
+    add x5, x7, x7                                      ; pc=0x045C
+    add x5, x5, x5                                      ; pc=0x0460
+    lw x9, -8(x17) ; base ref tea_key                   ; pc=0x0464
+    add x9, x9, x5                                      ; pc=0x0468
+    lw x8, 0(x9)                                        ; pc=0x046C
+    sw x8, -136(x17) ; t73__x8                          ; pc=0x0470
+    lw x10, -20(x17) ; sum                              ; pc=0x0474
+    add x6, x4, x10                                     ; pc=0x0478
+    sw x6, -140(x17) ; t75__x10                         ; pc=0x047C
+    lw x8, -136(x17) ; t73__x8                          ; pc=0x0480
+    addi x7, x0, 4                                      ; pc=0x0484
+    sll x5, x4, x7                                      ; pc=0x0488
+    add x5, x5, x8                                      ; pc=0x048C
+    sw x5, -28(x17) ; left0                             ; pc=0x0490
+    lw x10, -140(x17) ; t75__x10                        ; pc=0x0494
+    sw x10, -32(x17) ; mid0                             ; pc=0x0498
+    addi x9, x0, 1                                      ; pc=0x049C
+    add x6, x9, x9                                      ; pc=0x04A0
+    add x6, x6, x6                                      ; pc=0x04A4
+    lw x7, -8(x17) ; base ref tea_key                   ; pc=0x04A8
+    add x7, x7, x6                                      ; pc=0x04AC
+    lw x5, 0(x7)                                        ; pc=0x04B0
+    sw x5, -148(x17) ; t76__x3                          ; pc=0x04B4
+    lw x8, -28(x17) ; left0                             ; pc=0x04B8
+    lw x10, -32(x17) ; mid0                             ; pc=0x04BC
+    xor x5, x8, x10                                     ; pc=0x04C0
+    sw x5, -152(x17) ; t78__x5                          ; pc=0x04C4
+    lw x6, -148(x17) ; t76__x3                          ; pc=0x04C8
+    addi x7, x0, 5                                      ; pc=0x04CC
+    srl x9, x4, x7                                      ; pc=0x04D0
+    add x9, x9, x6                                      ; pc=0x04D4
+    sw x9, -36(x17) ; right0                            ; pc=0x04D8
+    lw x5, -152(x17) ; t78__x5                          ; pc=0x04DC
+    lw x10, -36(x17) ; right0                           ; pc=0x04E0
+    xor x6, x5, x10                                     ; pc=0x04E4
+    sw x6, -160(x17) ; t79__x6                          ; pc=0x04E8
+    lw x6, -160(x17) ; t79__x6                          ; pc=0x04EC
+    add x8, x3, x6                                      ; pc=0x04F0
+    add x3, x8, x0 ; promote v0                         ; pc=0x04F4
+    addi x7, x0, 2                                      ; pc=0x04F8
+    add x9, x7, x7                                      ; pc=0x04FC
+    add x9, x9, x9                                      ; pc=0x0500
+    lw x10, -8(x17) ; base ref tea_key                  ; pc=0x0504
+    add x10, x10, x9                                    ; pc=0x0508
+    lw x5, 0(x10)                                       ; pc=0x050C
+    sw x5, -168(x17) ; t81__x8                          ; pc=0x0510
+    lw x8, -20(x17) ; sum                               ; pc=0x0514
+    add x10, x3, x8                                     ; pc=0x0518
+    sw x10, -172(x17) ; t83__x10                        ; pc=0x051C
+    lw x8, -168(x17) ; t81__x8                          ; pc=0x0520
+    addi x9, x0, 4                                      ; pc=0x0524
+    sll x6, x3, x9                                      ; pc=0x0528
+    add x6, x6, x8                                      ; pc=0x052C
+    sw x6, -40(x17) ; left1                             ; pc=0x0530
+    lw x10, -172(x17) ; t83__x10                        ; pc=0x0534
+    sw x10, -44(x17) ; mid1                             ; pc=0x0538
+    addi x7, x0, 3                                      ; pc=0x053C
+    add x5, x7, x7                                      ; pc=0x0540
+    add x5, x5, x5                                      ; pc=0x0544
+    lw x9, -8(x17) ; base ref tea_key                   ; pc=0x0548
+    add x9, x9, x5                                      ; pc=0x054C
+    lw x6, 0(x9)                                        ; pc=0x0550
+    sw x6, -180(x17) ; t84__x3                          ; pc=0x0554
+    lw x8, -40(x17) ; left1                             ; pc=0x0558
+    lw x10, -44(x17) ; mid1                             ; pc=0x055C
+    xor x5, x8, x10                                     ; pc=0x0560
+    sw x5, -184(x17) ; t86__x5                          ; pc=0x0564
+    lw x7, -180(x17) ; t84__x3                          ; pc=0x0568
+    addi x6, x0, 5                                      ; pc=0x056C
+    srl x9, x3, x6                                      ; pc=0x0570
+    add x9, x9, x7                                      ; pc=0x0574
+    sw x9, -48(x17) ; right1                            ; pc=0x0578
+    lw x5, -184(x17) ; t86__x5                          ; pc=0x057C
+    lw x10, -48(x17) ; right1                           ; pc=0x0580
+    xor x6, x5, x10                                     ; pc=0x0584
+    sw x6, -192(x17) ; t87__x6                          ; pc=0x0588
+    lw x6, -192(x17) ; t87__x6                          ; pc=0x058C
+    add x8, x4, x6                                      ; pc=0x0590
+    add x4, x8, x0 ; promote v1                         ; pc=0x0594
+    lw x9, -24(x17) ; i                                 ; pc=0x0598
+    addi x7, x0, 2                                      ; pc=0x059C
+    add x10, x9, x7                                     ; pc=0x05A0
+    sw x10, -24(x17) ; i                                ; pc=0x05A4
+    jal x0, -740                                        ; pc=0x05A8 ; target=L_for_start_0 ; addr=0x02C4
+L_for_end_1:
+    addi x5, x0, 0                                      ; pc=0x05AC
+    add x8, x5, x5                                      ; pc=0x05B0
+    add x8, x8, x8                                      ; pc=0x05B4
+    lw x6, -4(x17) ; base ref v                         ; pc=0x05B8
+    add x6, x6, x8                                      ; pc=0x05BC
+    sw x3, 0(x6)                                        ; pc=0x05C0
+    addi x10, x0, 1                                     ; pc=0x05C4
+    add x7, x10, x10                                    ; pc=0x05C8
+    add x7, x7, x7                                      ; pc=0x05CC
+    lw x9, -4(x17) ; base ref v                         ; pc=0x05D0
+    add x9, x9, x7                                      ; pc=0x05D4
+    sw x4, 0(x9)                                        ; pc=0x05D8
+.L_ir_6_tea_encrypt_end:
+    ; epilogue
+    lw x1, 0(x2)                                        ; pc=0x05DC
+    lw x17, 4(x2)                                       ; pc=0x05E0
+    addi x2, x2, 208                                    ; pc=0x05E4
+    jalr x1, 0                                          ; pc=0x05E8
+
+tea_decrypt:
+    ; prologue
+    addiSigned x2, x2, -208                             ; pc=0x05EC
+    sw x1, 0(x2)                                        ; pc=0x05F0
+    sw x17, 4(x2)                                       ; pc=0x05F4
+    addi x17, x2, 208                                   ; pc=0x05F8
+
+    sw x11, -4(x17) ; parametro v                       ; pc=0x05FC
+    sw x12, -8(x17) ; parametro tea_key                 ; pc=0x0600
+
+    addi x5, x0, 0                                      ; pc=0x0604
+    add x6, x5, x5                                      ; pc=0x0608
+    add x6, x6, x6                                      ; pc=0x060C
+    lw x7, -4(x17) ; base ref v                         ; pc=0x0610
+    add x7, x7, x6                                      ; pc=0x0614
+    lw x8, 0(x7)                                        ; pc=0x0618
+    sw x8, -52(x17) ; t21__x9                           ; pc=0x061C
+    addi x9, x0, 1                                      ; pc=0x0620
+    add x10, x9, x9                                     ; pc=0x0624
+    add x10, x10, x10                                   ; pc=0x0628
+    lw x6, -4(x17) ; base ref v                         ; pc=0x062C
+    add x6, x6, x10                                     ; pc=0x0630
+    lw x5, 0(x6)                                        ; pc=0x0634
+    sw x5, -56(x17) ; t22__x10                          ; pc=0x0638
+    lw x9, -52(x17) ; t21__x9                           ; pc=0x063C
+    add x3, x9, x0 ; promote v0                         ; pc=0x0640
+    lw x10, -56(x17) ; t22__x10                         ; pc=0x0644
+    add x4, x10, x0 ; promote v1                        ; pc=0x0648
+    addiHIGH x8, x0, 0                                  ; pc=0x064C
+    addi x8, x8, 32812                                  ; pc=0x0650
+    lw x7, 0(x8) ; SUM_INIT                             ; pc=0x0654
+    sw x7, -20(x17) ; sum                               ; pc=0x0658
+    addi x6, x0, 0                                      ; pc=0x065C
+    sw x6, -24(x17) ; i                                 ; pc=0x0660
+L_for_start_2:
+    lw x5, -24(x17) ; i                                 ; pc=0x0664
+    addi x9, x0, 32                                     ; pc=0x0668
+    addi x10, x0, 0                                     ; pc=0x066C
+    blt x5, x9, 8                                       ; pc=0x0670 ; target=.L_ir_10_ir_cmp_true ; addr=0x0678
+    jal x0, 8                                           ; pc=0x0674 ; target=.L_ir_11_ir_cmp_end ; addr=0x067C
+.L_ir_10_ir_cmp_true:
+    addi x10, x0, 1                                     ; pc=0x0678
+.L_ir_11_ir_cmp_end:
+    sw x10, -60(x17) ; t90__x3                          ; pc=0x067C
+    lw x8, -60(x17) ; t90__x3                           ; pc=0x0680
+    beq x8, x0, 712                                     ; pc=0x0684 ; target=L_for_end_3 ; addr=0x094C
+    addi x7, x0, 2                                      ; pc=0x0688
+    add x6, x7, x7                                      ; pc=0x068C
+    add x6, x6, x6                                      ; pc=0x0690
+    lw x10, -8(x17) ; base ref tea_key                  ; pc=0x0694
+    add x10, x10, x6                                    ; pc=0x0698
+    lw x9, 0(x10)                                       ; pc=0x069C
+    sw x9, -64(x17) ; t91__x4                           ; pc=0x06A0
+    lw x5, -20(x17) ; sum                               ; pc=0x06A4
+    add x6, x3, x5                                      ; pc=0x06A8
+    sw x6, -68(x17) ; t93__x6                           ; pc=0x06AC
+    lw x8, -64(x17) ; t91__x4                           ; pc=0x06B0
+    addi x10, x0, 4                                     ; pc=0x06B4
+    sll x7, x3, x10                                     ; pc=0x06B8
+    add x7, x7, x8                                      ; pc=0x06BC
+    sw x7, -28(x17) ; left1                             ; pc=0x06C0
+    lw x6, -68(x17) ; t93__x6                           ; pc=0x06C4
+    sw x6, -32(x17) ; mid1                              ; pc=0x06C8
+    addi x9, x0, 3                                      ; pc=0x06CC
+    add x5, x9, x9                                      ; pc=0x06D0
+    add x5, x5, x5                                      ; pc=0x06D4
+    lw x10, -8(x17) ; base ref tea_key                  ; pc=0x06D8
+    add x10, x10, x5                                    ; pc=0x06DC
+    lw x7, 0(x10)                                       ; pc=0x06E0
+    sw x7, -76(x17) ; t94__x7                           ; pc=0x06E4
+    lw x8, -28(x17) ; left1                             ; pc=0x06E8
+    lw x6, -32(x17) ; mid1                              ; pc=0x06EC
+    xor x9, x8, x6                                      ; pc=0x06F0
+    sw x9, -80(x17) ; t96__x9                           ; pc=0x06F4
+    lw x7, -76(x17) ; t94__x7                           ; pc=0x06F8
+    addi x10, x0, 5                                     ; pc=0x06FC
+    srl x5, x3, x10                                     ; pc=0x0700
+    add x5, x5, x7                                      ; pc=0x0704
+    sw x5, -36(x17) ; right1                            ; pc=0x0708
+    lw x9, -80(x17) ; t96__x9                           ; pc=0x070C
+    lw x6, -36(x17) ; right1                            ; pc=0x0710
+    xor x10, x9, x6                                     ; pc=0x0714
+    sw x10, -88(x17) ; t97__x10                         ; pc=0x0718
+    lw x10, -88(x17) ; t97__x10                         ; pc=0x071C
+    sub x8, x4, x10                                     ; pc=0x0720
+    add x4, x8, x0 ; promote v1                         ; pc=0x0724
+    addi x5, x0, 0                                      ; pc=0x0728
+    add x7, x5, x5                                      ; pc=0x072C
+    add x7, x7, x7                                      ; pc=0x0730
+    lw x6, -8(x17) ; base ref tea_key                   ; pc=0x0734
+    add x6, x6, x7                                      ; pc=0x0738
+    lw x9, 0(x6)                                        ; pc=0x073C
+    sw x9, -96(x17) ; t99__x4                           ; pc=0x0740
+    lw x8, -20(x17) ; sum                               ; pc=0x0744
+    add x6, x4, x8                                      ; pc=0x0748
+    sw x6, -100(x17) ; t101__x6                         ; pc=0x074C
+    lw x10, -96(x17) ; t99__x4                          ; pc=0x0750
+    addi x5, x0, 4                                      ; pc=0x0754
+    sll x7, x4, x5                                      ; pc=0x0758
+    add x7, x7, x10                                     ; pc=0x075C
+    sw x7, -40(x17) ; left0                             ; pc=0x0760
+    lw x6, -100(x17) ; t101__x6                         ; pc=0x0764
+    sw x6, -44(x17) ; mid0                              ; pc=0x0768
+    addi x9, x0, 1                                      ; pc=0x076C
+    add x8, x9, x9                                      ; pc=0x0770
+    add x8, x8, x8                                      ; pc=0x0774
+    lw x5, -8(x17) ; base ref tea_key                   ; pc=0x0778
+    add x5, x5, x8                                      ; pc=0x077C
+    lw x7, 0(x5)                                        ; pc=0x0780
+    sw x7, -108(x17) ; t102__x7                         ; pc=0x0784
+    lw x10, -40(x17) ; left0                            ; pc=0x0788
+    lw x6, -44(x17) ; mid0                              ; pc=0x078C
+    xor x9, x10, x6                                     ; pc=0x0790
+    sw x9, -112(x17) ; t104__x9                         ; pc=0x0794
+    lw x7, -108(x17) ; t102__x7                         ; pc=0x0798
+    addi x5, x0, 5                                      ; pc=0x079C
+    srl x8, x4, x5                                      ; pc=0x07A0
+    add x8, x8, x7                                      ; pc=0x07A4
+    sw x8, -48(x17) ; right0                            ; pc=0x07A8
+    lw x9, -112(x17) ; t104__x9                         ; pc=0x07AC
+    lw x6, -48(x17) ; right0                            ; pc=0x07B0
+    xor x10, x9, x6                                     ; pc=0x07B4
+    sw x10, -120(x17) ; t105__x10                       ; pc=0x07B8
+    lw x10, -120(x17) ; t105__x10                       ; pc=0x07BC
+    sub x5, x3, x10                                     ; pc=0x07C0
+    add x3, x5, x0 ; promote v0                         ; pc=0x07C4
+    lw x8, -20(x17) ; sum                               ; pc=0x07C8
+    addiHIGH x6, x0, 0                                  ; pc=0x07CC
+    addi x6, x6, 32808                                  ; pc=0x07D0
+    lw x7, 0(x6) ; DELTA                                ; pc=0x07D4
+    sub x9, x8, x7                                      ; pc=0x07D8
+    sw x9, -20(x17) ; sum                               ; pc=0x07DC
+    addi x5, x0, 2                                      ; pc=0x07E0
+    add x10, x5, x5                                     ; pc=0x07E4
+    add x10, x10, x10                                   ; pc=0x07E8
+    lw x6, -8(x17) ; base ref tea_key                   ; pc=0x07EC
+    add x6, x6, x10                                     ; pc=0x07F0
+    lw x9, 0(x6)                                        ; pc=0x07F4
+    sw x9, -132(x17) ; t108__x5                         ; pc=0x07F8
+    lw x7, -20(x17) ; sum                               ; pc=0x07FC
+    add x8, x3, x7                                      ; pc=0x0800
+    sw x8, -136(x17) ; t110__x7                         ; pc=0x0804
+    lw x5, -132(x17) ; t108__x5                         ; pc=0x0808
+    addi x6, x0, 4                                      ; pc=0x080C
+    sll x10, x3, x6                                     ; pc=0x0810
+    add x10, x10, x5                                    ; pc=0x0814
+    sw x10, -28(x17) ; left1                            ; pc=0x0818
+    lw x7, -136(x17) ; t110__x7                         ; pc=0x081C
+    sw x7, -32(x17) ; mid1                              ; pc=0x0820
+    addi x9, x0, 3                                      ; pc=0x0824
+    add x8, x9, x9                                      ; pc=0x0828
+    add x8, x8, x8                                      ; pc=0x082C
+    lw x6, -8(x17) ; base ref tea_key                   ; pc=0x0830
+    add x6, x6, x8                                      ; pc=0x0834
+    lw x10, 0(x6)                                       ; pc=0x0838
+    sw x10, -144(x17) ; t111__x8                        ; pc=0x083C
+    lw x5, -28(x17) ; left1                             ; pc=0x0840
+    lw x7, -32(x17) ; mid1                              ; pc=0x0844
+    xor x10, x5, x7                                     ; pc=0x0848
+    sw x10, -148(x17) ; t113__x10                       ; pc=0x084C
+    lw x8, -144(x17) ; t111__x8                         ; pc=0x0850
+    addi x6, x0, 5                                      ; pc=0x0854
+    srl x9, x3, x6                                      ; pc=0x0858
+    add x9, x9, x8                                      ; pc=0x085C
+    sw x9, -36(x17) ; right1                            ; pc=0x0860
+    lw x10, -148(x17) ; t113__x10                       ; pc=0x0864
+    lw x7, -36(x17) ; right1                            ; pc=0x0868
+    xor x5, x10, x7                                     ; pc=0x086C
+    sw x5, -156(x17) ; t114__x3                         ; pc=0x0870
+    lw x6, -156(x17) ; t114__x3                         ; pc=0x0874
+    sub x9, x4, x6                                      ; pc=0x0878
+    add x4, x9, x0 ; promote v1                         ; pc=0x087C
+    addi x8, x0, 0                                      ; pc=0x0880
+    add x5, x8, x8                                      ; pc=0x0884
+    add x5, x5, x5                                      ; pc=0x0888
+    lw x7, -8(x17) ; base ref tea_key                   ; pc=0x088C
+    add x7, x7, x5                                      ; pc=0x0890
+    lw x10, 0(x7)                                       ; pc=0x0894
+    sw x10, -164(x17) ; t116__x5                        ; pc=0x0898
+    lw x9, -20(x17) ; sum                               ; pc=0x089C
+    add x7, x4, x9                                      ; pc=0x08A0
+    sw x7, -168(x17) ; t118__x7                         ; pc=0x08A4
+    lw x5, -164(x17) ; t116__x5                         ; pc=0x08A8
+    addi x8, x0, 4                                      ; pc=0x08AC
+    sll x6, x4, x8                                      ; pc=0x08B0
+    add x6, x6, x5                                      ; pc=0x08B4
+    sw x6, -40(x17) ; left0                             ; pc=0x08B8
+    lw x7, -168(x17) ; t118__x7                         ; pc=0x08BC
+    sw x7, -44(x17) ; mid0                              ; pc=0x08C0
+    addi x10, x0, 1                                     ; pc=0x08C4
+    add x9, x10, x10                                    ; pc=0x08C8
+    add x9, x9, x9                                      ; pc=0x08CC
+    lw x8, -8(x17) ; base ref tea_key                   ; pc=0x08D0
+    add x8, x8, x9                                      ; pc=0x08D4
+    lw x6, 0(x8)                                        ; pc=0x08D8
+    sw x6, -176(x17) ; t119__x8                         ; pc=0x08DC
+    lw x5, -40(x17) ; left0                             ; pc=0x08E0
+    lw x7, -44(x17) ; mid0                              ; pc=0x08E4
+    xor x10, x5, x7                                     ; pc=0x08E8
+    sw x10, -180(x17) ; t121__x10                       ; pc=0x08EC
+    lw x8, -176(x17) ; t119__x8                         ; pc=0x08F0
+    addi x6, x0, 5                                      ; pc=0x08F4
+    srl x9, x4, x6                                      ; pc=0x08F8
+    add x9, x9, x8                                      ; pc=0x08FC
+    sw x9, -48(x17) ; right0                            ; pc=0x0900
+    lw x10, -180(x17) ; t121__x10                       ; pc=0x0904
+    lw x7, -48(x17) ; right0                            ; pc=0x0908
+    xor x5, x10, x7                                     ; pc=0x090C
+    sw x5, -188(x17) ; t122__x3                         ; pc=0x0910
+    lw x6, -188(x17) ; t122__x3                         ; pc=0x0914
+    sub x9, x3, x6                                      ; pc=0x0918
+    add x3, x9, x0 ; promote v0                         ; pc=0x091C
+    lw x8, -20(x17) ; sum                               ; pc=0x0920
+    addiHIGH x7, x0, 0                                  ; pc=0x0924
+    addi x7, x7, 32808                                  ; pc=0x0928
+    lw x5, 0(x7) ; DELTA                                ; pc=0x092C
+    sub x10, x8, x5                                     ; pc=0x0930
+    sw x10, -20(x17) ; sum                              ; pc=0x0934
+    lw x9, -24(x17) ; i                                 ; pc=0x0938
+    addi x6, x0, 2                                      ; pc=0x093C
+    add x7, x9, x6                                      ; pc=0x0940
+    sw x7, -24(x17) ; i                                 ; pc=0x0944
+    jal x0, -740                                        ; pc=0x0948 ; target=L_for_start_2 ; addr=0x0664
+L_for_end_3:
+    addi x10, x0, 0                                     ; pc=0x094C
+    add x5, x10, x10                                    ; pc=0x0950
+    add x5, x5, x5                                      ; pc=0x0954
+    lw x8, -4(x17) ; base ref v                         ; pc=0x0958
+    add x8, x8, x5                                      ; pc=0x095C
+    sw x3, 0(x8)                                        ; pc=0x0960
+    addi x7, x0, 1                                      ; pc=0x0964
+    add x6, x7, x7                                      ; pc=0x0968
+    add x6, x6, x6                                      ; pc=0x096C
+    lw x9, -4(x17) ; base ref v                         ; pc=0x0970
+    add x9, x9, x6                                      ; pc=0x0974
+    sw x4, 0(x9)                                        ; pc=0x0978
+.L_ir_9_tea_decrypt_end:
+    ; epilogue
+    lw x1, 0(x2)                                        ; pc=0x097C
+    lw x17, 4(x2)                                       ; pc=0x0980
+    addi x2, x2, 208                                    ; pc=0x0984
+    jalr x1, 0                                          ; pc=0x0988

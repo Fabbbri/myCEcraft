@@ -1,360 +1,480 @@
 # myCEcraft
 
-myCEcraft integra dos componentes del proyecto Compilador-Procesador Craft21:
+myCEcraft es un proyecto integrado de compilador y procesador para la
+arquitectura Craft21. Permite escribir programas en el lenguaje `.craft`,
+compilarlos a código máquina y ejecutarlos sobre un procesador descrito en
+SystemVerilog mediante Icarus Verilog.
 
-- `arqui/`: implementacion en SystemVerilog de la arquitectura/procesador Craft21.
-- `compi/`: compilador del lenguaje Craft hacia ensamblador, hexadecimal y binario para la arquitectura.
+El repositorio contiene dos componentes principales:
 
-La idea general del repositorio es permitir escribir programas `.craft`, compilarlos a instrucciones Craft21 y probarlos en los modulos de arquitectura mediante simulacion con Icarus Verilog.
+- `compi/`: compilador de Craft, representación intermedia, optimizaciones y
+  generación de ensamblador, binario y archivos `.hex`.
+- `arqui/`: procesador Craft21, pipeline, jerarquía de memoria L1/L2,
+  testbenches, programas y suite de benchmarks.
 
----
+## Características principales
 
-## Arquitectura Craft21 (`arqui/`)
+- Procesador segmentado implementado en SystemVerilog.
+- Unidad de riesgos, forwarding y control de stalls y flushes.
+- Jerarquía de memoria con cachés L1 y L2.
+- Memoria y registros especiales de bóveda (*Neather/Vault*).
+- Compilador con análisis léxico, sintáctico y semántico.
+- Generación de IR, CFG, ensamblador y código máquina Craft21.
+- Optimizaciones O0, O1, O2 y O3:
+  - *loop unrolling*;
+  - renombrado estático de registros;
+  - eliminación de código muerto (DCE);
+  - reordenamiento seguro de instrucciones.
+- Benchmarks con métricas de ciclos, instrucciones, CPI, IPC, stalls, caché,
+  memoria principal y tiempo de compilación.
 
-### Proposito
+## Requisitos
 
-La carpeta `arqui/` contiene la descripcion de hardware del procesador Craft21 en SystemVerilog. Incluye los modulos RTL, testbenches, memorias de programa/datos y scripts de apoyo para simular el comportamiento del procesador y de sus componentes.
+### Obligatorios
 
-El objetivo de esta parte es verificar la ejecucion de instrucciones generadas para Craft21, incluyendo ALU, registros, memoria, unidad de control, pipeline y soporte para instrucciones especiales de la boveda/neather.
+- Python 3.10 o superior.
+- Icarus Verilog, que proporciona `iverilog` y `vvp`.
+- GNU Make.
+- Bash para ejecutar `run.sh` y algunos ejemplos de terminal.
 
-### Dependencias
-
-Para compilar y ejecutar las simulaciones se necesita:
-
-- Icarus Verilog, que provee `iverilog` y `vvp`.
-- GNU Make, para usar el `Makefile` incluido.
-- GTKWave en Linux/Windows o Surfer en macOS, si se quieren abrir formas de onda `.vcd`.
-- Un entorno tipo Bash para usar `run.sh` desde la raiz del repositorio. En Windows se puede usar Git Bash, WSL o ejecutar `make` directamente dentro de `arqui/`.
-
-En Debian/Ubuntu:
+En Debian o Ubuntu:
 
 ```bash
-sudo apt install -y iverilog gtkwave make
+sudo apt update
+sudo apt install -y python3 make iverilog
 ```
 
-### Estructura del repositorio
+Comprobación rápida:
+
+```bash
+python3 --version
+iverilog -V
+vvp -V
+make --version
+```
+
+El compilador por línea de comandos usa únicamente la biblioteca estándar de
+Python.
+
+### Opcionales
+
+- GTKWave para visualizar archivos `.vcd` en Linux o Windows.
+- Surfer para visualizar ondas en macOS o Linux.
+- PySide6 para ejecutar Craft Studio, la interfaz gráfica del compilador.
+
+
+
+
+En Debian o Ubuntu, GTKWave puede instalarse con:
+
+```bash
+sudo apt install -y gtkwave
+```
+
+## Inicio rápido
+
+Desde la raíz del repositorio:
+
+```bash
+# Compilar un programa Craft.
+python3 compi/main.py -r -b compi/ejemplos/demo.craft
+
+# Simular un programa ya disponible en arqui/programs/.
+make -C arqui run TOP=tb_topG ROM=demo.hex
+
+# Ejecutar todos los benchmarks y generar el reporte.
+make -C arqui bench BENCH_ARGS=--no-open
+```
+
+Los artefactos del compilador quedan en `compi/output/`; los ejecutables de
+Icarus y las ondas quedan en `arqui/sim/`; los resultados de benchmarks se
+guardan en `arqui/outputs/reports/`.
+
+## Estructura del repositorio
 
 ```text
-MyCECraft/
-|--arqui/
-|------ docs/       # Documentación técnica requerida de ISA
-|------ outputs/    # Conjunto de archivos para comprobación de testbench
-|------ programs/   # Archivos .hex usados por las memorias de simulacion
-|------ rtl/        # Modulos SystemVerilog sintetizables
-|------ scripts/    # Scripts auxiliares como la herramienta para archivos requerida
-|------ sim/        # Salidas generadas: .vvp y .vcd
-|------ tb/         # Testbenches de los modulos y del procesador
-|------ Makefile    # Flujo de compilacion y simulacion
-|------ README.md   # Documentacion especifica de arquitectura
-|--compi/
-|------ codegen/    # generación de código 
-|------ ejemplos/   # archivos .craft
-|------ outputs/    # Archivos .hex, .asm, .bin, etc. generador por el compilador
-|------ # archivos .py varios del compilador
-|-- gitignore
-|-- LICENSE
-|-- README.md
-|-- run.sh
-|-- ISA.pdf
-|____________________________
+myCEcraft/
+├── arqui/
+│   ├── docs/                 # ISA, microarquitectura, memoria y rendimiento
+│   ├── outputs/              # Dumps y reportes producidos por simulación
+│   ├── programs/
+│   │   ├── src/              # Fuentes de los benchmarks
+│   │   └── *.hex             # Imágenes de ROM y RAM
+│   ├── rtl/
+│   │   ├── DE/               # Decode, control y banco de registros
+│   │   ├── IF/               # Fetch, ROM y lógica del PC
+│   │   ├── MEM/              # RAM, cachés L1/L2 y controladores
+│   │   ├── TOP/              # Pipeline y módulo superior
+│   │   ├── async_fifo/       # FIFO asíncrono
+│   │   └── utils/            # ALU, multiplexores y utilidades
+│   ├── scripts/              # Benchmarks y herramientas para TEA/archivos
+│   ├── sim/                  # Binarios .vvp, ondas .vcd y vistas
+│   ├── tb/                   # Testbenches
+│   └── Makefile
+├── compi/
+│   ├── codegen/              # Generación y resolución de código
+│   ├── Defensa/P2/           # Casos dirigidos de optimización
+│   ├── ejemplos/             # Programas Craft de ejemplo
+│   ├── IDE/                  # Craft Studio
+│   ├── IR/                   # IR, CFG y análisis de instrucciones
+│   ├── Optimizations/        # Unroll, rename, DCE y reorder
+│   ├── output/               # Artefactos generados
+│   ├── tests/                # Pruebas del compilador y del IDE
+│   └── main.py               # Punto de entrada del compilador
+├── run.sh                    # Atajo para simulaciones
+├── ISA.pdf
+└── README.md
 ```
 
-Modulos importantes en `arqui/rtl/`:
+## Compilador Craft
 
-- `top.sv`: modulo superior del procesador.
-- `alu.sv`: unidad aritmetico-logica.
-- `control_unit.sv`: unidad de control.
-- `regfile.sv`: banco de registros.
-- `instr_rom.sv`: memoria de instrucciones cargada con `$readmemh`.
-- `data_ram.sv`: memoria de datos.
-- `pc.sv`, `pc_decoder.sv`, `sumador_pc.sv`: logica asociada al contador de programa.
-- `if_id_pipe.sv`, `id_ex_pipe.sv`, `ex_mem_pipe.sv`, `mem_wb_pipe.sv`: registros de pipeline.
-- `neather_ram.sv`, `neather_regfile.sv`: soporte para memoria/registros especiales.
+### Compilación básica
 
-Testbenches disponibles en `arqui/tb/` incluyen, entre otros:
-
-- `tb_alu.sv`
-- `tb_regfile.sv`
-- `tb_control_unit.sv`
-- `tb_instr_rom.sv`
-- `tb_data_ram.sv`
-- `tb_top.sv`
-- `tb_top_vault.sv`
-- `tb_tea.sv`
-
-En `arqui/scripts/` se incluyen varios scripts de python, como la herramienta para cargar cualquier archivo, un script para compresión de imágenes, un script para volcado de memoria y un script para preparar el tb de `teaimg` para su ejecución. Además, se incluye un README que indica como ejecutar correctamente este tipo de testbenches que usa la herramienta. Al final de este `README.md` se indica la ruta a esta guía de uso.
-
-## Compilacion y ejecucion 
-
-### Compilación y ejecución con Make
-
-Desde la carpeta `arqui/`:
-
-```bash
-cd arqui
-make run TOP=tb_alu
-```
-
-Esto compila todos los archivos de `rtl/` junto con el testbench indicado y ejecuta la simulacion con `vvp`.
-
-Para ejecutar el procesador completo:
-
-```bash
-cd arqui
-make run TOP=tb_top
-```
-
-Para ejecutar todos los testbenches:
-
-```bash
-cd arqui
-make run-all
-```
-
-Para limpiar archivos generados:
-
-```bash
-cd arqui
-make clean
-```
-
-### Compilacion y ejecucion directa con Icarus Verilog
-
-Tambien se puede usar `iverilog` sin `make`.
-
-Ejemplo con `tb_alu`:
-
-```bash
-cd arqui
-mkdir -p sim/build sim/waves
-iverilog -g2012 -o sim/build/tb_alu.vvp rtl/*.sv tb/tb_alu.sv
-vvp sim/build/tb_alu.vvp
-```
-
-Ejemplo con la ROM de instrucciones:
-
-```bash
-cd arqui
-mkdir -p sim/build sim/waves
-iverilog -g2012 -o sim/build/tb_instr_rom.vvp rtl/*.sv tb/tb_instr_rom.sv
-vvp sim/build/tb_instr_rom.vvp
-```
-
-Los testbenches generan archivos `.vcd` en `arqui/sim/waves/` cuando incluyen `$dumpfile` y `$dumpvars`.
-
-### Ver formas de onda
-
-Primero se ejecuta la simulacion:
-
-```bash
-cd arqui
-make run TOP=tb_alu
-```
-
-Luego se abre la onda:
-
-```bash
-make wave TOP=tb_alu
-```
-
-El `Makefile` usa `gtkwave` en Linux y `surfer` en macOS.
-
-### Uso de programas `.hex`
-
-La ROM de instrucciones carga el archivo:
-
-```systemverilog
-$readmemh("programs/program.hex", memory);
-```
-
-Por eso, para probar un programa especifico se debe colocar su hexadecimal en:
-
-```text
-arqui/programs/program.hex
-```
-
-Si el programa usa datos globales, tambien se debe preparar:
-
-```text
-arqui/programs/data.hex
-```
-
-Ejemplo de prueba con un archivo ya incluido:
-
-```bash
-cd arqui
-cp programs/demo.hex programs/program.hex
-make run TOP=tb_instr_rom
-```
-
-En PowerShell:
-
-```powershell
-Copy-Item arqui/programs/demo.hex arqui/programs/program.hex
-cd arqui
-make run TOP=tb_instr_rom
-```
-
-## Ejecución Rápida
-
-El repositorio incluye `run.sh` para invocar el flujo de arquitectura desde la raiz de forma mucho más eficiente:
-
-```bash
-chmod +x run.sh
-./run.sh list # para ver algunos de los tb disponibles 
-./run.sh run <tb_nombre>
-./run.sh wave <tb_nombre>
-./run.sh all
-./run.sh clean
-```
-
----
-
-## Compilador Craft (`compi/`)
-
-### Proposito
-
-La carpeta `compi/` contiene el compilador del lenguaje Craft. Este compilador toma archivos `.craft`, realiza analisis lexico, sintactico y semantico, genera ensamblador para Craft21, resuelve etiquetas y saltos, y puede producir archivos `.hex`, `.bin` y `.lst`.
-
-Estos artefactos permiten conectar el compilador con la arquitectura: el `.hex` generado se puede cargar en `arqui/programs/program.hex` para simularlo en la ROM.
-
-### Dependencias
-
-Para usar el compilador se necesita:
-
-- Python 3.
-
-Los comandos se ejecutan desde la raiz del repositorio.
-
-### Estructura del codigo
-
-```text
-compi/
-|-- main.py              # Punto de entrada del compilador
-|-- lexer.py             # Analisis lexico
-|-- parser.py            # Analisis sintactico
-|-- semantic.py          # Analisis semantico
-|-- symbol_table.py      # Tabla de simbolos
-|-- isa.py               # Definicion/codificacion de instrucciones
-|-- registers.py         # Registros de la arquitectura
-|-- ast_nodes.py         # Nodos del AST
-|-- codegen/             # Generacion de ensamblador, resolucion y binario
-|-- ejemplos/            # Programas de prueba .craft
-|-- output/              # Artefactos generados
-|-- README.md            # Documentacion especifica del compilador
-```
-
-Subcarpetas de salida:
-
-```text
-compi/output/
-|-- expanded/        # Archivos .expanded.craft generados por invoke
-|-- asm_unresolved/  # Ensamblador con etiquetas simbolicas
-|-- asm_resolved/    # Ensamblador con saltos resueltos
-|-- bin_output/      # .bin, .hex, .data.hex y .lst
-```
-
-### Ejemplos incluidos
-
-Algunos programas de prueba en `compi/ejemplos/`:
-
-- `demo.craft`
-- `factorial.craft`
-- `factorial_rec.craft`
-- `busqueda_arreglo.craft`
-- `ender_demo.craft`
-- `enderportal_demo.craft`
-- `tea.craft`
-- `ejemplo_import.craft`
-- `demo_import_nesting.craft`
-
-### Uso basico
-
-Imprimir tokens:
-
-```bash
-python3 compi/main.py --tokens compi/ejemplos/demo.craft
-```
-
-Imprimir analisis sintactico / AST:
-
-```bash
-python3 compi/main.py -t compi/ejemplos/demo.craft
-```
-
-Imprimir tabla de simbolos:
-
-```bash
-python3 compi/main.py -m compi/ejemplos/demo.craft
-```
-
-Generar ensamblador sin resolver y resuelto:
-
-```bash
-python3 compi/main.py -r compi/ejemplos/demo.craft
-```
-
-Generar ensamblador, binario, hexadecimal y listado:
+El siguiente comando ejecuta el compilador, resuelve etiquetas y genera
+ensamblador, binario, hexadecimal y listado:
 
 ```bash
 python3 compi/main.py -r -b compi/ejemplos/demo.craft
 ```
 
-Generar binario con nombre de salida explicito:
+Las salidas principales se escriben en:
+
+```text
+compi/output/
+├── asm_unresolved/           # Ensamblador con etiquetas
+├── asm_resolved/             # Ensamblador con saltos resueltos
+├── ast/                      # Árbol sintáctico
+├── bin_output/               # .bin, .hex, .data.hex y .lst
+├── cfg/                      # Grafo de flujo de control en DOT
+├── expanded/                 # Fuentes con invoke expandido
+├── ir/                       # Representación intermedia
+└── symbols/                  # Tablas de símbolos
+```
+
+### Opciones frecuentes
 
 ```bash
-python3 compi/main.py compi/ejemplos/demo.craft -o compi/output/bin_output/demo.bin
+# Mostrar tokens.
+python3 compi/main.py --tokens compi/ejemplos/demo.craft
+
+# Generar AST, IR y CFG.
+python3 compi/main.py --ast --ir --cfg compi/ejemplos/demo.craft
+
+# Generar tabla de símbolos.
+python3 compi/main.py --symbols compi/ejemplos/demo.craft
+
+# Generar ensamblador y código máquina.
+python3 compi/main.py --asm --resolve --binary compi/ejemplos/demo.craft
+
+# Especificar el archivo binario de salida.
+python3 compi/main.py -r -b compi/ejemplos/demo.craft \
+  -o compi/output/bin_output/demo.bin
 ```
 
-Generar ensamblador y binario:
+### Niveles de optimización
+
+| Nivel | Transformaciones |
+|---|---|
+| `-O0` | Sin optimizaciones |
+| `-O1` | *Loop unrolling* y renombrado de registros |
+| `-O2` | Eliminación de código muerto y reordenamiento |
+| `-O3` | Todas las optimizaciones |
+
+Ejemplos:
 
 ```bash
-python3 compi/main.py -s compi/ejemplos/demo.craft -o compi/output/bin_output/demo.bin
+python3 compi/main.py -r -b -O0 compi/ejemplos/demo.craft
+python3 compi/main.py -r -b -O3 compi/ejemplos/demo.craft
+
+# Ejecutar un pase específico y guardar también el IR.
+python3 compi/main.py --ir --reorder --artifact-tag reorder \
+  compi/Defensa/P2/Reordenamiento.craft
+
+python3 compi/main.py --ir --dce --artifact-tag dce \
+  compi/Defensa/P2/pruebaEliminacionCodigo.craft
 ```
 
-Generar binario y mostrar tabla de simbolos con labels resueltas:
+También están disponibles `--unroll`, `--unroll-factor N`,
+`--rename-registers`, `--dce` y `--reorder`.
+
+## Simulación con Icarus Verilog
+
+Todos los comandos de esta sección se ejecutan desde `arqui/`, salvo que se use
+`make -C arqui` desde la raíz.
+
+### Usando Make
+
+Compilar y ejecutar un testbench:
 
 ```bash
-python3 compi/main.py -m -r -b compi/ejemplos/demo.craft
+cd arqui
+make run TOP=tb_alu
 ```
 
-En Windows, si `python3` no existe, normalmente se puede intentar con `python`:
+Ejecutar el procesador completo con una ROM y una RAM concretas:
 
-```powershell
-python compi/main.py -r -b compi/ejemplos/demo.craft
+```bash
+make run TOP=tb_topG ROM=demo.hex RAM=data.hex
 ```
 
-### Fases implementadas
+El Makefile realiza internamente:
 
-El compilador tiene implementadas estas fases:
+1. La compilación de todos los módulos RTL y del testbench seleccionado con
+   `iverilog -g2012`.
+2. La creación de `sim/build/<testbench>.vvp`.
+3. La ejecución mediante `vvp`.
+4. La carga de `programs/<ROM>` y `programs/<RAM>` mediante *plusargs*.
 
-- Analisis lexico: reconoce keywords, tipos, literales, operadores, delimitadores y comentarios.
-- Analisis sintactico: construye un AST para imports, funciones, bloques, condiciones, ciclos, retornos, llamadas y expresiones.
-- Analisis semantico: maneja scopes, tabla de simbolos, tipos, memoria preliminar y validaciones basicas.
-- Generacion de ensamblador: traduce instrucciones del lenguaje Craft a ensamblador Craft21.
-- Resolucion de referencias: calcula direcciones de labels y offsets de salto.
-- Generacion binaria: produce imagen `.bin`, instrucciones `.hex`, datos `.data.hex` y listado `.lst`.
+Los parámetros principales son:
 
----
+| Parámetro | Valor por defecto | Descripción |
+|---|---|---|
+| `TOP` | `tb_topG` | Testbench sin extensión `.sv` |
+| `ROM` | `program.hex` | Archivo dentro de `arqui/programs/` |
+| `RAM` | `data.hex` | Imagen inicial de memoria de datos |
+| `MAX_CYCLES` | `20000` | Límite usado por algunos flujos |
+| `VVP_FLAGS` | vacío | *Plusargs* adicionales para el testbench |
 
-## Resumen: Guía de Uso y documentación
+Ejemplo con generación de ondas y un límite mayor:
 
-A continuación, se facilita la ruta a los README.md más importantes del repositorio:
+```bash
+make run TOP=tb_topG ROM=factorial.hex \
+  VVP_FLAGS="+VCD +MAX_CYCLES=300000"
+```
 
-### Guía de Uso
+### Usando Icarus Verilog directamente
 
-- [`./arqui/scripts/README.md`](./arqui/scripts/README.md): Para testbenches que requieran script (por ejemplo, TEA)
+El mismo flujo puede ejecutarse sin Make:
 
-- [`./arqui/README.md`](./arqui/README.md): Para testbenches generales que no requieran script (por ejemplo, factorial)
+```bash
+cd arqui
+mkdir -p sim/build sim/waves outputs
 
+iverilog -g2012 \
+  -o sim/build/tb_alu.vvp \
+  $(find rtl -type f -name '*.sv' | sort) \
+  tb/tb_alu.sv
 
-### Documentación
+vvp sim/build/tb_alu.vvp
+```
 
-- [`./arqui/docs/isa.md`](./arqui/docs/isa.md): ISA de la arquitectura Craft21
+Para el procesador completo:
 
-- [`./arqui/docs/microarchitecture.md`](./arqui/docs/microarchitecture.md): Micro arquitectura diseñada e implementada de Craft21
+```bash
+iverilog -g2012 \
+  -o sim/build/tb_topG.vvp \
+  $(find rtl -type f -name '*.sv' | sort) \
+  tb/tb_topG.sv
 
-- [`./arqui/docs/microarch.png`](./arqui/docs/microarch.png): Diagrama de bloques de la organización y microarquitectura de Craft21
+vvp sim/build/tb_topG.vvp \
+  +FILE_ROM=programs/bench_seq.hex \
+  +FILE_RAM=programs/data.hex \
+  +HALT_PC=F8 \
+  +MAX_CYCLES=300000 \
+  +TEST_NAME=bench_seq
+```
 
-- [`./arqui/docs/simulation.md`](./arqui/docs/simulation.md): Resumen de implementación de la simulación de la arquitectura Craft21
+`HALT_PC` es la dirección de la instrucción `freeze` de la ROM. La suite de
+benchmarks la calcula automáticamente, por lo que para medir programas se
+recomienda usar `scripts/benchmarks.py`.
 
+### Formas de onda
+
+Algunos testbenches generan un `.vcd` siempre; `tb_topG` lo hace únicamente si
+recibe `+VCD`.
+
+```bash
+cd arqui
+make run TOP=tb_topG ROM=bench_stride.hex VVP_FLAGS="+VCD"
+make wave TOP=tb_topG
+```
+
+También existen vistas preparadas:
+
+```bash
+make wave-pipeline
+make wave-datapath
+make wave-hazard
+make wave-mem
+```
+
+## Flujo completo: Craft a procesador
+
+Este ejemplo compila un benchmark, copia su ROM y RAM al directorio consumido
+por el hardware y lo ejecuta:
+
+```bash
+# Desde la raíz.
+python3 compi/main.py -r -b -O0 arqui/programs/src/bench_seq.craft
+
+cp compi/output/bin_output/bench_seq.hex arqui/programs/bench_seq_manual.hex
+
+make -C arqui run TOP=tb_topG \
+  ROM=bench_seq_manual.hex \
+  RAM=data.hex \
+  VVP_FLAGS="+TEST_NAME=bench_seq_manual +HALT_PC=F8 +MAX_CYCLES=300000 +EXPECT_X11=7F80"
+```
+
+Si el compilador genera un archivo `.data.hex`, debe copiarse también a
+`arqui/programs/` y pasarse mediante `RAM=<archivo>.data.hex`. Para ejecuciones
+verificadas se recomienda la suite de benchmarks, porque calcula `HALT_PC`,
+establece el límite de ciclos y comprueba el resultado esperado.
+
+## Benchmarks
+
+La suite principal incluye:
+
+| Benchmark | Patrón de acceso |
+|---|---|
+| `bench_seq` | Recorrido secuencial de 256 elementos |
+| `bench_stride` | Accesos con stride de ocho elementos |
+| `bench_random` | Accesos pseudoaleatorios sobre 480 elementos |
+| `bench_mmul` | Multiplicación de matrices 8x8 |
+
+Cada programa se compila con O0, O1, O2 y O3. La suite también ejecuta pruebas
+dirigidas P2 para *unrolling*, renombrado, DCE y reordenamiento, y compara el
+procesador con caché frente a la configuración sin caché.
+
+### Suite completa
+
+```bash
+cd arqui
+make bench BENCH_ARGS=--no-open
+```
+
+El target recompila las ROM principales y las pruebas P2 antes de medir.
+
+### Un benchmark
+
+```bash
+cd arqui
+make bench
+```
+
+```
+
+### Métricas generadas
+
+- Ciclos e instrucciones ejecutadas.
+- CPI e IPC.
+- Stalls de memoria y de control.
+- Lecturas, escrituras, hits y misses de L1 y L2.
+- AMAT.
+- Accesos y ciclos de transferencia hacia memoria principal.
+- Utilización temporal del bus de memoria.
+- Tamaño de código y transformaciones aplicadas.
+- Comparaciones con/sin caché y entre O0, O1, O2 y O3.
+
+Resultados:
+
+```text
+arqui/outputs/reports/
+├── results.html              # Reporte comparativo
+├── results.csv               # Benchmarks principales
+├── results_no_cash.csv       # Configuración sin caché
+├── results_p2.csv            # Pruebas dirigidas de optimización
+├── compile_stats.csv
+└── compile_stats_p2.csv
+```
+
+El análisis escrito de las métricas está en
+[`arqui/docs/analisis_rendimiento.md`](arqui/docs/analisis_rendimiento.md).
+
+## Pruebas
+
+Ejecutar todos los testbenches de primer nivel:
+
+```bash
+make -C arqui run-all
+```
+
+Ejecutar las pruebas unitarias del compilador:
+
+```bash
+python3 -m unittest discover -s compi/tests -p 'test_*.py'
+```
+
+Limpiar los binarios y ondas de simulación:
+
+```bash
+make -C arqui clean
+```
+
+## Script de acceso rápido
+
+`run.sh` permite invocar los objetivos más comunes desde la raíz:
+
+```bash
+chmod +x run.sh
+
+./run.sh list
+./run.sh run tb_alu
+./run.sh run tb_topG
+./run.sh wave tb_alu
+./run.sh all
+./run.sh clean
+```
+
+Para ejecutar un programa y volcar el estado final:
+
+```bash
+./run.sh run tb_general_dump factorial.hex
+```
+
+Los dumps se escriben en `arqui/outputs/`.
+
+## Craft Studio
+
+La interfaz gráfica permite editar programas `.craft`, consultar diagnósticos,
+usar autocompletado, seleccionar optimizaciones y revisar artefactos.
+
+```bash
+python3 -m pip install PySide6
+python3 compi/IDE/main.py
+```
+
+La guía de la IDE está en [`compi/IDE/README.md`](compi/IDE/README.md).
+
+## Documentación
+
+- [ISA Craft21](arqui/docs/isa.md)
+- [Microarquitectura](arqui/docs/microarchitecture.md)
+- [Jerarquía de memoria](arqui/docs/jerarquia_memoria.md)
+- [Simulación y formas de onda](arqui/docs/simulation.md)
+- [Análisis de rendimiento](arqui/docs/analisis_rendimiento.md)
+- [Compilador Craft](compi/README.md)
+- [Representación intermedia](compi/IR/README.md)
+- [Herramientas y demostración TEA](arqui/scripts/README.md)
+
+## Problemas frecuentes
+
+### `iverilog: command not found`
+
+Instale Icarus Verilog y compruebe que `iverilog` y `vvp` estén en `PATH`.
+
+### No se encuentra la ROM o la RAM
+
+Los valores de `ROM` y `RAM` son nombres relativos a `arqui/programs/`:
+
+```bash
+make -C arqui run TOP=tb_topG ROM=demo.hex RAM=data.hex
+```
+
+### La simulación no termina
+
+El programa debe contener una instrucción `freeze` y usar el `HALT_PC`
+correcto. Para benchmarks, use `scripts/benchmarks.py`, que calcula esa
+dirección automáticamente.
+
+### No aparece el archivo VCD
+
+Para `tb_topG` agregue `+VCD`:
+
+```bash
+make -C arqui run TOP=tb_topG ROM=demo.hex VVP_FLAGS="+VCD"
+```
+
+### GTKWave no abre
+
+La simulación puede ejecutarse sin visor. El `.vcd` queda en
+`arqui/sim/waves/` y puede abrirse posteriormente con GTKWave o Surfer.

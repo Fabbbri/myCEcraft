@@ -1,0 +1,35 @@
+  base = 9
+main:
+  a = base
+  t0 = a + 1
+  part = t0
+  t1 = 5 + 6
+  w1 = t1
+  t2 = 7 + 8
+  w2 = t2
+  t3 = w1 + w2
+  w3 = t3
+  t4 = part + w3
+  total = t4
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_entry]
+  -> Sucesores: B_label_main
+    base = 9
+
+[B_label_main]
+    main:
+    a = base
+    t0 = a + 1
+    part = t0
+    t1 = 5 + 6
+    w1 = t1
+    t2 = 7 + 8
+    w2 = t2
+    t3 = w1 + w2
+    w3 = t3
+    t4 = part + w3
+    total = t4
+    return total

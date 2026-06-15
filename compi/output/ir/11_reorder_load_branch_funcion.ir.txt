@@ -1,0 +1,80 @@
+seleccionar:
+  t0 = valor < respaldo
+  ifFalse t0 goto L_else_0
+  return respaldo
+  goto L_end_if_1
+L_else_0:
+L_end_if_1:
+  return valor
+main:
+  datos = [8, 21, 13]
+  t1 = datos[1]
+  cargado = t1
+  t2 = 5 + 6
+  independiente = t2
+  t3 = cargado + 1
+  candidato = t3
+  t4 = call seleccionar(candidato, independiente)
+  elegido = t4
+  t5 = elegido == 22
+  ifFalse t5 goto L_else_2
+  t6 = elegido + independiente
+  return t6
+  goto L_end_if_3
+L_else_2:
+L_end_if_3:
+  return 0
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_seleccionar]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_1
+    seleccionar:
+    t0 = valor < respaldo
+    ifFalse t0 goto L_else_0
+
+[B_fallthrough_1]
+    return respaldo
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+  -> Sucesores: B_label_L_end_if_1
+    L_else_0:
+
+[B_label_L_end_if_1]
+    L_end_if_1:
+    return valor
+
+[B_label_main]
+  -> Sucesores: B_label_L_else_2, B_fallthrough_6
+    main:
+    datos = [8, 21, 13]
+    t1 = datos[1]
+    cargado = t1
+    t2 = 5 + 6
+    independiente = t2
+    t3 = cargado + 1
+    candidato = t3
+    t4 = call seleccionar(candidato, independiente)
+    elegido = t4
+    t5 = elegido == 22
+    ifFalse t5 goto L_else_2
+
+[B_fallthrough_6]
+    t6 = elegido + independiente
+    return t6
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_end_if_3
+    goto L_end_if_3
+
+[B_label_L_else_2]
+  -> Sucesores: B_label_L_end_if_3
+    L_else_2:
+
+[B_label_L_end_if_3]
+    L_end_if_3:
+    return 0

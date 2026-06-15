@@ -1,0 +1,37 @@
+// Funcion auxiliar con cadena de calculos muertos en su cuerpo.
+// DCE elimina todo lo que no llega al return ni a un summon.
+// La funcion 'procesar' tiene un bloque muerto extenso dentro de ella;
+// main tiene otro bloque muerto entre las dos llamadas.
+// Resultado esperado: 1 + 2 + 4 = 7.
+
+@EnterCraftWorld
+
+acumulado:int = 1;
+
+craft:int acumular(v:int) {
+    // cadena muerta local a esta funcion
+    d1:int = v + 10;
+    d2:int = d1 + d1;
+    d3:int = d2 + d1;
+    d4:int = d3 + d2;
+
+    acumulado = acumulado + v;
+    return acumulado;
+}
+
+
+craft:int main() {
+    semilla:int = 3;
+
+    summon:acumular(2);
+
+    // bloque muerto entre las dos llamadas
+    e1:int = semilla + 11;
+    e2:int = e1 + e1;
+    e3:int = e2 + e1;
+    e4:int = e3 + e2;
+    e5:int = e4 + e3;
+
+    summon:acumular(4);
+    return acumulado;
+}

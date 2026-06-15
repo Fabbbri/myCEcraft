@@ -147,6 +147,16 @@ sim/
 ├── gtkwave/   # configuraciones (.gtkw)
 ```
 
+En `tb_topG` la onda se genera **solo si se pasa `+VCD`** (asi los benchmarks
+corren sin escribir VCDs gigantes). Para inspeccionar señales en GTKWave:
+
+```bash
+make run TOP=tb_topG ROM=program.hex VVP_FLAGS=+VCD
+make wave TOP=tb_topG
+```
+
+Detalle del flujo y señales sugeridas en [docs/simulation.md](docs/simulation.md).
+
 ### `programs/` - Archivos .hex para ROM y RAM
 
 Contiene .hex necesarios para la ejecución de testbench. Se muestran a continuación:

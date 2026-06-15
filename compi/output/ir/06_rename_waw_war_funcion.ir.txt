@@ -1,0 +1,90 @@
+combinar:
+  t0 = a + b
+  acc = t0
+  t1 = a > b
+  ifFalse t1 goto L_else_0
+  prev_if = acc
+  t2 = acc + prev_if
+  acc = t2
+  return acc
+  goto L_end_if_1
+L_else_0:
+  prev_el = acc
+  t3 = acc + a
+  acc = t3
+  t4 = acc + prev_el
+  return t4
+L_end_if_1:
+main:
+  total = 0
+  i = 1
+L_for_start_2:
+  t5 = i <= 5
+  ifFalse t5 goto L_for_end_3
+  t6 = 6 - i
+  t7 = call combinar(i, t6)
+  t8 = total + t7
+  total = t8
+  t9 = i + 1
+  i = t9
+  goto L_for_start_2
+L_for_end_3:
+  return total
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_combinar]
+  -> Sucesores: B_label_L_else_0, B_fallthrough_1
+    combinar:
+    t0 = a + b
+    acc = t0
+    t1 = a > b
+    ifFalse t1 goto L_else_0
+
+[B_fallthrough_1]
+    prev_if = acc
+    t2 = acc + prev_if
+    acc = t2
+    return acc
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_end_if_1
+    goto L_end_if_1
+
+[B_label_L_else_0]
+    L_else_0:
+    prev_el = acc
+    t3 = acc + a
+    acc = t3
+    t4 = acc + prev_el
+    return t4
+
+[B_label_L_end_if_1]
+  -> Sucesores: B_label_main
+    L_end_if_1:
+
+[B_label_main]
+  -> Sucesores: B_label_L_for_start_2
+    main:
+    total = 0
+    i = 1
+
+[B_label_L_for_start_2]
+  -> Sucesores: B_label_L_for_end_3, B_fallthrough_7
+    L_for_start_2:
+    t5 = i <= 5
+    ifFalse t5 goto L_for_end_3
+
+[B_fallthrough_7]
+  -> Sucesores: B_label_L_for_start_2
+    t6 = 6 - i
+    t7 = call combinar(i, t6)
+    t8 = total + t7
+    total = t8
+    t9 = i + 1
+    i = t9
+    goto L_for_start_2
+
+[B_label_L_for_end_3]
+    L_for_end_3:
+    return total

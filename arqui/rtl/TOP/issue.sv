@@ -2,7 +2,8 @@ module issue(
     input logic clk, reset, stallIF, // hazard
     input logic [31:0] new_addr,
 
-    output logic [31:0] addr, pc_plus4F, instr
+    output logic [31:0] addr, pc_plus4F, instr,
+    output logic pc_en_o   // PMU: 0 cuando la instruccion actual es FREEZE
 );
 
 // ==========================================================
@@ -59,5 +60,6 @@ pc_decoder pcDec(
 // ==========================================================
 
 assign addr = addr_aux;
+assign pc_en_o = pc_en;
 
 endmodule

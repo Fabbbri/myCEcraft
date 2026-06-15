@@ -46,109 +46,36 @@ module tb_topG;
     `define RAM   dut.Memory.NormalRam.mem
 
     // ==========================================
-    // Contadores
+    // Alias de registros arquitectonicos para GTKWave.
+    // Icarus no siempre vuelca los elementos de un arreglo (`REGS[N]`) al VCD;
+    // estos wire continuos los exponen con nombre legible bajo el scope tb_topG.
     // ==========================================
 
-    localparam logic [31:0] NOP = 32'h00580000;
-    logic halt_detected = 0;
-
-    always @(posedge clk) begin
-        if (`PC === halt_pc) halt_detected <= 1;
-        if (!reset && !halt_detected)
-            cycle_count++;
-    end
-
-    always @(posedge clk) begin
-        if (!reset) begin
-            if (dut.instrDE !== NOP &&
-                dut.instrDE !== 32'hxxxxxxxx &&
-                !dut.flushE &&
-                !dut.stallE)
-            begin
-                instr_count++;
-            end
-        end
-    end
+    wire [31:0] reg_ra = `REGS[1];   // x1  (return address)
+    wire [31:0] reg_sp = `REGS[2];   // x2  (stack pointer)
+    wire [31:0] reg_s0 = `REGS[8];   // x8  (saved / frame pointer)
+    wire [31:0] reg_a0 = `REGS[10];  // x10 (arg / retorno 0)
+    wire [31:0] reg_a1 = `REGS[11];  // x11 (arg / retorno 1, validacion benchmark)
 
     // ==========================================
-    // Contadores de cache (muestreo no invasivo de señales del dut)
+    // Contadores -> ahora los lleva la PMU en hardware (dut.Perf.*).
+    // El testbench ya no acumula nada: solo LEE los contadores en
+    // report_metrics. Se conservan estos nombres como espejos para no
+    // tocar el formato del CSV ni de la linea [METRICS].
     // ==========================================
 
-    // op de memoria real en MEM: load = result_src==01, store = we_mem
-    // (hit_l1/miss_l1 son combinacionales sobre alu_result aunque no haya
-    //  acceso real; hay que filtrar por el tipo de instruccion en MEM)
+    // (solo para el bloque de depuracion +DBG de mas abajo)
     wire mem_rd_op = (dut.Memory.result_src == 2'b01);
-    wire mem_wr_op = (dut.Memory.we_mem === 1'b1);
-    wire mem_op    = mem_rd_op | mem_wr_op;
 
+    // espejos de la PMU (cycle_count / instr_count se declaran arriba)
     longint l1_reads,   l1_writes;
     longint l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss;
     longint l2_acc,     l2_hits,    l2_miss;
+    longint l2_reads,   l2_writes;
     longint mem_acc,    mem_bursts;
-    longint stall_mem_cycles;   // ciclos con pipeline congelado por memoria
-    longint ctrl_stalls;        // ciclos de fetch perdidos por branch tomado
-    longint mem_xfer_cycles;    // ciclos con el bus de RAM ocupado
-
-    // acceso nuevo = cambia direccion o tipo respecto al ciclo anterior
-    // (durante stall el pipeline retiene la misma op en MEM: no recontar)
-    logic        prev_mem_op = 0;
-    logic        prev_wr     = 0;
-    logic [31:0] prev_addr   = '0;
-    logic        prev_burst  = 0;
-
-    wire new_access = mem_op && !(prev_mem_op &&
-                                  prev_addr == dut.Memory.alu_result &&
-                                  prev_wr   == mem_wr_op);
-
-    always @(posedge clk) begin
-        if (!reset && !halt_detected) begin
-            // L1: clasificar en el primer ciclo de cada acceso
-            if (new_access) begin
-                if (mem_wr_op) begin
-                    l1_writes++;
-                    if (dut.Memory.hit_l1) l1_wr_hits++; else l1_wr_miss++;
-                end else begin
-                    l1_reads++;
-                    if (dut.Memory.hit_l1) l1_rd_hits++; else l1_rd_miss++;
-                    // L2 read: cada load miss de L1 baja a L2; en este ciclo
-                    // alu_result es la direccion del load y hit_l2 el veredicto
-                    if (!dut.Memory.hit_l1) begin
-                        l2_acc++;
-                        if (dut.Memory.hit_l2) begin
-                            l2_hits++;
-                        end else begin
-                            l2_miss++;
-                            mem_acc++;   // load miss en L2 -> burst a RAM
-                        end
-                    end
-                end
-            end
-
-            // L2 writes: un WB_COMMIT (1 ciclo) por store drenado
-            if (dut.Memory.L2Con.wb_state == 2'b10) begin
-                l2_acc++;
-                if (dut.Memory.hit_l2_wb) l2_hits++; else l2_miss++;
-                mem_acc++;       // write-through: todo store drenado va a RAM
-            end
-
-            // diagnostico: bursts reales en el bus (incluye trafico no atribuible)
-            if (dut.Memory.burst_active && !prev_burst)
-                mem_bursts++;
-
-            // metricas de procesador / memoria (spec seccion 5)
-            if (dut.stall_mem)
-                stall_mem_cycles++;
-            if (dut.flushD)
-                ctrl_stalls++;
-            if (dut.Memory.burst_active || dut.Memory.ram_we)
-                mem_xfer_cycles++;
-        end
-
-        prev_mem_op  <= mem_op && !reset;
-        prev_wr      <= mem_wr_op;
-        prev_addr    <= dut.Memory.alu_result;
-        prev_burst   <= dut.Memory.burst_active;
-    end
+    longint stall_mem_cycles;
+    longint ctrl_stalls;
+    longint mem_xfer_cycles;
 
     // DEBUG temporal: trafico hacia/desde RAM y write path
     logic dbg_on = 0;
@@ -349,9 +276,32 @@ module tb_topG;
     task automatic report_metrics(input string test_name);
         real cpi, l1_hr, l1_mr, l2_hr, l2_mr, bw_util;
         longint l1_total;
+        longint eff_cycles;
+
+        // Leer los contadores de la PMU (hardware). La PMU cuenta hasta el
+        // freeze (pc_en==0), 1 ciclo despues de halt_pc; el -1 de eff_cycles
+        // (abajo) lo reconcilia con el conteo historico del testbench.
+        cycle_count      = dut.Perf.cycles;
+        instr_count      = dut.Perf.instr;
+        stall_mem_cycles = dut.Perf.stall_mem_cyc;
+        ctrl_stalls      = dut.Perf.ctrl_stalls;
+        l1_reads   = dut.Perf.l1_reads;    l1_writes  = dut.Perf.l1_writes;
+        l1_rd_hits = dut.Perf.l1_rd_hits;  l1_rd_miss = dut.Perf.l1_rd_miss;
+        l1_wr_hits = dut.Perf.l1_wr_hits;  l1_wr_miss = dut.Perf.l1_wr_miss;
+        l2_acc     = dut.Perf.l2_acc;      l2_reads   = dut.Perf.l2_reads;
+        l2_writes  = dut.Perf.l2_writes;
+        l2_hits    = dut.Perf.l2_hits;     l2_miss    = dut.Perf.l2_miss;
+        mem_acc    = dut.Perf.mem_acc;     mem_bursts = dut.Perf.mem_bursts;
+        mem_xfer_cycles = dut.Perf.mem_xfer_cyc;
+
+        // cycle_count se cuenta en un always libre que arranca al soltar reset;
+        // apply_reset consume un posedge extra (los $display de DEBUG/PIPE)
+        // antes de la corrida real, asi que cycle_count queda inflado en 1.
+        // eff_cycles es el conteo real ejecutado (lo que ve wait_for_finish).
+        eff_cycles = (cycle_count > 0) ? cycle_count - 1 : 0;
 
         cpi = (instr_count != 0)
-            ? (1.0 * cycle_count) / instr_count
+            ? (1.0 * eff_cycles) / instr_count
             : 0.0;
 
         l1_total = l1_reads + l1_writes;
@@ -359,11 +309,11 @@ module tb_topG;
         l1_mr = (l1_total != 0) ? 100.0 - l1_hr : 0.0;
         l2_hr = (l2_acc != 0) ? 100.0 * l2_hits / l2_acc : 0.0;
         l2_mr = (l2_acc != 0) ? 100.0 - l2_hr : 0.0;
-        bw_util = (cycle_count != 0) ? 100.0 * mem_xfer_cycles / cycle_count : 0.0;
+        bw_util = (eff_cycles != 0) ? 100.0 * mem_xfer_cycles / eff_cycles : 0.0;
 
         $fwrite(csv_fd,
                 "%s,%0d,%0d,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%0d,%.2f,%.2f,%0d,%0d,%.2f\n",
-                test_name, cycle_count, instr_count, cpi,
+                test_name, eff_cycles, instr_count, cpi,
                 stall_mem_cycles, ctrl_stalls,
                 l1_reads, l1_writes,
                 l1_rd_hits, l1_rd_miss, l1_wr_hits, l1_wr_miss,
@@ -372,7 +322,7 @@ module tb_topG;
                 mem_acc, mem_xfer_cycles, bw_util);
 
         $display("\n  --- Performance ---");
-        $display("  Ciclos        : %0d", cycle_count-1);
+        $display("  Ciclos        : %0d", eff_cycles);
         $display("  Instrucciones : %0d", instr_count);
         $display("  CPI           : %f", cpi);
         $display("  Stalls mem    : %0d ciclos | flush control: %0d", stall_mem_cycles, ctrl_stalls);
@@ -385,13 +335,14 @@ module tb_topG;
                  mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
 
         // linea parseable para scripts/benchmarks.py
-        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d",
-                 test_name, cycle_count, instr_count, cpi,
+        $display("[METRICS] name=%s|cycles=%0d|instr=%0d|cpi=%f|stall_mem_cyc=%0d|ctrl_stalls=%0d|l1_reads=%0d|l1_writes=%0d|l1_rd_hits=%0d|l1_rd_miss=%0d|l1_wr_hits=%0d|l1_wr_miss=%0d|l1_hit_rate=%.2f|l1_miss_rate=%.2f|l2_acc=%0d|l2_hits=%0d|l2_miss=%0d|l2_hit_rate=%.2f|l2_miss_rate=%.2f|mem_acc=%0d|mem_xfer_cyc=%0d|bw_util=%.2f|mem_bursts=%0d|l2_reads=%0d|l2_writes=%0d",
+                 test_name, eff_cycles, instr_count, cpi,
                  stall_mem_cycles, ctrl_stalls,
                  l1_reads, l1_writes, l1_rd_hits, l1_rd_miss,
                  l1_wr_hits, l1_wr_miss, l1_hr, l1_mr,
                  l2_acc, l2_hits, l2_miss, l2_hr, l2_mr,
-                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts);
+                 mem_acc, mem_xfer_cycles, bw_util, mem_bursts,
+                 l2_reads, l2_writes);
     endtask
 
     task automatic run_test(
@@ -405,13 +356,13 @@ module tb_topG;
         $display("  TEST: %s", test_name);
         $display("============================================================");
 
-        cycle_count = 0;
-        instr_count = 0;
-        halt_detected = 0;
-
+        // los contadores los resetea la PMU en hardware (al soltar reset);
+        // aqui solo se limpian los espejos por prolijidad.
+        cycle_count = 0; instr_count = 0;
         l1_reads = 0; l1_writes = 0;
         l1_rd_hits = 0; l1_rd_miss = 0; l1_wr_hits = 0; l1_wr_miss = 0;
         l2_acc = 0; l2_hits = 0; l2_miss = 0;
+        l2_reads = 0; l2_writes = 0;
         mem_acc = 0; mem_bursts = 0;
         stall_mem_cycles = 0; ctrl_stalls = 0; mem_xfer_cycles = 0;
 
@@ -462,8 +413,11 @@ module tb_topG;
         $display("         CRAFT21 ARCHITECTURE TESTBENCH");
         $display("============================================================");
 
-        $dumpfile("sim/waves/tb_topG.vcd");
-        $dumpvars(0, tb_topG);
+        // onda bajo demanda: solo con +VCD (la suite de benchmarks corre sin onda)
+        if ($test$plusargs("VCD")) begin
+            $dumpfile("sim/waves/tb_topG.vcd");
+            $dumpvars(0, tb_topG);
+        end
 
         csv_fd = $fopen("outputs/reports/results.csv", "w");
 

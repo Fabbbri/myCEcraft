@@ -1,0 +1,70 @@
+main:
+  arr = 0
+  i = 0
+  suma = 0
+L_while_start_0:
+  t0 = i < 256
+  ifFalse t0 goto L_while_end_1
+  arr[i] = i
+  t1 = i + 8
+  i = t1
+  goto L_while_start_0
+L_while_end_1:
+  i = 0
+L_while_start_2:
+  t2 = i < 256
+  ifFalse t2 goto L_while_end_3
+  t3 = arr[i]
+  t4 = suma + t3
+  suma = t4
+  t5 = i + 8
+  i = t5
+  goto L_while_start_2
+L_while_end_3:
+  return suma
+
+=== Control Flow Graph & Basic Blocks ===
+
+[B_label_main]
+  -> Sucesores: B_label_L_while_start_0
+    main:
+    arr = 0
+    i = 0
+    suma = 0
+
+[B_label_L_while_start_0]
+  -> Sucesores: B_label_L_while_end_1, B_fallthrough_2
+    L_while_start_0:
+    t0 = i < 256
+    ifFalse t0 goto L_while_end_1
+
+[B_fallthrough_2]
+  -> Sucesores: B_label_L_while_start_0
+    arr[i] = i
+    t1 = i + 8
+    i = t1
+    goto L_while_start_0
+
+[B_label_L_while_end_1]
+  -> Sucesores: B_label_L_while_start_2
+    L_while_end_1:
+    i = 0
+
+[B_label_L_while_start_2]
+  -> Sucesores: B_label_L_while_end_3, B_fallthrough_5
+    L_while_start_2:
+    t2 = i < 256
+    ifFalse t2 goto L_while_end_3
+
+[B_fallthrough_5]
+  -> Sucesores: B_label_L_while_start_2
+    t3 = arr[i]
+    t4 = suma + t3
+    suma = t4
+    t5 = i + 8
+    i = t5
+    goto L_while_start_2
+
+[B_label_L_while_end_3]
+    L_while_end_3:
+    return suma
