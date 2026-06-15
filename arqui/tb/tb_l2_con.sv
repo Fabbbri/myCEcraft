@@ -1,7 +1,7 @@
 // ============================================================
 //  tb_l2_con.sv  —  Testbench unitario para l2_con.sv
 //
-//  Stubs incluidos: request_queue, write_buffer, set_reg
+//  Usa los modulos reales: request_queue, write_buffer y set_reg.
 //
 //  Escenarios:
 //    S1  – Load HIT L2: stall 8 ciclos, dato_cpu correcto
@@ -13,135 +13,14 @@
 //    S7  – Stall sostenido durante ACCESS
 //    S8  – WB_DRAIN bloqueado mientras load en ACCESS
 //    S9  – mem_busy retiene WB_DRAIN; COMMIT sale al liberar
-//    S10 – fill_en pulsa 1 ciclo DESPUÉS de burst_counter==7
+//    S10 – fill_en pulsa tras el posedge que captura burst_counter==7
 //    S11 – wb_commit_out: pulso de 1 ciclo por WB_COMMIT
 //    S12 – inv_en pulsa solo en IDLE→ACCESS con miss; no en HIT
 //
 //  Compilar:
-//    iverilog -g2012 -o tb_l2_con tb_l2_con.sv l2_con.sv && vvp tb_l2_con
+//    make -C arqui run TOP=tb_l2_con
 // ============================================================
 `timescale 1ns/1ps
-
-// ============================================================
-//  STUB: request_queue
-// ============================================================
-module request_queue #(parameter DEPTH = 8) (
-    input  logic        clk, reset,
-    input  logic        push,
-    input  logic [31:0] addr_in,
-    input  logic [1:0]  size_in,
-    input  logic        pop,
-    output logic [31:0] addr_out,
-    output logic [1:0]  size_out,
-    output logic        full,
-    output logic        empty
-);
-    localparam PTR = $clog2(DEPTH);
-    localparam CNT = PTR + 1;
-
-    logic [31:0]    mem_a [0:DEPTH-1];
-    logic [1:0]     mem_s [0:DEPTH-1];
-    logic [CNT-1:0] count;
-    logic [PTR-1:0] wptr, rptr;
-
-    assign full     = (count == CNT'(DEPTH));
-    assign empty    = (count == '0);
-    assign addr_out = empty ? '0 : mem_a[rptr];
-    assign size_out = empty ? '0 : mem_s[rptr];
-
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            count <= '0; wptr <= '0; rptr <= '0;
-        end else begin
-            if (push && !full) begin
-                mem_a[wptr] <= addr_in;
-                mem_s[wptr] <= size_in;
-                wptr        <= wptr + 1'b1;
-                count       <= count + 1'b1;
-            end
-            if (pop && !empty) begin
-                rptr  <= rptr + 1'b1;
-                count <= count - 1'b1;
-            end
-        end
-    end
-endmodule
-
-// ============================================================
-//  STUB: write_buffer
-// ============================================================
-module write_buffer #(parameter DEPTH = 8) (
-    input  logic        clk, reset,
-    input  logic        push,
-    input  logic [31:0] addr_in,
-    input  logic [31:0] wdata_in,
-    input  logic [1:0]  size_in,
-    input  logic        pop,
-    output logic [31:0] addr_out,
-    output logic [31:0] wdata_out,
-    output logic [1:0]  size_out,
-    output logic        full,
-    output logic        empty
-);
-    localparam PTR = $clog2(DEPTH);
-    localparam CNT = PTR + 1;
-
-    logic [31:0]    mem_a [0:DEPTH-1];
-    logic [31:0]    mem_d [0:DEPTH-1];
-    logic [1:0]     mem_s [0:DEPTH-1];
-    logic [CNT-1:0] count;
-    logic [PTR-1:0] wptr, rptr;
-
-    assign full      = (count == CNT'(DEPTH));
-    assign empty     = (count == '0);
-    assign addr_out  = empty ? '0 : mem_a[rptr];
-    assign wdata_out = empty ? '0 : mem_d[rptr];
-    assign size_out  = empty ? '0 : mem_s[rptr];
-
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            count <= '0; wptr <= '0; rptr <= '0;
-        end else begin
-            if (push && !full) begin
-                mem_a[wptr] <= addr_in;
-                mem_d[wptr] <= wdata_in;
-                mem_s[wptr] <= size_in;
-                wptr        <= wptr + 1'b1;
-                count       <= count + 1'b1;
-            end
-            if (pop && !empty) begin
-                rptr  <= rptr + 1'b1;
-                count <= count - 1'b1;
-            end
-        end
-    end
-endmodule
-
-// ============================================================
-//  STUB: set_reg
-// ============================================================
-module set_reg #(
-    parameter NUM_SETS = 128,
-    parameter NUM_WAYS = 4
-) (
-    input  logic                         clk, reset,
-    input  logic [$clog2(NUM_SETS)-1:0]  set,
-    input  logic                         fill_en,
-    output logic [1:0]                   way_out
-);
-    logic [1:0] ptr [0:NUM_SETS-1];
-    integer si;
-    assign way_out = ptr[set];
-
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            for (si = 0; si < NUM_SETS; si = si + 1)
-                ptr[si] <= 2'd0;
-        end else if (fill_en) begin
-            ptr[set] <= ptr[set] + 2'd1;
-        end
-    end
-endmodule
 
 // ============================================================
 //  TESTBENCH PRINCIPAL
@@ -257,8 +136,10 @@ task do_reset;
 endtask
 
 // -------------------------------------------------------
-// Burst completo (8 palabras)
-// fill_en debe subir 1 ciclo DESPUÉS de counter==7
+// Burst completo (8 palabras).
+// El task vuelve en el negedge posterior a capturar counter==7: fill_en sigue
+// alto hasta el siguiente posedge, de modo que el caller puede comprobar el
+// pulso sin saltarselo.
 // -------------------------------------------------------
 task do_burst;
     integer bi;
@@ -272,7 +153,6 @@ task do_burst;
         @(negedge clk);
         burst_active  = 0;
         burst_counter = '0;
-        @(posedge clk); #1;
     end
 endtask
 
@@ -568,7 +448,7 @@ task test_s9_mem_busy;
         // Liberar
         @(negedge clk);
         mem_busy = 0;
-        repeat(3) @(posedge clk); #1;
+        wait_for_wb_commit();
         chk("S9 wb_write_out tras liberar", wb_write_out,  1'b1);
         chk("S9 wb_commit_out=1 (PMU)",     wb_commit_out, 1'b1);
 
@@ -577,12 +457,12 @@ task test_s9_mem_busy;
 endtask
 
 // ============================================================
-// S10 – fill_en: 1 ciclo DESPUÉS de burst_counter==7
+// S10 – fill_en: registrado a partir de burst_counter==7
 // ============================================================
 task test_s10_fill_en_delay;
     integer bi;
     begin
-        $display("\n--- S10: fill_en delay 1 ciclo ---");
+        $display("\n--- S10: fill_en registrado al final del burst ---");
         do_reset();
 
         addr = 32'h7777_0030; is_write = 0; miss_l1 = 1; hit_l2 = 0;
@@ -595,17 +475,17 @@ task test_s10_fill_en_delay;
             chk("S10 fill_en=0 durante burst", fill_en, 1'b0);
         end
 
-        // counter==7: fill_en aún debe ser 0
+        // El RTL registra burst_last_d en este posedge. Tras las NBA,
+        // fill_en ya refleja el pulso, que l2_cache consumira en el siguiente
+        // posedge con la linea completa de refill_regs.
         @(negedge clk); burst_counter = 3'b111;
         @(posedge clk); #1;
-        chk("S10 fill_en=0 en ciclo counter==7", fill_en, 1'b0);
+        chk("S10 fill_en=1 tras capturar counter==7", fill_en, 1'b1);
 
-        // Ciclo siguiente: fill_en=1
+        // Al retirar burst_active, burst_last_d se limpia en el siguiente
+        // posedge y fill_en vuelve a cero.
         @(negedge clk);
         burst_active = 0; burst_counter = '0;
-        @(posedge clk); #1;
-        chk("S10 fill_en=1 un ciclo despues", fill_en, 1'b1);
-
         @(posedge clk); #1;
         chk("S10 fill_en=0 tras pulso", fill_en, 1'b0);
 
@@ -719,12 +599,14 @@ initial begin
     $display("\n========================================");
     $display("  RESULTADOS: %0d PASS  /  %0d FAIL", pass_cnt, fail_cnt);
     $display("========================================");
-    if (fail_cnt == 0) $display("ALL TESTS PASSED");
-    else               $display("SOME TESTS FAILED");
-
-    $finish;
+    if (fail_cnt == 0) begin
+        $display("ALL TESTS PASSED");
+        $finish;
+    end else begin
+        $fatal(1, "SOME TESTS FAILED");
+    end
 end
 
-initial begin #500000; $display("TIMEOUT"); $finish; end
+initial begin #500000; $fatal(1, "TIMEOUT"); end
 
 endmodule

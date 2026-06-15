@@ -14,7 +14,7 @@
 //    T10 – store_en en todos los 8 words
 //
 //  Compilar:
-//    iverilog -g2012 -o tb_l2_cache tb_l2_cache.sv l2_cache.sv && vvp tb_l2_cache
+//    make -C arqui run TOP=tb_l2_cache
 // ============================================================
 `timescale 1ns/1ps
 
@@ -207,10 +207,10 @@ initial begin
     // T4 – 4 fills en el mismo set, vías 0-3
     // --------------------------------------------------------
     $display("\n--- T4: 4 vias en mismo set ---");
-    t_lines[0] = 256'h0001; t_tags[0] = 20'hTA000;
-    t_lines[1] = 256'h0002; t_tags[1] = 20'hTA001;
-    t_lines[2] = 256'h0003; t_tags[2] = 20'hTA002;
-    t_lines[3] = 256'h0004; t_tags[3] = 20'hTA003;
+    t_lines[0] = 256'h0001; t_tags[0] = 20'hA0000;
+    t_lines[1] = 256'h0002; t_tags[1] = 20'hA0001;
+    t_lines[2] = 256'h0003; t_tags[2] = 20'hA0002;
+    t_lines[3] = 256'h0004; t_tags[3] = 20'hA0003;
 
     for (t_v = 0; t_v < 4; t_v = t_v + 1)
         do_fill(t_v[1:0], 7'h01, t_tags[t_v], t_lines[t_v]);
@@ -254,20 +254,20 @@ initial begin
     // --------------------------------------------------------
     $display("\n--- T6: store_en write-through ---");
     t_line        = '0;
-    t_line[63:32] = 32'hOLD_WORD1;
+    t_line[63:32] = 32'h01D00001;
     do_fill(2'd0, 7'h10, 20'h00A00, t_line);
 
     @(negedge clk);
     store_en   = 1;
     store_addr = make_addr(20'h00A00, 7'h10, 3'd1);
-    store_data = 32'hNEW_0001;
+    store_data = 32'h0E000001;
     @(posedge clk); #1;
     store_en = 0;
 
     addr = make_addr(20'h00A00, 7'h10, 3'd1);
     @(posedge clk); #1;
     chk("T6 hit tras store_en", hit, 1'b1);
-    chk32("T6 word1 actualizado", data_out, 32'hNEW_0001);
+    chk32("T6 word1 actualizado", data_out, 32'h0E000001);
 
     addr = make_addr(20'h00A00, 7'h10, 3'd0);
     @(posedge clk); #1;
@@ -368,12 +368,14 @@ initial begin
     $display("\n========================================");
     $display("  RESULTADOS: %0d PASS  /  %0d FAIL", pass_cnt, fail_cnt);
     $display("========================================");
-    if (fail_cnt == 0) $display("ALL TESTS PASSED");
-    else               $display("SOME TESTS FAILED");
-
-    $finish;
+    if (fail_cnt == 0) begin
+        $display("ALL TESTS PASSED");
+        $finish;
+    end else begin
+        $fatal(1, "SOME TESTS FAILED");
+    end
 end
 
-initial begin #100000; $display("TIMEOUT"); $finish; end
+initial begin #100000; $fatal(1, "TIMEOUT"); end
 
 endmodule
