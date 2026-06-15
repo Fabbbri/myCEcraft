@@ -576,14 +576,6 @@ def load_no_cache():
     return ref
 
 
-def _stall_pct(r):
-    """% de ciclos congelado esperando memoria (la 'pared de memoria')."""
-    cyc, st = _fnum(r.get("Ciclos")), _fnum(r.get("Stalls_Mem"))
-    if cyc and st is not None and cyc > 0:
-        return 100.0 * st / cyc
-    return None
-
-
 def _ipc(r):
     """IPC = Instrucciones / Ciclos (la metrica que nombra el spec)."""
     cyc, instr = _fnum(r.get("Ciclos")), _fnum(r.get("Instr"))
@@ -821,35 +813,6 @@ Memory_Accesses = misses de lectura en L2 + total de stores drenados.</p>
 """
 
 
-def causal_chain(rows):
-    """Vista integrada: por benchmark (del mas rapido al mas lento) la cadena
-    L1 aciertos -> espera de memoria -> CPI, en tabla. Mas verde (aciertos) y
-    menos rojo (espera) = menor CPI."""
-    data = [r for r in rows if _fnum(r.get("CPI")) is not None]
-    if not data:
-        return ""
-    data = sorted(data, key=lambda r: _fnum(r.get("CPI")))
-    body = ""
-    for r in data:
-        hit = r.get("L1_Hit_Rate")
-        stall = _stall_pct(r)
-        body += (
-            f'<tr><td>{r["Test Ejecutado"]}</td>'
-            f'<td style="background:{heat_color(hit)};color:#fff">{_num(hit, 1, "%")}</td>'
-            f'<td style="background:{heat_color(stall, invert=True)}">{_num(stall, 1, "%")}</td>'
-            f'<td>{_num(r.get("CPI"), 2)}</td></tr>\n')
-    return f"""
-<section><h2>Cadena causal: localidad &rarr; aciertos &rarr; esperas &rarr; CPI</h2>
-<p class="nota">Del m&aacute;s r&aacute;pido (arriba) al m&aacute;s lento (abajo).
- M&aacute;s aciertos en L1 (verde) y menos espera de memoria (rojo) &rarr; menor CPI.
- Es la misma cadena para todos: el patr&oacute;n de acceso manda.</p>
-<table><thead><tr>
- <th>Benchmark</th><th>L1 aciertos</th><th>Espera mem</th><th>CPI</th>
-</tr></thead><tbody>{body}</tbody></table>
-</section>
-"""
-
-
 def _num(v, dec=0, suffix=""):
     """Formatea un valor numerico de la fila; '&mdash;' si no es numero."""
     f = _fnum(v)
@@ -896,7 +859,7 @@ def _speed_badge_opt(sp, broke, o):
     return f'<span class="p2badge p2flat">{sp:.2f}&times; &#9644;</span>'
 
 
-def compiler_section(rows):
+def compiler_section(rows, no_cache):
     """Compara cada benchmark en todos los niveles de optimizacion (O0..O3).
     El resultado (x11) valida cada corrida; un nivel que rompe el resultado
     se marca y no cuenta como aceleracion."""
@@ -921,8 +884,10 @@ def compiler_section(rows):
     x11_by_name = {b["name"]: b.get("x11") for b in BENCHMARKS}
 
     # ── TABLA A: Rendimiento ──────────────────────────────────────────────────
-    # cabecera fila 1: grupos por nivel
+    # cabecera fila 1: SIN$ (sin cache, O0) + grupos por nivel
     hdr1_a = f'<th rowspan="2" class="cname">Benchmark</th><th rowspan="2">x11</th>'
+    hdr1_a += ('<th colspan="3" class="p2hgroup p2nc">'
+               'SIN$<br><span style="font-weight:400;font-size:0.8em">(sin cach&eacute;)</span></th>')
     for o in all_opts:
         c = _OPT_LEVEL_META.get(o, {}).get("color", "#999")
         span = 3  # Ciclos + IPC + CPI
@@ -935,8 +900,14 @@ def compiler_section(rows):
         hdr1_a += (f'<th rowspan="2" class="p2hgroup" '
                    f'style="background:{c}33;color:{c};border-bottom:2px solid {c}">'
                    f'Speedup<br>{_opt_badge(o)}</th>')
+    # speedup del cache: ciclos sin cache / ciclos con cache (O0)
+    hdr1_a += ('<th rowspan="2" class="p2hgroup p2nc" '
+               'title="Ciclos sin cache / ciclos con cache (O0)">'
+               'Speedup<br>cach&eacute;</th>')
 
-    hdr2_a = "".join(
+    hdr2_a = ('<th class="p2nc">Ciclos</th><th class="p2nc">IPC</th>'
+              '<th class="p2nc">CPI</th>')
+    hdr2_a += "".join(
         "<th>Ciclos</th><th>IPC</th><th>CPI</th>" for _ in all_opts)
 
     perf = ""
@@ -981,8 +952,23 @@ def compiler_section(rows):
 
         x11v = x11_by_name.get(base)
         x11_cell = (f"<td class='p2x11'>0x{x11v}</td>" if x11v else "<td>&mdash;</td>")
-        perf += (f"<tr><td class='cname'>{name_cell}</td>{x11_cell}"
-                 f"{cells_by_level}{speed_cells}</tr>\n")
+
+        # SIN$ = corrida O0 sin cache (top_no_cash); IPC = 1/CPI
+        nc = no_cache.get(o0.get("Test Ejecutado", "")) or {}
+        nc_cpi = _fnum(nc.get("CPI"))
+        nc_cyc = _fnum(nc.get("Ciclos"))
+        nc_ipc = (1.0 / nc_cpi) if (nc_cpi and nc_cpi > 0) else None
+        sin_cells = (f"<td class='p2nc'>{_num(nc_cyc)}</td>"
+                     f"<td class='p2nc'>{_num(nc_ipc, 3)}</td>"
+                     f"<td class='p2nc'>{_num(nc_cpi, 2)}</td>")
+
+        # speedup del cache: sin cache / con cache (O0); mismo badge que los Ox
+        cache_sp = (nc_cyc / c0) if (nc_cyc and c0 and c0 > 0) else None
+        cache_sp_cell = (f"<td class='p2speedcell'>"
+                         f"{_speed_badge_opt(cache_sp, False, '$')}</td>")
+
+        perf += (f"<tr><td class='cname'>{name_cell}</td>{x11_cell}{sin_cells}"
+                 f"{cells_by_level}{speed_cells}{cache_sp_cell}</tr>\n")
 
     # ── TABLA B: Transformaciones ─────────────────────────────────────────────
     # cabecera fila 1: Instr / Cod (B) agrupados por nivel; luego bloque transf por nivel
@@ -1631,8 +1617,7 @@ def render_html(rows, path, no_cache, p2_results=None):
 {processor_section(base_rows)}
 {cache_section(base_rows)}
 {memory_section(base_rows)}
-{causal_chain(base_rows)}
-{compiler_section(rows)}
+{compiler_section(rows, no_cache)}
 {p2_html}
 {formulas_section()}
 </body></html>"""
