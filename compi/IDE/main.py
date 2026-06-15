@@ -2179,13 +2179,15 @@ class MainWindow(QMainWindow):
         if failed:
             status = f"Simulacion terminada con error ({exit_code})"
             self._set_problem_text(
-                "La simulacion no termino correctamente. "
-                "Revise la pestana Salida para ver el diagnostico del testbench."
+                "La simulacion no termino correctamente.\n"
+                f"Diagnostico: {self.simulator.diagnostic()}\n"
+                "Revise la pestana Salida para ver el registro completo."
             )
             self.output_tabs.setCurrentWidget(self.output_panel)
         else:
             match = re.search(
-                r"\[METRICS\]\s+cycles=(\d+)\|instr=(\d+)\|cpi=([0-9.]+)",
+                r"\[METRICS\]\s+(?:name=[^|]*\|)?"
+                r"cycles=(\d+)\|instr=(\d+)\|cpi=([0-9.]+)",
                 self.simulator.output_text,
             )
             if match:
