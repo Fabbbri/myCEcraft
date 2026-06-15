@@ -236,3 +236,10 @@ complejidad de las interconexiones dentro de `top.sv`.
 | Boveda separada | Aisla llaves y valores sensibles del banco general. |
 | Secure Mode como compuerta | Protege escrituras Vault con poca logica adicional. |
 | Soporte TEA con ALU y Vault | Evita un acelerador criptografico dedicado y reutiliza recursos existentes. |
+
+## Apéndice: extensión para métricas
+
+Para el benchmark se incorporó el módulo `perf_counters.sv` (PMU) directamente en `top.sv`. El módulo recibe señales ya presentes en el top: `instrDE`, `flushE`, `stallE`, `flushD`, `stall_mem`, `result_src`, `we_mem` y `alu_result` del pipeline, más los eventos de caché `hit_l1`, `hit_l2`, `hit_l2_wb`, `wb_commit`, `burst_active` y `ram_we` expuestos por la jerarquía de memoria. Los contadores cubren: ciclos totales, instrucciones retiradas, stalls de memoria, stalls de control, accesos y aciertos/fallos en L1-D (lecturas y escrituras por separado), accesos y aciertos/fallos en L2, accesos a RAM, cantidad de bursts y ciclos activos de transferencia a RAM. Todos los valores quedan accesibles para simulación y son leídos por el testbench para el análisis de rendimiento.
+
+![Diagrama de bloques de la microarquitectura Craft21](microarch_metrics.png)
+
